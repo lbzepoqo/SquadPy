@@ -9,6 +9,7 @@ from squadpy.config import ServerConfig, LoggingConfig
 from squadpy.events.emitter import EventBus
 from squadpy.logger import setup_logging
 from squadpy.plugin_loader import PluginLoader, LoadedPlugin, PluginStatus
+from squadpy.log_parser import LogParser, LocalLogReader
 from squadpy.rcon.client import RconClient
 
 logger = logging.getLogger("squadpy")
@@ -45,6 +46,8 @@ class SquadPyServer:
         self._rcon: RconClient | None = None
         self._loaded_plugins: list[LoadedPlugin] = []
         self._periodic_tasks: list[asyncio.Task] = []
+        self._log_parser: LogParser | None = None
+        self._log_parser_task: asyncio.Task | None = None
         self._shutdown_event = asyncio.Event()
 
     @property
@@ -78,9 +81,32 @@ class SquadPyServer:
             rcon_detail = str(e)
             logger.error("RCON connection failed: %s", e)
 
+        # Start log reader (if configured)
+        log_ok = False
+        log_detail = ""
+        if self._server_config.log.enabled:
+            try:
+                if self._server_config.log.mode == "local":
+                    reader = LocalLogReader(
+                        self._server_config.log.path,
+                        poll_interval=self._server_config.log.poll_interval,
+                    )
+                else:
+                    raise NotImplementedError("SFTP log reader not yet implemented")
+                self._log_parser = LogParser(reader=reader, event_bus=self._event_bus)
+                self._log_parser_task = asyncio.create_task(self._log_parser.run())
+                log_ok = True
+                log_detail = f"tailing ({self._server_config.log.mode})"
+            except Exception as e:
+                log_detail = str(e)
+                logger.error("Log reader failed: %s", e)
+        else:
+            log_detail = "not configured"
+
         # Load plugins
         services = {
             "rcon": self._rcon if rcon_ok else None,
+            "log_reader": self._log_parser if log_ok else None,
             "discord": None,
             "db": None,
             "server": self,
@@ -97,7 +123,7 @@ class SquadPyServer:
                 self._register_plugin_events(lp)
                 self._start_periodic_tasks(lp)
 
-        self._print_summary(rcon_ok, rcon_detail)
+        self._print_summary(rcon_ok, rcon_detail, log_ok, log_detail)
 
         loop = asyncio.get_event_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
@@ -129,14 +155,14 @@ class SquadPyServer:
     def _handle_chat(self, body: str) -> None:
         logger.debug("Chat: %s", body)
 
-    def _print_summary(self, rcon_ok: bool, rcon_detail: str) -> None:
+    def _print_summary(self, rcon_ok: bool, rcon_detail: str, log_ok: bool = False, log_detail: str = "") -> None:
         lines = [
             "",
             f"  SquadPy v{self.version}",
             "",
             "  Core Services:",
             format_service_line("RCON", rcon_ok, rcon_detail),
-            format_service_line("Log Reader", False, "not configured (Phase 2)"),
+            format_service_line("Log Reader", log_ok, log_detail),
             format_service_line("Discord", False, "not configured (Phase 3)"),
             format_service_line("Database", False, "not configured (Phase 4)"),
             "",
@@ -155,6 +181,10 @@ class SquadPyServer:
             return
         logger.info("Shutting down...")
         self._running = False
+
+        # Cancel log parser
+        if self._log_parser_task:
+            self._log_parser_task.cancel()
 
         for task in self._periodic_tasks:
             task.cancel()
@@ -195,6 +225,7 @@ class SquadPyServer:
 
         services = {
             "rcon": self._rcon,
+            "log_reader": self._log_parser,
             "discord": None,
             "db": None,
             "server": self,

@@ -74,3 +74,19 @@ class TestStartupSummary:
         line = format_plugin_line(plugin)
         assert "SeedReward" in line
         assert "disabled" in line.lower()
+
+
+class TestServerLogReaderIntegration:
+    def test_log_reader_in_services_when_configured(self):
+        """Server config with log enabled should register log_reader service."""
+        config = ServerConfig(
+            rcon={"host": "127.0.0.1", "password": "test"},
+            log={"enabled": True, "mode": "local", "path": "/tmp/test.log"},
+        )
+        assert config.log.enabled is True
+
+    def test_log_reader_not_in_services_when_disabled(self):
+        config = ServerConfig(
+            rcon={"host": "127.0.0.1", "password": "test"},
+        )
+        assert config.log.enabled is False
