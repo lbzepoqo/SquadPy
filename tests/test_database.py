@@ -109,3 +109,19 @@ class TestExports:
     def test_manager_importable_from_package(self):
         from squadpy.database import DatabaseManager as DM
         assert DM is DatabaseManager
+
+
+class TestErrorHandling:
+    async def test_create_tables_before_init_raises(self):
+        mgr = DatabaseManager()
+        with pytest.raises(RuntimeError, match="not initialized"):
+            await mgr.create_tables()
+
+    async def test_url_building_all_drivers(self):
+        """URL building works for all valid drivers."""
+        mgr = DatabaseManager()
+        for driver in ("sqlite", "postgresql", "mysql"):
+            config = DatabaseConfig(enabled=True, driver=driver, path="test.db",
+                                     host="h", port=1, username="u", password="p", database="d")
+            url = mgr._build_url(config)
+            assert "://" in url
