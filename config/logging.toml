@@ -1,0 +1,10 @@
+level = "INFO"
+
+[console]
+level = "INFO"
+
+[file]
+enabled = true
+level = "DEBUG"
+path = "logs"
+max_files = 10

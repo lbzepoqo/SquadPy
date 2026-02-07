@@ -1,0 +1,3 @@
+enabled = false
+driver = "sqlite"
+path = "data/squadpy.db"
