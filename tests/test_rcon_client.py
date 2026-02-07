@@ -1,15 +1,13 @@
 """Tests for the async RCON client."""
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from squadpy.rcon.client import RconClient, RconError, RconAuthError
+from squadpy.rcon.client import RconClient, RconError
 from squadpy.rcon.protocol import (
     PacketType,
     RconPacket,
-    encode_packet,
 )
 
 
