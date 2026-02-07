@@ -1,0 +1,4 @@
+enabled = true
+
+[settings]
+admin_role_id = 0  # Discord role ID required for /reload (0 = no restriction)
