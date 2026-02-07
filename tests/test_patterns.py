@@ -1,10 +1,12 @@
 """Tests for Squad log line regex patterns."""
 
 from squadpy.log_parser.event_store import EventStore
-from squadpy.log_parser.patterns import get_rules, match_line
+from squadpy.log_parser.patterns import match_line
 from squadpy.events.types import (
     PlayerConnected, JoinSucceeded, PlayerDisconnected,
     PlayerDamaged, PlayerWounded, PlayerDied, PlayerRevived,
+    PlayerPossess, PlayerUnpossess, NewGame, RoundEnded,
+    ServerTickRate, AdminBroadcast, DeployableDamaged,
 )
 
 
@@ -160,3 +162,161 @@ class TestPlayerRevived:
         assert event.reviver.name == "U\u0274\u0274. MegaDeth"
         assert event.victim.eos_id == "0002677dbc8e4269b108f244a38029e5"
         assert event.victim.name == "U\u0274\u0274.\u2718 Sith Lord Grogu"
+
+
+class TestPlayerPossess:
+    def test_infantry(self):
+        line = '[2026.02.06-15.05.03:337][386]LogSquadTrace: [DedicatedServer]OnPossess(): PC=U\u0274\u0274. Gunrunner (Online IDs: EOS: 00022f823cdc4f1cad945c19ff4e8b37 steam: 76561198031492269) Pawn=BP_Soldier_TLF_Medic_01_C_2147464264 FullPath=BP_Soldier_TLF_Medic_01_C /Game/Maps/Sumari/Gameplay_Layers/Sumari_Seed_v1.Sumari_Seed_v1:PersistentLevel.BP_Soldier_TLF_Medic_01_C_2147464264'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerPossess)
+        assert event.player.eos_id == "00022f823cdc4f1cad945c19ff4e8b37"
+        assert event.possess_classname == "BP_Soldier_TLF_Medic_01_C"
+
+    def test_vehicle(self):
+        line = '[2026.02.06-15.28.52:780][490]LogSquadTrace: [DedicatedServer]OnPossess(): PC=PAPA_ \u039e_TAN (Online IDs: EOS: 000250f5e359453bb9ad313db051f19e steam: 76561198376713392) Pawn=BP_Loach_CAS_Small_C_2147396130 FullPath=BP_Loach_CAS_Small_C /Game/Maps/Jensens_Range/Gameplay_Layers/Jensens_Range_WPMC-TLF.Jensens_Range_WPMC-TLF:PersistentLevel.BP_Loach_CAS_Small_C_2147396130'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerPossess)
+        assert event.possess_classname == "BP_Loach_CAS_Small_C"
+
+
+class TestPlayerUnpossess:
+    def test_normal(self):
+        line = '[2026.02.06-15.18.55:664][475]LogSquadTrace: [DedicatedServer]OnUnPossess(): PC=U\u0274\u0274. Gunrunner (Online IDs: EOS: 00022f823cdc4f1cad945c19ff4e8b37 steam: 76561198031492269) current health value 100.000000'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerUnpossess)
+        assert event.player.eos_id == "00022f823cdc4f1cad945c19ff4e8b37"
+        assert event.health == 100.0
+        assert event.exited_vehicle is False
+
+    def test_vehicle_exit(self):
+        line = '[2026.02.06-15.36.45:676][655]LogSquadTrace: [DedicatedServer]OnUnPossess(): PC=PAPA_ \u039e_TAN (Online IDs: EOS: 000250f5e359453bb9ad313db051f19e steam: 76561198376713392) Exited Vehicle Pawn=PAPA_ \u039e_TAN (Asset Name=BP_Loach_CAS_Small_C) FullPath=BP_Loach_CAS_Small_C /Game/Maps/Jensens_Range/Gameplay_Layers/Jensens_Range_WPMC-TLF.Jensens_Range_WPMC-TLF:PersistentLevel.BP_Loach_CAS_Small_C_2147396130 Seat Number=0'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerUnpossess)
+        assert event.exited_vehicle is True
+        assert event.vehicle_name == "BP_Loach_CAS_Small_C"
+        assert event.seat_number == 0
+
+
+class TestNewGame:
+    def test_vanilla_map(self):
+        line = '[2026.02.06-15.19.26:022][383]LogWorld: Bringing World /Game/Maps/Jensens_Range/Gameplay_Layers/Jensens_Range_WPMC-TLF.Jensens_Range_WPMC-TLF up for play (max tick rate 64) at 2026.02.06-15.19.26'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, NewGame)
+        assert event.dlc == "Game"
+        assert event.map_classname == "Jensens_Range"
+        assert event.layer_classname == "Jensens_Range_WPMC-TLF"
+
+    def test_modded_map(self):
+        line = '[2026.02.07-05.58.50:012][867]LogWorld: Bringing World /HawksLayerPack/Maps/Mutaha/Gameplay_Layers/HLP_Mutaha_GRAAS_v1.HLP_Mutaha_GRAAS_v1 up for play (max tick rate 64) at 2026.02.07-05.58.50'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, NewGame)
+        assert event.dlc == "HawksLayerPack"
+        assert event.layer_classname == "HLP_Mutaha_GRAAS_v1"
+
+    def test_transition_map_ignored(self):
+        line = '[2026.02.06-15.19.25:580][366]LogWorld: Bringing World /Game/Maps/TransitionMap.TransitionMap up for play (max tick rate 64) at 2026.02.06-15.19.25'
+        store = EventStore()
+        event = match_line(line, store)
+        assert event is None
+
+    def test_clears_event_store(self):
+        store = EventStore()
+        store.session["old"] = {"data": 1}
+        store.players["eos"] = {"name": "test"}
+        line = '[2026.02.06-15.19.26:022][383]LogWorld: Bringing World /Game/Maps/Jensens_Range/Gameplay_Layers/Jensens_Range_WPMC-TLF.Jensens_Range_WPMC-TLF up for play (max tick rate 64) at 2026.02.06-15.19.26'
+        match_line(line, store)
+        assert store.session == {}
+
+
+class TestRoundEnded:
+    def test_with_winner_and_loser(self):
+        store = EventStore()
+        store.round_winner = {"team": "1", "subfaction": "MEA", "tickets": 50}
+        store.round_loser = {"team": "2", "subfaction": "USA", "tickets": 0}
+        line = '[2026.02.06-15.18.55:666][475]LogGameState: Match State Changed from InProgress to WaitingPostMatch'
+        event = match_line(line, store)
+        assert isinstance(event, RoundEnded)
+        assert event.winner["team"] == "1"
+        assert event.loser["team"] == "2"
+        assert store.round_winner is None
+        assert store.round_loser is None
+
+    def test_draw(self):
+        store = EventStore()
+        line = '[2026.02.06-15.18.55:666][475]LogGameState: Match State Changed from InProgress to WaitingPostMatch'
+        event = match_line(line, store)
+        assert isinstance(event, RoundEnded)
+        assert event.winner is None
+        assert event.loser is None
+
+
+class TestRoundWinnerAndTickets:
+    def test_round_winner_stores_not_emits(self):
+        line = '[2026.02.06-15.18.55:664][475]LogSquadTrace: [DedicatedServer]DetermineMatchWinner(): Manticore Security Task Force won on Sumari Bala'
+        store = EventStore()
+        event = match_line(line, store)
+        assert event is None
+        assert store.round_winner is not None
+        assert store.round_winner["winner"] == "Manticore Security Task Force"
+
+    def test_draw_stores(self):
+        line = '[2026.02.06-15.18.55:664][475]LogSquadTrace: [DedicatedServer]DetermineMatchWinner(): The game was a draw on Sumari Bala'
+        store = EventStore()
+        event = match_line(line, store)
+        assert event is None
+        assert store.round_winner is not None
+        assert store.round_winner["winner"] is None
+
+    def test_round_tickets_stores_winner(self):
+        line = "[2026.02.06-20.45.07:818][740]LogSquadGameEvents: Display: Team 1, Irregular Battle Group ( Middle Eastern Insurgents ) has won the match with 2 Tickets on layer Sumari Bala Seed v1 (level Sumari Bala)!"
+        store = EventStore()
+        event = match_line(line, store)
+        assert event is None
+        assert store.round_winner is not None
+        assert store.round_winner["tickets"] == 2
+
+    def test_round_tickets_stores_loser(self):
+        line = "[2026.02.06-20.45.07:818][740]LogSquadGameEvents: Display: Team 2, 21st Division ( Ground Forces of Iran ) has lost the match with 0 Tickets on layer Sumari Bala Seed v1 (level Sumari Bala)!"
+        store = EventStore()
+        event = match_line(line, store)
+        assert event is None
+        assert store.round_loser is not None
+        assert store.round_loser["tickets"] == 0
+
+
+class TestServerTickRate:
+    def test_tick_rate(self):
+        line = '[2026.02.06-15.02.16:900][771]LogSquad: USQGameState: Server Tick Rate: 63.78'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, ServerTickRate)
+        assert event.tick_rate == 63.78
+
+
+class TestAdminBroadcast:
+    def test_broadcast(self):
+        line = '[2026.02.06-11.00.09:436][125]LogSquad: ADMIN COMMAND: Message broadcasted <Custom squad creation will be unlocked in 10 seconds. Default squad names are allowed.> from RCON'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, AdminBroadcast)
+        assert "Custom squad creation" in event.message
+        assert event.from_player == "RCON"
+
+
+class TestDeployableDamaged:
+    def test_deployable(self):
+        line = '[2026.02.06-17.05.08:591][826]LogSquadTrace: [DedicatedServer]TakeDamage(): ASQDeployable::TakeDamage[SQRadialDamage] BP_I_Sandbag_80 for 115.000000 damage (type=BP_Fragmentation_DamageType_C) direct hit = 0'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, DeployableDamaged)
+        assert event.deployable == "BP_I_Sandbag_80"
+        assert event.damage == 115.0
+        assert event.damage_source == "SQRadialDamage"
+        assert event.damage_type == "BP_Fragmentation_DamageType_C"
+        assert event.direct_hit is False

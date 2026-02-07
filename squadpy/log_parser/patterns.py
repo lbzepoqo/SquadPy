@@ -18,6 +18,13 @@ from squadpy.events.types import (
     PlayerWounded,
     PlayerDied,
     PlayerRevived,
+    PlayerPossess,
+    PlayerUnpossess,
+    NewGame,
+    RoundEnded,
+    ServerTickRate,
+    AdminBroadcast,
+    DeployableDamaged,
 )
 from squadpy.log_parser.event_store import EventStore
 from squadpy.log_parser.id_parser import parse_online_ids
@@ -284,6 +291,168 @@ def _on_player_revived(
     return PlayerRevived(reviver=reviver, victim=victim)
 
 
+# --- Possess/Unpossess ---
+
+# OnPossess: group 3 = player name, group 4 = online IDs, group 5 = pawn class name
+_PLAYER_POSSESS_RE = re.compile(
+    _PREFIX + r"LogSquadTrace: \[DedicatedServer\](?:ASQPlayerController::)?OnPossess\(\): PC=(.+) \(Online IDs: ([^)]+)\) Pawn=([A-Za-z0-9_]+_C)_\d+"
+)
+
+
+def _on_player_possess(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerPossess:
+    player_name = m.group(3)
+    ids = parse_online_ids(m.group(4))
+    pawn_class = m.group(5)
+    player = PlayerID(eos_id=ids["eos_id"], steam_id=ids["steam_id"], name=player_name)
+    return PlayerPossess(player=player, possess_classname=pawn_class)
+
+
+# OnUnPossess (vehicle exit variant — more specific, must be checked BEFORE normal variant):
+# group 3 = player name, group 4 = online IDs, group 5 = vehicle asset name, group 6 = seat number
+_PLAYER_UNPOSSESS_VEHICLE_RE = re.compile(
+    _PREFIX + r"LogSquadTrace: \[DedicatedServer\](?:ASQPlayerController::)?OnUnPossess\(\): PC=(.+) \(Online IDs: ([^)]+)\) Exited Vehicle .+Asset Name=([A-Za-z0-9_]+_C)\).+Seat Number=(\d+)"
+)
+
+
+def _on_player_unpossess_vehicle(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerUnpossess:
+    ids = parse_online_ids(m.group(4))
+    player = PlayerID(eos_id=ids["eos_id"], steam_id=ids["steam_id"], name=m.group(3))
+    return PlayerUnpossess(
+        player=player, exited_vehicle=True,
+        vehicle_name=m.group(5), seat_number=int(m.group(6)),
+    )
+
+
+# OnUnPossess (normal variant): group 3 = player name, group 4 = online IDs, group 5 = health
+_PLAYER_UNPOSSESS_RE = re.compile(
+    _PREFIX + r"LogSquadTrace: \[DedicatedServer\](?:ASQPlayerController::)?OnUnPossess\(\): PC=(.+) \(Online IDs: ([^)]+)\) current health value ([0-9.]+)"
+)
+
+
+def _on_player_unpossess(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerUnpossess:
+    ids = parse_online_ids(m.group(4))
+    player = PlayerID(eos_id=ids["eos_id"], steam_id=ids["steam_id"], name=m.group(3))
+    return PlayerUnpossess(player=player, health=float(m.group(5)))
+
+
+# --- Game state events ---
+
+# NewGame (Bringing World): group 3 = DLC/source, group 4 = map name, group 5 = layer name
+# Path format: /<DLC>/Maps/<MapName>/Gameplay_Layers/<LayerName>.<LayerName>
+# TransitionMap (/Game/Maps/TransitionMap.TransitionMap) has no subdirectory so won't match.
+_NEW_GAME_RE = re.compile(
+    _PREFIX + r"LogWorld: Bringing World /([A-Za-z0-9_]+)/Maps/([A-Za-z0-9_-]+)/.+/([A-Za-z0-9_-]+)\.\5"
+)
+
+
+def _on_new_game(m: re.Match, chain_id: int, time: str, store: EventStore) -> NewGame | None:
+    layer = m.group(5)
+    if layer == "TransitionMap":
+        return None
+    winner = store.round_winner
+    store.clear()
+    return NewGame(dlc=m.group(3), map_classname=m.group(4), layer_classname=layer, winner=winner)
+
+
+# RoundEnded (Match State Changed): no extra groups beyond prefix
+_ROUND_ENDED_RE = re.compile(
+    _PREFIX + r"LogGameState: Match State Changed from InProgress to WaitingPostMatch"
+)
+
+
+def _on_round_ended(m: re.Match, chain_id: int, time: str, store: EventStore) -> RoundEnded:
+    winner = store.round_winner
+    loser = store.round_loser
+    store.round_winner = None
+    store.round_loser = None
+    return RoundEnded(winner=winner, loser=loser)
+
+
+# RoundWinner (DetermineMatchWinner — win): group 3 = winner name, group 4 = layer name
+_ROUND_WINNER_RE = re.compile(
+    _PREFIX + r"LogSquadTrace: \[DedicatedServer\](?:ASQGameMode::)?DetermineMatchWinner\(\): (.+) won on (.+)"
+)
+
+
+def _on_round_winner(m: re.Match, chain_id: int, time: str, store: EventStore) -> None:
+    store.round_winner = {"winner": m.group(3), "layer": m.group(4)}
+    return None
+
+
+# RoundDraw (DetermineMatchWinner — draw): group 3 = layer name
+_ROUND_DRAW_RE = re.compile(
+    _PREFIX + r"LogSquadTrace: \[DedicatedServer\](?:ASQGameMode::)?DetermineMatchWinner\(\): The game was a draw on (.+)"
+)
+
+
+def _on_round_draw(m: re.Match, chain_id: int, time: str, store: EventStore) -> None:
+    store.round_winner = {"winner": None, "layer": m.group(3)}
+    return None
+
+
+# RoundTickets: group 3 = team number, group 4 = subfaction, group 5 = faction,
+# group 6 = "won"/"lost", group 7 = tickets, group 8 = layer, group 9 = level
+_ROUND_TICKETS_RE = re.compile(
+    _PREFIX + r"LogSquadGameEvents: Display: Team ([0-9]), (.+?) \( (.+?) \) has (won|lost) the match with ([0-9]+) Tickets on layer (.+) \(level (.+)\)!"
+)
+
+
+def _on_round_tickets(m: re.Match, chain_id: int, time: str, store: EventStore) -> None:
+    data = {
+        "team": m.group(3),
+        "subfaction": m.group(4),
+        "faction": m.group(5),
+        "action": m.group(6),
+        "tickets": int(m.group(7)),
+        "layer": m.group(8),
+        "level": m.group(9),
+    }
+    if data["action"] == "won":
+        store.round_winner = data
+    else:
+        store.round_loser = data
+    return None
+
+
+# --- Server events ---
+
+# Server Tick Rate: group 3 = tick rate value
+_SERVER_TICK_RATE_RE = re.compile(
+    _PREFIX + r"LogSquad: USQGameState: Server Tick Rate: ([0-9.]+)"
+)
+
+
+def _on_server_tick_rate(m: re.Match, chain_id: int, time: str, store: EventStore) -> ServerTickRate:
+    return ServerTickRate(tick_rate=float(m.group(3)))
+
+
+# Admin Broadcast: group 3 = message, group 4 = from player/source
+_ADMIN_BROADCAST_RE = re.compile(
+    _PREFIX + r"LogSquad: ADMIN COMMAND: Message broadcasted <(.+)> from (.+)"
+)
+
+
+def _on_admin_broadcast(m: re.Match, chain_id: int, time: str, store: EventStore) -> AdminBroadcast:
+    return AdminBroadcast(message=m.group(3), from_player=m.group(4))
+
+
+# Deployable Damaged: group 3 = damage source type, group 4 = deployable name,
+# group 5 = damage amount, group 6 = damage type, group 7 = direct hit (0 or 1)
+_DEPLOYABLE_DAMAGED_RE = re.compile(
+    _PREFIX + r"LogSquadTrace: \[DedicatedServer\]TakeDamage\(\): ASQDeployable::TakeDamage\[([A-Za-z0-9_]+)\] ([A-Za-z0-9_]+) for ([0-9.]+) damage \(type=([A-Za-z0-9_]+)\) direct hit = ([01])"
+)
+
+
+def _on_deployable_damaged(m: re.Match, chain_id: int, time: str, store: EventStore) -> DeployableDamaged:
+    return DeployableDamaged(
+        deployable=m.group(4),
+        damage=float(m.group(5)),
+        damage_source=m.group(3),
+        damage_type=m.group(6),
+        direct_hit=m.group(7) == "1",
+    )
+
+
 def get_rules() -> list[Rule]:
     """Return ordered list of all log parsing rules."""
     return [
@@ -294,4 +463,15 @@ def get_rules() -> list[Rule]:
         Rule(_PLAYER_WOUNDED_RE, _on_player_wounded),
         Rule(_PLAYER_DIED_RE, _on_player_died),
         Rule(_PLAYER_REVIVED_RE, _on_player_revived),
+        Rule(_PLAYER_POSSESS_RE, _on_player_possess),
+        Rule(_PLAYER_UNPOSSESS_VEHICLE_RE, _on_player_unpossess_vehicle),
+        Rule(_PLAYER_UNPOSSESS_RE, _on_player_unpossess),
+        Rule(_ROUND_DRAW_RE, _on_round_draw),
+        Rule(_ROUND_WINNER_RE, _on_round_winner),
+        Rule(_ROUND_TICKETS_RE, _on_round_tickets),
+        Rule(_ROUND_ENDED_RE, _on_round_ended),
+        Rule(_NEW_GAME_RE, _on_new_game),
+        Rule(_SERVER_TICK_RATE_RE, _on_server_tick_rate),
+        Rule(_ADMIN_BROADCAST_RE, _on_admin_broadcast),
+        Rule(_DEPLOYABLE_DAMAGED_RE, _on_deployable_damaged),
     ]
