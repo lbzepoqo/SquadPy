@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from squadpy.server import SquadPyServer, format_service_line, format_plugin_line
-from squadpy.config import ServerConfig, LoggingConfig
+from squadpy.config import ServerConfig, LoggingConfig, DiscordConfig
 from squadpy.plugin_loader import LoadedPlugin, PluginStatus
 
 
@@ -90,3 +90,32 @@ class TestServerLogReaderIntegration:
             rcon={"host": "127.0.0.1", "password": "test"},
         )
         assert config.log.enabled is False
+
+
+class TestServerDiscordConfig:
+    def test_server_config_with_discord(self):
+        """ServerConfig accepts discord section."""
+        config = ServerConfig(
+            rcon={"host": "127.0.0.1", "password": "test"},
+            discord={"enabled": True, "token": "tok", "guild_id": 123},
+        )
+        assert config.discord.enabled is True
+
+    def test_server_config_without_discord(self):
+        config = ServerConfig(
+            rcon={"host": "127.0.0.1", "password": "test"},
+        )
+        assert config.discord.enabled is False
+
+
+class TestStartupSummaryDiscord:
+    def test_format_discord_ok(self):
+        line = format_service_line("Discord", True, "connected (SquadPy#1234)")
+        assert "Discord" in line
+        assert "ok" in line
+        assert "connected" in line
+
+    def test_format_discord_not_configured(self):
+        line = format_service_line("Discord", False, "not configured")
+        assert "Discord" in line
+        assert "not configured" in line

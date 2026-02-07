@@ -11,6 +11,7 @@ from squadpy.logger import setup_logging
 from squadpy.plugin_loader import PluginLoader, LoadedPlugin, PluginStatus
 from squadpy.log_parser import LogParser, LocalLogReader
 from squadpy.rcon.client import RconClient
+from squadpy.discord.connector import DiscordConnector
 
 logger = logging.getLogger("squadpy")
 
@@ -49,6 +50,7 @@ class SquadPyServer:
         self._log_parser: LogParser | None = None
         self._log_parser_task: asyncio.Task | None = None
         self._shutdown_event = asyncio.Event()
+        self._discord: DiscordConnector | None = None
 
     @property
     def version(self) -> str:
@@ -103,11 +105,29 @@ class SquadPyServer:
         else:
             log_detail = "not configured"
 
+        # Connect Discord (if configured)
+        discord_ok = False
+        discord_detail = ""
+        if self._server_config.discord.enabled:
+            try:
+                self._discord = DiscordConnector(self._server_config.discord)
+                await self._discord.start(self._server_config.discord.token)
+                await asyncio.wait_for(self._discord.wait_until_ready(), timeout=30.0)
+                discord_ok = True
+                bot_name = str(self._discord.bot.user) if self._discord.bot.user else "unknown"
+                discord_detail = f"connected ({bot_name})"
+            except Exception as e:
+                discord_detail = str(e)
+                logger.error("Discord connection failed: %s", e)
+                self._discord = None
+        else:
+            discord_detail = "not configured"
+
         # Load plugins
         services = {
             "rcon": self._rcon if rcon_ok else None,
             "log_reader": self._log_parser if log_ok else None,
-            "discord": None,
+            "discord": self._discord,
             "db": None,
             "server": self,
         }
@@ -123,7 +143,16 @@ class SquadPyServer:
                 self._register_plugin_events(lp)
                 self._start_periodic_tasks(lp)
 
-        self._print_summary(rcon_ok, rcon_detail, log_ok, log_detail)
+        if self._discord:
+            for lp in self._loaded_plugins:
+                if lp.status == PluginStatus.ENABLED and lp.instance:
+                    self._register_plugin_discord(lp)
+            try:
+                await self._discord.sync_commands()
+            except Exception as e:
+                logger.error("Failed to sync Discord commands: %s", e)
+
+        self._print_summary(rcon_ok, rcon_detail, log_ok, log_detail, discord_ok, discord_detail)
 
         loop = asyncio.get_event_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
@@ -144,6 +173,21 @@ class SquadPyServer:
             )
             self._periodic_tasks.append(task)
 
+    def _register_plugin_discord(self, loaded: LoadedPlugin) -> None:
+        if not self._discord:
+            return
+        plugin_name = loaded.dir_name
+        for meta, method_name in loaded.slash_commands:
+            method = getattr(loaded.instance, method_name)
+            self._discord.register_slash_command(
+                plugin_name, method, name=meta["name"], description=meta.get("description", ""),
+            )
+        for meta, method_name in loaded.discord_handlers:
+            method = getattr(loaded.instance, method_name)
+            self._discord.register_interaction_handler(
+                plugin_name, meta["event_type"], meta.get("custom_id"), method,
+            )
+
     async def _run_periodic(self, plugin_name: str, method, interval: float) -> None:
         while self._running:
             await asyncio.sleep(interval)
@@ -155,7 +199,7 @@ class SquadPyServer:
     def _handle_chat(self, body: str) -> None:
         logger.debug("Chat: %s", body)
 
-    def _print_summary(self, rcon_ok: bool, rcon_detail: str, log_ok: bool = False, log_detail: str = "") -> None:
+    def _print_summary(self, rcon_ok: bool, rcon_detail: str, log_ok: bool = False, log_detail: str = "", discord_ok: bool = False, discord_detail: str = "") -> None:
         lines = [
             "",
             f"  SquadPy v{self.version}",
@@ -163,7 +207,7 @@ class SquadPyServer:
             "  Core Services:",
             format_service_line("RCON", rcon_ok, rcon_detail),
             format_service_line("Log Reader", log_ok, log_detail),
-            format_service_line("Discord", False, "not configured (Phase 3)"),
+            format_service_line("Discord", discord_ok, discord_detail),
             format_service_line("Database", False, "not configured (Phase 4)"),
             "",
         ]
@@ -196,6 +240,9 @@ class SquadPyServer:
                 except Exception:
                     logger.exception("Error disabling plugin %s", lp.name)
 
+        if self._discord:
+            await self._discord.close()
+
         if self._rcon:
             await self._rcon.close()
 
@@ -223,10 +270,13 @@ class SquadPyServer:
                 handler = getattr(target.instance, method_name)
                 self._event_bus.unsubscribe(event_name, handler)
 
+            if self._discord:
+                self._discord.unregister_plugin(target.dir_name)
+
         services = {
             "rcon": self._rcon,
             "log_reader": self._log_parser,
-            "discord": None,
+            "discord": self._discord,
             "db": None,
             "server": self,
         }
@@ -247,6 +297,12 @@ class SquadPyServer:
         if new_loaded.status == PluginStatus.ENABLED and new_loaded.instance:
             self._register_plugin_events(new_loaded)
             self._start_periodic_tasks(new_loaded)
+            if self._discord:
+                self._register_plugin_discord(new_loaded)
+                try:
+                    await self._discord.sync_commands()
+                except Exception:
+                    logger.exception("Failed to sync commands after reload")
             return True, ""
 
         return False, new_loaded.error
