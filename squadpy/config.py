@@ -4,7 +4,7 @@ import tomllib
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class RconConfig(BaseModel):
@@ -65,9 +65,26 @@ class LogConfig(BaseModel):
         return v
 
 
+class DiscordConfig(BaseModel):
+    enabled: bool = False
+    token: str = ""
+    guild_id: int = 0
+    command_prefix: str = "!"
+
+    @model_validator(mode="after")
+    def validate_enabled_fields(self) -> "DiscordConfig":
+        if self.enabled:
+            if not self.token:
+                raise ValueError("Discord token is required when enabled")
+            if not self.guild_id:
+                raise ValueError("Discord guild_id is required when enabled")
+        return self
+
+
 class ServerConfig(BaseModel):
     rcon: RconConfig
     log: LogConfig = LogConfig()
+    discord: DiscordConfig = DiscordConfig()
 
 
 class LoggingConfig(BaseModel):

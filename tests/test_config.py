@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from squadpy.config import ServerConfig, LoggingConfig, LogConfig, load_config
+from squadpy.config import ServerConfig, LoggingConfig, LogConfig, load_config, DiscordConfig
 
 
 class TestServerConfig:
@@ -106,3 +106,43 @@ class TestServerConfigWithLog:
         )
         assert config.log.enabled is True
         assert config.log.path == "/tmp/SquadGame.log"
+
+
+class TestDiscordConfig:
+    def test_defaults(self):
+        config = DiscordConfig()
+        assert config.enabled is False
+        assert config.token == ""
+        assert config.guild_id == 0
+        assert config.command_prefix == "!"
+
+    def test_valid_config(self):
+        config = DiscordConfig(
+            enabled=True,
+            token="Bot_Token_Here",
+            guild_id=123456789012345678,
+        )
+        assert config.enabled is True
+        assert config.guild_id == 123456789012345678
+
+    def test_enabled_without_token_raises(self):
+        with pytest.raises(Exception):
+            DiscordConfig(enabled=True, guild_id=123456789012345678)
+
+    def test_enabled_without_guild_id_raises(self):
+        with pytest.raises(Exception):
+            DiscordConfig(enabled=True, token="some_token")
+
+
+class TestServerConfigWithDiscord:
+    def test_discord_is_optional(self):
+        config = ServerConfig(rcon={"host": "127.0.0.1", "password": "pass"})
+        assert config.discord.enabled is False
+
+    def test_discord_section_parsed(self):
+        config = ServerConfig(
+            rcon={"host": "127.0.0.1", "password": "pass"},
+            discord={"enabled": True, "token": "tok", "guild_id": 123456789012345678},
+        )
+        assert config.discord.enabled is True
+        assert config.discord.token == "tok"

@@ -14,3 +14,9 @@ password = "your_rcon_password"
 # port = 22
 # username = "squad"
 # password = "your_sftp_password"
+
+# [discord]
+# enabled = true
+# token = "your_bot_token_here"
+# guild_id = 123456789012345678
+# command_prefix = "!"
