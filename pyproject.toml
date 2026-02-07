@@ -5,6 +5,7 @@ description = "Python-based Squad game server management framework"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.0",
+    "discord.py>=2.3",
 ]
 
 [project.optional-dependencies]
