@@ -38,6 +38,8 @@ class LoadedPlugin:
     error: str = ""
     event_handlers: list[tuple[str, str]] = field(default_factory=list)
     periodic_tasks: list[tuple[str, float]] = field(default_factory=list)
+    slash_commands: list[tuple[dict, str]] = field(default_factory=list)
+    discord_handlers: list[tuple[dict, str]] = field(default_factory=list)
 
 
 class PluginLoader:
@@ -126,11 +128,14 @@ class PluginLoader:
 
         event_handlers = plugin_cls.get_event_handlers()
         periodic_tasks = plugin_cls.get_periodic_tasks()
+        slash_commands = plugin_cls.get_slash_commands()
+        discord_handlers = plugin_cls.get_discord_handlers()
 
         logger.info("Plugin %s enabled", name)
         return LoadedPlugin(
             name=name, dir_name=info.dir_name, status=PluginStatus.ENABLED,
             instance=instance, event_handlers=event_handlers, periodic_tasks=periodic_tasks,
+            slash_commands=slash_commands, discord_handlers=discord_handlers,
         )
 
     def _import_plugin_class(self, info: DiscoveredPlugin) -> type[Plugin]:
