@@ -1,0 +1,4 @@
+enabled = true
+
+[settings]
+test_value = 42
