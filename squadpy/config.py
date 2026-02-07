@@ -47,8 +47,27 @@ class FileLogConfig(BaseModel):
         return v.upper()
 
 
+class LogConfig(BaseModel):
+    enabled: bool = False
+    mode: Literal["local", "sftp"] = "local"
+    path: str = ""
+    poll_interval: float = 1.0
+    host: str = ""
+    port: int = 22
+    username: str = ""
+    password: str = ""
+
+    @field_validator("poll_interval")
+    @classmethod
+    def validate_poll_interval(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError(f"poll_interval must be positive, got {v}")
+        return v
+
+
 class ServerConfig(BaseModel):
     rcon: RconConfig
+    log: LogConfig = LogConfig()
 
 
 class LoggingConfig(BaseModel):
