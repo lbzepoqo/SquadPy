@@ -92,6 +92,7 @@ class RconClient:
         logger.info("RCON connected and authenticated")
 
     async def _authenticate(self) -> None:
+        assert self._writer is not None
         auth_id = self._next_packet_id()
         packet = encode_packet(PacketType.AUTH, auth_id, self.password)
         self._writer.write(packet)
@@ -120,6 +121,7 @@ class RconClient:
         self._pending_requests[request_id] = future
         self._response_buffers[request_id] = []
 
+        assert self._writer is not None
         self._writer.write(cmd_packet + end_packet)
         await self._writer.drain()
 
@@ -131,6 +133,7 @@ class RconClient:
             raise RconError(f"Command timed out: {command}")
 
     async def _read_loop(self) -> None:
+        assert self._reader is not None
         try:
             while self._connected:
                 data = await self._reader.read(BUFFER_SIZE)
