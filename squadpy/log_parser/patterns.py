@@ -14,6 +14,10 @@ from squadpy.events.types import (
     PlayerConnected,
     JoinSucceeded,
     PlayerDisconnected,
+    PlayerDamaged,
+    PlayerWounded,
+    PlayerDied,
+    PlayerRevived,
 )
 from squadpy.log_parser.event_store import EventStore
 from squadpy.log_parser.id_parser import parse_online_ids
@@ -133,10 +137,161 @@ def _on_player_disconnected(
     return PlayerDisconnected(player=player, ip=ip, controller_name=controller_name)
 
 
+# --- Combat events ---
+
+# ActualDamage line: group 3 = victim name, group 4 = damage, group 5 = attacker name,
+# group 6 = online IDs string, group 7 = controller ID, group 8 = weapon class
+_PLAYER_DAMAGED_RE = re.compile(
+    _PREFIX
+    + r"LogSquad: Player: (.+) ActualDamage=([0-9.]+) from (.+) "
+    + r"\(Online IDs: ([^|]+)\| Player Controller ID: ([^)]+)\)"
+    + r"caused by ([A-Za-z0-9_-]+_C)_\d+"
+)
+
+
+def _on_player_damaged(
+    m: re.Match, chain_id: int, time: str, store: EventStore
+) -> PlayerDamaged:
+    victim_name = m.group(3)
+    damage = float(m.group(4))
+    ids = parse_online_ids(m.group(6))
+    attacker_controller = m.group(7).strip()
+    weapon_raw = m.group(8)
+    attacker = PlayerID(
+        eos_id=ids["eos_id"],
+        steam_id=ids["steam_id"],
+        name=m.group(5).strip(),
+        controller=attacker_controller,
+    )
+    store.session[victim_name] = {
+        "attacker_eos_id": ids["eos_id"],
+        "attacker_steam_id": ids["steam_id"],
+        "attacker_controller": attacker_controller,
+        "weapon": weapon_raw,
+    }
+    if ids["eos_id"]:
+        store.players.setdefault(ids["eos_id"], {})["controller"] = attacker_controller
+    return PlayerDamaged(
+        victim_name=victim_name, damage=damage, attacker=attacker, weapon=weapon_raw
+    )
+
+
+# Wound(): group 3 = victim name (with leading space), group 4 = damage,
+# group 5 = attacker controller or "nullptr", group 6 = online IDs,
+# group 7 = controller ID, group 8 = weapon class
+_PLAYER_WOUNDED_RE = re.compile(
+    _PREFIX
+    + r"LogSquadTrace: \[DedicatedServer\](?:ASQSoldier::)?Wound\(\): Player:"
+    + r"(.+) KillingDamage=(?:-)*([0-9.]+) from (.+) "
+    + r"\(Online IDs: ([^|]+)\| Controller ID: ([^)]+)\) caused by "
+    + r"([A-Za-z0-9_-]+_C)_\d+"
+)
+
+
+def _on_player_wounded(
+    m: re.Match, chain_id: int, time: str, store: EventStore
+) -> PlayerWounded:
+    ids_raw = m.group(6)
+    if "INVALID" in ids_raw:
+        ids = {"eos_id": "", "steam_id": ""}
+    else:
+        ids = parse_online_ids(ids_raw)
+    victim_name = m.group(3).strip()
+    damage = float(m.group(4))
+    weapon_raw = m.group(8)
+    attacker = PlayerID(
+        eos_id=ids["eos_id"],
+        steam_id=ids["steam_id"],
+        controller=m.group(5).strip(),
+    )
+    correlated = store.session.get(victim_name, {})
+    store.session[victim_name] = {
+        **correlated,
+        "attacker_eos_id": ids["eos_id"],
+        "attacker_steam_id": ids["steam_id"],
+        "weapon": weapon_raw,
+    }
+    return PlayerWounded(
+        victim_name=victim_name, damage=damage, attacker=attacker, weapon=weapon_raw
+    )
+
+
+# Die(): Same structure as Wound(), but uses "Contoller" (typo -- missing 'r')
+# Use Conto?ller to handle both spellings
+_PLAYER_DIED_RE = re.compile(
+    _PREFIX
+    + r"LogSquadTrace: \[DedicatedServer\](?:ASQSoldier::)?Die\(\): Player:"
+    + r"(.+) KillingDamage=(?:-)*([0-9.]+) from (.+) "
+    + r"\(Online IDs: ([^|]+)\| Conto?ller ID: ([^)]+)\) caused by "
+    + r"([A-Za-z0-9_-]+_C)_\d+"
+)
+
+
+def _on_player_died(
+    m: re.Match, chain_id: int, time: str, store: EventStore
+) -> PlayerDied:
+    ids_raw = m.group(6)
+    if "INVALID" in ids_raw:
+        ids = {"eos_id": "", "steam_id": ""}
+    else:
+        ids = parse_online_ids(ids_raw)
+    victim_name = m.group(3).strip()
+    damage = float(m.group(4))
+    weapon_raw = m.group(8)
+    attacker = PlayerID(
+        eos_id=ids["eos_id"],
+        steam_id=ids["steam_id"],
+        controller=m.group(5).strip(),
+    )
+    correlated = store.session.get(victim_name, {})
+    store.session[victim_name] = {
+        **correlated,
+        "attacker_eos_id": ids["eos_id"],
+        "attacker_steam_id": ids["steam_id"],
+        "weapon": weapon_raw,
+    }
+    return PlayerDied(
+        victim_name=victim_name, damage=damage, attacker=attacker, weapon=weapon_raw
+    )
+
+
+# Revive: group 3 = reviver name (may have leading space), group 4 = reviver IDs,
+# group 5 = victim name (may have leading space), group 6 = victim IDs
+_PLAYER_REVIVED_RE = re.compile(
+    _PREFIX
+    + r"LogSquad: (.+) \(Online IDs: ([^)]+)\) has revived "
+    + r"(.+) \(Online IDs: ([^)]+)\)\."
+)
+
+
+def _on_player_revived(
+    m: re.Match, chain_id: int, time: str, store: EventStore
+) -> PlayerRevived:
+    reviver_name = m.group(3).strip()
+    reviver_ids = parse_online_ids(m.group(4))
+    victim_name = m.group(5).strip()
+    victim_ids = parse_online_ids(m.group(6))
+    reviver = PlayerID(
+        eos_id=reviver_ids["eos_id"],
+        steam_id=reviver_ids["steam_id"],
+        name=reviver_name,
+    )
+    victim = PlayerID(
+        eos_id=victim_ids["eos_id"],
+        steam_id=victim_ids["steam_id"],
+        name=victim_name,
+    )
+    return PlayerRevived(reviver=reviver, victim=victim)
+
+
 def get_rules() -> list[Rule]:
     """Return ordered list of all log parsing rules."""
     return [
         Rule(_PLAYER_CONNECTED_RE, _on_player_connected),
         Rule(_JOIN_SUCCEEDED_RE, _on_join_succeeded),
         Rule(_PLAYER_DISCONNECTED_RE, _on_player_disconnected),
+        Rule(_PLAYER_DAMAGED_RE, _on_player_damaged),
+        Rule(_PLAYER_WOUNDED_RE, _on_player_wounded),
+        Rule(_PLAYER_DIED_RE, _on_player_died),
+        Rule(_PLAYER_REVIVED_RE, _on_player_revived),
     ]

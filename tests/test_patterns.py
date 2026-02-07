@@ -4,6 +4,7 @@ from squadpy.log_parser.event_store import EventStore
 from squadpy.log_parser.patterns import get_rules, match_line
 from squadpy.events.types import (
     PlayerConnected, JoinSucceeded, PlayerDisconnected,
+    PlayerDamaged, PlayerWounded, PlayerDied, PlayerRevived,
 )
 
 
@@ -74,3 +75,88 @@ class TestPlayerDisconnected:
         store = EventStore()
         match_line(line, store)
         assert store.disconnected["000250f5e359453bb9ad313db051f19e"] is True
+
+
+class TestPlayerDamaged:
+    def test_with_attacker(self):
+        line = '[2026.02.06-16.57.06:079][ 49]LogSquad: Player: enwez ActualDamage=58.952755 from  lord billybean (Online IDs: EOS: 0002ded45cb5412e8d5c7833a92d36b3 steam: 76561198376630934 | Player Controller ID: BP_PlayerController_C_2147285821)caused by BP_KBA3_HEAT_C_2147362075'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerDamaged)
+        assert event.victim_name == "enwez"
+        assert event.damage == 58.952755
+        assert event.attacker.eos_id == "0002ded45cb5412e8d5c7833a92d36b3"
+        assert event.weapon == "BP_KBA3_HEAT_C"
+
+    def test_self_damage(self):
+        line = '[2026.02.06-16.41.00:573][464]LogSquad: Player: U\u0274\u0274. Gunrunner ActualDamage=72.000000 from nullptr (Online IDs: INVALID | Player Controller ID: None)caused by BP_Projectile_7_62mm_C_2147303529'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerDamaged)
+        assert event.attacker.eos_id == ""
+        assert event.victim_name == "U\u0274\u0274. Gunrunner"
+
+    def test_stores_in_session(self):
+        line = '[2026.02.06-16.57.06:079][ 49]LogSquad: Player: enwez ActualDamage=58.952755 from  lord billybean (Online IDs: EOS: 0002ded45cb5412e8d5c7833a92d36b3 steam: 76561198376630934 | Player Controller ID: BP_PlayerController_C_2147285821)caused by BP_KBA3_HEAT_C_2147362075'
+        store = EventStore()
+        match_line(line, store)
+        assert "enwez" in store.session
+
+
+class TestPlayerWounded:
+    def test_with_attacker(self):
+        line = '[2026.02.06-16.57.19:764][922]LogSquadTrace: [DedicatedServer]Wound(): Player: enwez KillingDamage=37.075439 from BP_PlayerController_C_2147285821 (Online IDs: EOS: 0002ded45cb5412e8d5c7833a92d36b3 steam: 76561198376630934 | Controller ID: BP_PlayerController_C_2147285821) caused by BP_KBA3_HEAT_C_2147362075'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerWounded)
+        assert event.victim_name == "enwez"
+        assert event.damage == 37.075439
+        assert event.attacker.eos_id == "0002ded45cb5412e8d5c7833a92d36b3"
+        assert event.weapon == "BP_KBA3_HEAT_C"
+
+    def test_nullptr_attacker(self):
+        line = '[2026.02.06-16.41.37:573][824]LogSquadTrace: [DedicatedServer]Wound(): Player: U\u0274\u0274. Gunrunner KillingDamage=71.000000 from nullptr (Online IDs: INVALID | Controller ID: None) caused by BP_Projectile_7_62mm_C_2147300368'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerWounded)
+        assert event.attacker.eos_id == ""
+
+
+class TestPlayerDied:
+    def test_with_attacker(self):
+        line = '[2026.02.06-16.57.23:024][130]LogSquadTrace: [DedicatedServer]Die(): Player: enwez KillingDamage=-300.000000 from BP_PlayerController_C_2147285821 (Online IDs: EOS: 0002ded45cb5412e8d5c7833a92d36b3 steam: 76561198376630934 | Contoller ID: BP_PlayerController_C_2147285821) caused by BP_Soldier_RU_HAT_RPG28_Desert_C_2147279843'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerDied)
+        assert event.victim_name == "enwez"
+        assert event.attacker.eos_id == "0002ded45cb5412e8d5c7833a92d36b3"
+
+    def test_nullptr_attacker(self):
+        line = '[2026.02.06-16.41.39:656][957]LogSquadTrace: [DedicatedServer]Die(): Player: U\u0274\u0274. Gunrunner KillingDamage=-300.000000 from nullptr (Online IDs: INVALID | Contoller ID: None) caused by BP_Soldier_RU_HAT_RPG28_Desert_C_2147305683'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerDied)
+        assert event.attacker.eos_id == ""
+
+    def test_correlates_with_prior_damage(self):
+        store = EventStore()
+        store.session["enwez"] = {
+            "attacker_eos_id": "0002ded45cb5412e8d5c7833a92d36b3",
+            "attacker_steam_id": "76561198376630934",
+            "weapon": "BP_KBA3_HEAT_C",
+        }
+        line = '[2026.02.06-16.57.23:024][130]LogSquadTrace: [DedicatedServer]Die(): Player: enwez KillingDamage=-300.000000 from BP_PlayerController_C_2147285821 (Online IDs: EOS: 0002ded45cb5412e8d5c7833a92d36b3 steam: 76561198376630934 | Contoller ID: BP_PlayerController_C_2147285821) caused by BP_Soldier_RU_HAT_RPG28_Desert_C_2147279843'
+        event = match_line(line, store)
+        assert isinstance(event, PlayerDied)
+
+
+class TestPlayerRevived:
+    def test_revive(self):
+        line = '[2026.02.06-19.15.02:917][959]LogSquad:  U\u0274\u0274. MegaDeth (Online IDs: EOS: 00026d000720444fb2f4328f9164e9d0 steam: 76561197982173556) has revived U\u0274\u0274.\u2718 Sith Lord Grogu (Online IDs: EOS: 0002677dbc8e4269b108f244a38029e5 steam: 76561198128476165).'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerRevived)
+        assert event.reviver.eos_id == "00026d000720444fb2f4328f9164e9d0"
+        assert event.reviver.name == "U\u0274\u0274. MegaDeth"
+        assert event.victim.eos_id == "0002677dbc8e4269b108f244a38029e5"
+        assert event.victim.name == "U\u0274\u0274.\u2718 Sith Lord Grogu"
