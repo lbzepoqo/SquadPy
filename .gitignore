@@ -7,3 +7,7 @@ build/
 .venv/
 .eggs/
 *.so
+
+# Real configs (may contain passwords/tokens)
+config/*.toml
+config/plugins/*.toml
