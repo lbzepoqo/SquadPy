@@ -1,6 +1,7 @@
 """Local file log reader -- async tail implementation."""
 
 import asyncio
+import io
 import logging
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -17,7 +18,7 @@ class LocalLogReader(LogReader):
         self._path = Path(path)
         self._poll_interval = poll_interval
         self._running = False
-        self._file = None
+        self._file: io.TextIOWrapper | None = None
 
     async def start(self) -> None:
         if not self._path.exists():
@@ -34,7 +35,7 @@ class LocalLogReader(LogReader):
             self._file = None
 
     async def tail(self) -> AsyncIterator[str]:
-        while self._running:
+        while self._running and self._file is not None:
             line = self._file.readline()
             if line:
                 stripped = line.rstrip("\n\r")
