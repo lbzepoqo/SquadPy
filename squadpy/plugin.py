@@ -20,6 +20,30 @@ def periodic(seconds: float):
     return decorator
 
 
+VALID_DISCORD_EVENT_TYPES = {"button_click", "select_menu", "modal_submit", "thread_message"}
+
+
+def slash_command(name: str, description: str = ""):
+    """Decorator to register a plugin method as a Discord slash command."""
+    def decorator(func):
+        func._squadpy_slash_command = {"name": name, "description": description}
+        return func
+    return decorator
+
+
+def on_discord(event_type: str, custom_id: str | None = None):
+    """Decorator to register a plugin method as a Discord interaction handler."""
+    if event_type not in VALID_DISCORD_EVENT_TYPES:
+        raise ValueError(
+            f"Unknown discord event type: {event_type}. "
+            f"Valid types: {VALID_DISCORD_EVENT_TYPES}"
+        )
+    def decorator(func):
+        func._squadpy_on_discord = {"event_type": event_type, "custom_id": custom_id}
+        return func
+    return decorator
+
+
 class Plugin:
     """Base class for all SquadPy plugins."""
 
@@ -68,3 +92,23 @@ class Plugin:
             if callable(attr) and hasattr(attr, "_squadpy_periodic"):
                 tasks.append((attr_name, attr._squadpy_periodic))
         return tasks
+
+    @classmethod
+    def get_slash_commands(cls) -> list[tuple[dict, str]]:
+        """Return list of (meta_dict, method_name) for all @slash_command methods."""
+        commands = []
+        for attr_name in dir(cls):
+            attr = getattr(cls, attr_name, None)
+            if callable(attr) and hasattr(attr, "_squadpy_slash_command"):
+                commands.append((attr._squadpy_slash_command, attr_name))
+        return commands
+
+    @classmethod
+    def get_discord_handlers(cls) -> list[tuple[dict, str]]:
+        """Return list of (meta_dict, method_name) for all @on_discord methods."""
+        handlers = []
+        for attr_name in dir(cls):
+            attr = getattr(cls, attr_name, None)
+            if callable(attr) and hasattr(attr, "_squadpy_on_discord"):
+                handlers.append((attr._squadpy_on_discord, attr_name))
+        return handlers
