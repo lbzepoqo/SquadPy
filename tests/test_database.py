@@ -1,7 +1,7 @@
 """Tests for database module."""
 
 import pytest
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from squadpy.config import DatabaseConfig
 from squadpy.database.manager import DatabaseManager
@@ -40,3 +40,62 @@ class TestURLBuilding:
         mgr = DatabaseManager()
         url = mgr._build_url(config)
         assert url == "mysql+aiomysql://admin:secret@db.example.com:3306/mydb"
+
+
+class _TestRecord(Base):
+    __tablename__ = "test_records"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    value: Mapped[str]
+
+
+class TestDatabaseLifecycle:
+    async def test_initialize_creates_engine(self):
+        config = DatabaseConfig(enabled=True, driver="sqlite", path=":memory:")
+        mgr = DatabaseManager()
+        await mgr.initialize(config)
+        assert mgr._engine is not None
+        assert mgr._session_factory is not None
+        await mgr.shutdown()
+
+    async def test_create_tables(self):
+        config = DatabaseConfig(enabled=True, driver="sqlite", path=":memory:")
+        mgr = DatabaseManager()
+        await mgr.initialize(config)
+        await mgr.create_tables()
+        async with mgr.session() as session:
+            session.add(_TestRecord(value="hello"))
+            await session.commit()
+        async with mgr.session() as session:
+            from sqlalchemy import select
+            result = await session.execute(select(_TestRecord))
+            rows = result.scalars().all()
+            assert len(rows) == 1
+            assert rows[0].value == "hello"
+        await mgr.shutdown()
+
+    async def test_session_no_auto_commit(self):
+        config = DatabaseConfig(enabled=True, driver="sqlite", path=":memory:")
+        mgr = DatabaseManager()
+        await mgr.initialize(config)
+        await mgr.create_tables()
+        async with mgr.session() as session:
+            session.add(_TestRecord(value="uncommitted"))
+        async with mgr.session() as session:
+            from sqlalchemy import select
+            result = await session.execute(select(_TestRecord))
+            rows = result.scalars().all()
+            assert len(rows) == 0
+        await mgr.shutdown()
+
+    async def test_shutdown_disposes_engine(self):
+        config = DatabaseConfig(enabled=True, driver="sqlite", path=":memory:")
+        mgr = DatabaseManager()
+        await mgr.initialize(config)
+        await mgr.shutdown()
+        assert mgr._engine is None
+        assert mgr._session_factory is None
+
+    async def test_session_raises_before_initialize(self):
+        mgr = DatabaseManager()
+        with pytest.raises(RuntimeError, match="not initialized"):
+            mgr.session()

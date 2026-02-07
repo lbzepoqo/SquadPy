@@ -32,3 +32,42 @@ class DatabaseManager:
         if config.driver == "sqlite":
             return f"{dialect}:///{config.path}"
         return f"{dialect}://{config.username}:{config.password}@{config.host}:{config.port}/{config.database}"
+
+    async def initialize(self, config: DatabaseConfig) -> None:
+        url = self._build_url(config)
+        connect_args = {}
+        kwargs = {}
+        if config.driver == "sqlite":
+            connect_args["check_same_thread"] = False
+            if config.path == ":memory:" or url.endswith(":///"):
+                from sqlalchemy.pool import StaticPool
+                kwargs["poolclass"] = StaticPool
+        else:
+            kwargs["pool_pre_ping"] = True
+
+        if config.driver == "sqlite" and config.path != ":memory:":
+            db_path = Path(config.path)
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        self._engine = create_async_engine(url, connect_args=connect_args, **kwargs)
+        self._session_factory = async_sessionmaker(self._engine, expire_on_commit=False)
+        logger.info("Database initialized: %s", url.split("://")[0])
+
+    def session(self) -> AsyncSession:
+        if self._session_factory is None:
+            raise RuntimeError("Database not initialized")
+        return self._session_factory()
+
+    async def create_tables(self) -> None:
+        if self._engine is None:
+            raise RuntimeError("Database not initialized")
+        async with self._engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables created")
+
+    async def shutdown(self) -> None:
+        if self._engine is not None:
+            await self._engine.dispose()
+            self._engine = None
+            self._session_factory = None
+            logger.info("Database shut down")
