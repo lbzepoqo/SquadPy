@@ -5,7 +5,8 @@ import logging
 import signal
 from pathlib import Path
 
-from squadpy.config import ServerConfig, LoggingConfig
+from squadpy.config import ServerConfig, LoggingConfig, DatabaseConfig
+from squadpy.database import DatabaseManager
 from squadpy.events.emitter import EventBus
 from squadpy.logger import setup_logging
 from squadpy.plugin_loader import PluginLoader, LoadedPlugin, PluginStatus
@@ -38,10 +39,12 @@ class SquadPyServer:
         server_config: ServerConfig,
         logging_config: LoggingConfig,
         base_dir: Path,
+        db_config: DatabaseConfig | None = None,
     ):
         self._server_config = server_config
         self._logging_config = logging_config
         self._base_dir = base_dir
+        self._db_config = db_config
         self._running = False
         self._event_bus = EventBus()
         self._rcon: RconClient | None = None
@@ -51,6 +54,7 @@ class SquadPyServer:
         self._log_parser_task: asyncio.Task | None = None
         self._shutdown_event = asyncio.Event()
         self._discord: DiscordConnector | None = None
+        self._db: DatabaseManager | None = None
 
     @property
     def version(self) -> str:
@@ -60,15 +64,7 @@ class SquadPyServer:
     def running(self) -> bool:
         return self._running
 
-    async def start(self) -> None:
-        self._running = True
-
-        log_dir = self._base_dir / self._logging_config.file.path
-        setup_logging(self._logging_config, log_dir if self._logging_config.file.enabled else None)
-
-        # Connect RCON
-        rcon_ok = False
-        rcon_detail = ""
+    async def _connect_rcon(self) -> tuple[bool, str]:
         try:
             self._rcon = RconClient(
                 host=self._server_config.rcon.host,
@@ -77,66 +73,105 @@ class SquadPyServer:
             )
             await self._rcon.connect()
             self._rcon.on_chat = self._handle_chat
-            rcon_ok = True
-            rcon_detail = f"connected ({self._server_config.rcon.host}:{self._server_config.rcon.port})"
+            detail = f"connected ({self._server_config.rcon.host}:{self._server_config.rcon.port})"
+            return True, detail
         except Exception as e:
-            rcon_detail = str(e)
             logger.error("RCON connection failed: %s", e)
+            return False, str(e)
 
-        # Start log reader (if configured)
-        log_ok = False
-        log_detail = ""
-        if self._server_config.log.enabled:
-            try:
-                if self._server_config.log.mode == "local":
-                    reader = LocalLogReader(
-                        self._server_config.log.path,
-                        poll_interval=self._server_config.log.poll_interval,
-                    )
-                else:
-                    raise NotImplementedError("SFTP log reader not yet implemented")
-                self._log_parser = LogParser(reader=reader, event_bus=self._event_bus)
-                self._log_parser_task = asyncio.create_task(self._log_parser.run())
-                log_ok = True
-                log_detail = f"tailing ({self._server_config.log.mode})"
-            except Exception as e:
-                log_detail = str(e)
-                logger.error("Log reader failed: %s", e)
-        else:
-            log_detail = "not configured"
+    async def _start_log_reader(self) -> tuple[bool, str]:
+        if not self._server_config.log.enabled:
+            return False, "not configured"
+        try:
+            if self._server_config.log.mode == "local":
+                reader = LocalLogReader(
+                    self._server_config.log.path,
+                    poll_interval=self._server_config.log.poll_interval,
+                )
+            else:
+                raise NotImplementedError("SFTP log reader not yet implemented")
+            self._log_parser = LogParser(reader=reader, event_bus=self._event_bus)
+            self._log_parser_task = asyncio.create_task(self._log_parser.run())
+            return True, f"tailing ({self._server_config.log.mode})"
+        except Exception as e:
+            logger.error("Log reader failed: %s", e)
+            return False, str(e)
 
-        # Connect Discord (if configured)
-        discord_ok = False
-        discord_detail = ""
-        if self._server_config.discord.enabled:
-            try:
-                self._discord = DiscordConnector(self._server_config.discord)
-                await self._discord.start(self._server_config.discord.token)
-                await asyncio.wait_for(self._discord.wait_until_ready(), timeout=30.0)
-                discord_ok = True
-                bot_name = str(self._discord.bot.user) if self._discord.bot.user else "unknown"
-                discord_detail = f"connected ({bot_name})"
-            except Exception as e:
-                discord_detail = str(e)
-                logger.error("Discord connection failed: %s", e)
-                self._discord = None
-        else:
-            discord_detail = "not configured"
+    async def _connect_discord(self) -> tuple[bool, str]:
+        if not self._server_config.discord.enabled:
+            return False, "not configured"
+        try:
+            self._discord = DiscordConnector(self._server_config.discord)
+            await self._discord.start(self._server_config.discord.token)
+            await asyncio.wait_for(self._discord.wait_until_ready(), timeout=30.0)
+            bot_name = str(self._discord.bot.user) if self._discord.bot.user else "unknown"
+            return True, f"connected ({bot_name})"
+        except Exception as e:
+            logger.error("Discord connection failed: %s", e)
+            self._discord = None
+            return False, str(e)
 
-        # Load plugins
-        services = {
-            "rcon": self._rcon if rcon_ok else None,
-            "log_reader": self._log_parser if log_ok else None,
+    async def _connect_database(self) -> tuple[bool, str]:
+        if not self._db_config or not self._db_config.enabled:
+            return False, "not configured"
+        try:
+            self._db = DatabaseManager()
+            await self._db.initialize(self._db_config)
+            if self._db_config.driver == "sqlite":
+                detail = f"SQLite ({self._db_config.path})"
+            elif self._db_config.driver == "postgresql":
+                detail = f"PostgreSQL ({self._db_config.host}:{self._db_config.port}/{self._db_config.database})"
+            else:
+                detail = f"MySQL ({self._db_config.host}:{self._db_config.port}/{self._db_config.database})"
+            return True, detail
+        except Exception as e:
+            logger.error("Database initialization failed: %s", e)
+            self._db = None
+            return False, str(e)
+
+    def _build_services(self, rcon, log_parser) -> dict:
+        return {
+            "rcon": rcon,
+            "log_reader": log_parser,
             "discord": self._discord,
-            "db": None,
+            "db": self._db,
             "server": self,
         }
 
+    async def _load_plugins(self, services: dict) -> None:
         plugin_loader = PluginLoader(
             plugins_dir=self._base_dir / "plugins",
             config_dir=self._base_dir / "config" / "plugins",
         )
         self._loaded_plugins = await plugin_loader.load_all(services)
+
+    def _setup_signals(self) -> None:
+        loop = asyncio.get_event_loop()
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, lambda: asyncio.create_task(self.stop()))
+
+    async def start(self) -> None:
+        self._running = True
+
+        log_dir = self._base_dir / self._logging_config.file.path
+        setup_logging(self._logging_config, log_dir if self._logging_config.file.enabled else None)
+
+        rcon_ok, rcon_detail = await self._connect_rcon()
+        log_ok, log_detail = await self._start_log_reader()
+        discord_ok, discord_detail = await self._connect_discord()
+        db_ok, db_detail = await self._connect_database()
+
+        services = self._build_services(
+            rcon=self._rcon if rcon_ok else None,
+            log_parser=self._log_parser if log_ok else None,
+        )
+        await self._load_plugins(services)
+
+        if self._db:
+            try:
+                await self._db.create_tables()
+            except Exception as e:
+                logger.error("Failed to create database tables: %s", e)
 
         for lp in self._loaded_plugins:
             if lp.status == PluginStatus.ENABLED and lp.instance:
@@ -152,12 +187,9 @@ class SquadPyServer:
             except Exception as e:
                 logger.error("Failed to sync Discord commands: %s", e)
 
-        self._print_summary(rcon_ok, rcon_detail, log_ok, log_detail, discord_ok, discord_detail)
+        self._print_summary(rcon_ok, rcon_detail, log_ok, log_detail, discord_ok, discord_detail, db_ok, db_detail)
 
-        loop = asyncio.get_event_loop()
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, lambda: asyncio.create_task(self.stop()))
-
+        self._setup_signals()
         await self._shutdown_event.wait()
 
     def _register_plugin_events(self, loaded: LoadedPlugin) -> None:
@@ -199,7 +231,7 @@ class SquadPyServer:
     def _handle_chat(self, body: str) -> None:
         logger.debug("Chat: %s", body)
 
-    def _print_summary(self, rcon_ok: bool, rcon_detail: str, log_ok: bool = False, log_detail: str = "", discord_ok: bool = False, discord_detail: str = "") -> None:
+    def _print_summary(self, rcon_ok: bool, rcon_detail: str, log_ok: bool = False, log_detail: str = "", discord_ok: bool = False, discord_detail: str = "", db_ok: bool = False, db_detail: str = "") -> None:
         lines = [
             "",
             f"  SquadPy v{self.version}",
@@ -208,7 +240,7 @@ class SquadPyServer:
             format_service_line("RCON", rcon_ok, rcon_detail),
             format_service_line("Log Reader", log_ok, log_detail),
             format_service_line("Discord", discord_ok, discord_detail),
-            format_service_line("Database", False, "not configured (Phase 4)"),
+            format_service_line("Database", db_ok, db_detail),
             "",
         ]
 
@@ -243,6 +275,9 @@ class SquadPyServer:
         if self._discord:
             await self._discord.close()
 
+        if self._db:
+            await self._db.shutdown()
+
         if self._rcon:
             await self._rcon.close()
 
@@ -273,13 +308,7 @@ class SquadPyServer:
             if self._discord:
                 self._discord.unregister_plugin(target.dir_name)
 
-        services = {
-            "rcon": self._rcon,
-            "log_reader": self._log_parser,
-            "discord": self._discord,
-            "db": None,
-            "server": self,
-        }
+        services = self._build_services(rcon=self._rcon, log_parser=self._log_parser)
         loader = PluginLoader(
             plugins_dir=self._base_dir / "plugins",
             config_dir=self._base_dir / "config" / "plugins",
@@ -290,6 +319,12 @@ class SquadPyServer:
             return False, "Plugin directory no longer exists"
 
         new_loaded = await loader._load_one(info, services)
+
+        if self._db:
+            try:
+                await self._db.create_tables()
+            except Exception:
+                logger.exception("Failed to create tables after reload")
 
         idx = self._loaded_plugins.index(target)
         self._loaded_plugins[idx] = new_loaded
