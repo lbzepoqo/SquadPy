@@ -11,3 +11,6 @@ build/
 # Real configs (may contain passwords/tokens)
 config/*.toml
 config/plugins/*.toml
+
+# Raw sample data (may contain player IPs/IDs)
+tests/fixtures/samples/
