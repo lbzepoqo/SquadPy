@@ -77,3 +77,51 @@ class TestPluginRequiresDiscord:
         results = await loader.load_all(services)
         good = next(r for r in results if r.name == "Good Plugin")
         assert good.status == PluginStatus.ENABLED
+
+
+class TestHotReloadDiscord:
+    async def test_reload_deregisters_old_discord_handlers(self):
+        """When a plugin is reloaded, old Discord handlers are removed."""
+        from squadpy.discord.connector import DiscordConnector
+        from squadpy.config import DiscordConfig
+        from unittest.mock import patch
+
+        config = DiscordConfig(enabled=True, token="tok", guild_id=123)
+        with patch("squadpy.discord.connector.commands") as mock_commands:
+            mock_bot = MagicMock()
+            mock_bot.tree = MagicMock()
+            mock_commands.Bot.return_value = mock_bot
+
+            connector = DiscordConnector(config)
+
+            # Register some handlers
+            handler = AsyncMock()
+            connector.register_interaction_handler("my_plugin", "button_click", "btn", handler)
+            assert "my_plugin:btn" in connector._interaction_handlers
+
+            # Unregister (simulating reload)
+            connector.unregister_plugin("my_plugin")
+            assert "my_plugin:btn" not in connector._interaction_handlers
+
+    async def test_reload_does_not_affect_other_plugins(self):
+        """Reloading one plugin doesn't touch another's handlers."""
+        from squadpy.discord.connector import DiscordConnector
+        from squadpy.config import DiscordConfig
+        from unittest.mock import patch
+
+        config = DiscordConfig(enabled=True, token="tok", guild_id=123)
+        with patch("squadpy.discord.connector.commands") as mock_commands:
+            mock_bot = MagicMock()
+            mock_bot.tree = MagicMock()
+            mock_commands.Bot.return_value = mock_bot
+
+            connector = DiscordConnector(config)
+
+            handler_a = AsyncMock()
+            handler_b = AsyncMock()
+            connector.register_interaction_handler("plugin_a", "button_click", "btn", handler_a)
+            connector.register_interaction_handler("plugin_b", "button_click", "btn", handler_b)
+
+            connector.unregister_plugin("plugin_a")
+            assert "plugin_a:btn" not in connector._interaction_handlers
+            assert "plugin_b:btn" in connector._interaction_handlers
