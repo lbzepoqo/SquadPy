@@ -8,6 +8,8 @@ import pytest
 
 from squadpy.config import ServerConfig, LoggingConfig, RconConfig, DatabaseConfig
 from squadpy.server import SquadPyServer
+from squadpy.plugin import Plugin
+from squadpy.plugin_loader import PluginLoader, PluginStatus
 
 
 @pytest.fixture
@@ -138,3 +140,51 @@ class TestServerDatabaseSummary:
         server._print_summary(False, "mocked", False, "", False, "", False, "not configured")
         captured = capsys.readouterr()
         assert "not configured" in captured.out
+
+
+class TestDatabaseRequirement:
+    async def test_plugin_requiring_db_fails_when_disabled(self, tmp_path):
+        """A plugin with requires=['db'] fails to load when db is None."""
+        plugin_dir = tmp_path / "plugins" / "db_plugin"
+        plugin_dir.mkdir(parents=True)
+        (plugin_dir / "plugin.py").write_text('''
+from squadpy.plugin import Plugin
+
+class DbPlugin(Plugin):
+    name = "DB Plugin"
+    requires = ["db"]
+''')
+        config_dir = tmp_path / "config"
+        config_dir.mkdir()
+
+        loader = PluginLoader(plugins_dir=tmp_path / "plugins", config_dir=config_dir)
+        services = {"rcon": None, "discord": None, "db": None, "server": None}
+        results = await loader.load_all(services)
+
+        assert len(results) == 1
+        assert results[0].status == PluginStatus.FAILED
+        assert "db" in results[0].error.lower()
+
+    async def test_plugin_requiring_db_succeeds_when_enabled(self, tmp_path):
+        """A plugin with requires=['db'] loads when db is provided."""
+        plugin_dir = tmp_path / "plugins" / "db_plugin"
+        plugin_dir.mkdir(parents=True)
+        (plugin_dir / "plugin.py").write_text('''
+from squadpy.plugin import Plugin
+
+class DbPlugin(Plugin):
+    name = "DB Plugin"
+    requires = ["db"]
+''')
+        config_dir = tmp_path / "config"
+        config_dir.mkdir()
+
+        from unittest.mock import MagicMock
+        mock_db = MagicMock()
+        loader = PluginLoader(plugins_dir=tmp_path / "plugins", config_dir=config_dir)
+        services = {"rcon": None, "discord": None, "db": mock_db, "server": None}
+        results = await loader.load_all(services)
+
+        assert len(results) == 1
+        assert results[0].status == PluginStatus.ENABLED
+        assert results[0].instance.db is mock_db
