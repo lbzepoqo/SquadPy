@@ -99,3 +99,13 @@ class TestDatabaseLifecycle:
         mgr = DatabaseManager()
         with pytest.raises(RuntimeError, match="not initialized"):
             mgr.session()
+
+
+class TestExports:
+    def test_base_importable_from_package(self):
+        from squadpy.database import Base as B
+        assert B is Base
+
+    def test_manager_importable_from_package(self):
+        from squadpy.database import DatabaseManager as DM
+        assert DM is DatabaseManager
