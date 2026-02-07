@@ -125,3 +125,46 @@ class TestErrorHandling:
                                      host="h", port=1, username="u", password="p", database="d")
             url = mgr._build_url(config)
             assert "://" in url
+
+
+class TestEndToEnd:
+    async def test_full_round_trip(self):
+        """Initialize DB, create tables, insert, query, shutdown."""
+        config = DatabaseConfig(enabled=True, driver="sqlite", path=":memory:")
+        mgr = DatabaseManager()
+        await mgr.initialize(config)
+        await mgr.create_tables()
+
+        # Insert
+        async with mgr.session() as session:
+            session.add(_TestRecord(value="round_trip"))
+            await session.commit()
+
+        # Query
+        async with mgr.session() as session:
+            from sqlalchemy import select
+            result = await session.execute(select(_TestRecord).where(_TestRecord.value == "round_trip"))
+            record = result.scalar_one()
+            assert record.value == "round_trip"
+            assert record.id is not None
+
+        # Shutdown
+        await mgr.shutdown()
+        assert mgr._engine is None
+
+    async def test_multiple_sessions_isolated(self):
+        """Two sessions don't see each other's uncommitted data."""
+        config = DatabaseConfig(enabled=True, driver="sqlite", path=":memory:")
+        mgr = DatabaseManager()
+        await mgr.initialize(config)
+        await mgr.create_tables()
+
+        async with mgr.session() as s1:
+            s1.add(_TestRecord(value="s1_data"))
+            # Don't commit yet — s2 should not see this
+            async with mgr.session() as s2:
+                from sqlalchemy import select
+                result = await s2.execute(select(_TestRecord))
+                assert len(result.scalars().all()) == 0
+
+        await mgr.shutdown()
