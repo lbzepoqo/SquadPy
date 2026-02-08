@@ -8,6 +8,9 @@ build/
 .eggs/
 *.so
 
+# Runtime logs
+logs/
+
 # Real configs (may contain passwords/tokens)
 config/*.toml
 config/plugins/*.toml
