@@ -187,6 +187,10 @@ config/               TOML configs (*.toml.example tracked, *.toml gitignored)
 tests/                Test suite
 ```
 
+## Why Python?
+
+Because I wanted to.
+
 ## License
 
-This project is not yet licensed. All rights reserved.
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
