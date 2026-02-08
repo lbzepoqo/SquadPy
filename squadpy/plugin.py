@@ -56,7 +56,7 @@ class Plugin:
         rcon: Any = None,
         discord: Any = None,
         db: Any = None,
-        config: dict = None,
+        config: dict | None = None,
         server: Any = None,
     ):
         self.rcon = rcon
@@ -80,7 +80,7 @@ class Plugin:
         for attr_name in dir(cls):
             attr = getattr(cls, attr_name, None)
             if callable(attr) and hasattr(attr, "_squadpy_event"):
-                handlers.append((attr._squadpy_event, attr_name))
+                handlers.append((getattr(attr, "_squadpy_event"), attr_name))
         return handlers
 
     @classmethod
@@ -90,7 +90,7 @@ class Plugin:
         for attr_name in dir(cls):
             attr = getattr(cls, attr_name, None)
             if callable(attr) and hasattr(attr, "_squadpy_periodic"):
-                tasks.append((attr_name, attr._squadpy_periodic))
+                tasks.append((attr_name, getattr(attr, "_squadpy_periodic")))
         return tasks
 
     @classmethod
@@ -100,7 +100,7 @@ class Plugin:
         for attr_name in dir(cls):
             attr = getattr(cls, attr_name, None)
             if callable(attr) and hasattr(attr, "_squadpy_slash_command"):
-                commands.append((attr._squadpy_slash_command, attr_name))
+                commands.append((getattr(attr, "_squadpy_slash_command"), attr_name))
         return commands
 
     @classmethod
@@ -110,5 +110,5 @@ class Plugin:
         for attr_name in dir(cls):
             attr = getattr(cls, attr_name, None)
             if callable(attr) and hasattr(attr, "_squadpy_on_discord"):
-                handlers.append((attr._squadpy_on_discord, attr_name))
+                handlers.append((getattr(attr, "_squadpy_on_discord"), attr_name))
         return handlers

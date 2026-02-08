@@ -89,10 +89,17 @@ class DiscordConnector:
     ) -> discord.Message | None:
         """Send a message to a channel."""
         channel = self.bot.get_channel(channel_id)
-        if channel is None:
-            logger.warning("Channel %s not found", channel_id)
+        if channel is None or not isinstance(channel, discord.abc.Messageable):
+            logger.warning("Channel %s not found or not messageable", channel_id)
             return None
-        return await channel.send(content=content, embed=embed, view=view)
+        kwargs: dict[str, Any] = {}
+        if content is not None:
+            kwargs["content"] = content
+        if embed is not None:
+            kwargs["embed"] = embed
+        if view is not None:
+            kwargs["view"] = view
+        return await channel.send(**kwargs)
 
     async def edit_message(self, message: discord.Message, **kwargs) -> discord.Message:
         """Edit an existing message."""
