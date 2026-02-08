@@ -3,6 +3,7 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import discord
 import pytest
 
 from squadpy.config import DiscordConfig
@@ -52,14 +53,14 @@ class TestConnectorSend:
     async def test_send_to_channel(self, discord_config):
         with patch("squadpy.discord.connector.commands") as mock_commands:
             mock_bot = MagicMock()
-            mock_channel = AsyncMock()
+            mock_channel = AsyncMock(spec=discord.TextChannel)
             mock_bot.get_channel.return_value = mock_channel
             mock_commands.Bot.return_value = mock_bot
 
             connector = DiscordConnector(discord_config)
             await connector.send(999, content="Hello")
             mock_bot.get_channel.assert_called_once_with(999)
-            mock_channel.send.assert_awaited_once_with(content="Hello", embed=None, view=None)
+            mock_channel.send.assert_awaited_once_with(content="Hello")
 
     async def test_send_returns_none_if_channel_not_found(self, discord_config):
         with patch("squadpy.discord.connector.commands") as mock_commands:
