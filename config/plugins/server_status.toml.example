@@ -1,0 +1,5 @@
+enabled = true
+
+[settings]
+channel_id = 0
+update_interval = 60

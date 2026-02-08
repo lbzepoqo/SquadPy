@@ -1,0 +1,6 @@
+enabled = true
+
+[settings]
+channel_id = 0
+ping_role_id = 0
+command_prefix = "!admin"

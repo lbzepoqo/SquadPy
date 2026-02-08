@@ -1,0 +1,6 @@
+enabled = true
+
+[settings]
+kick_threshold = 5
+warning_message = "Team kill #{count} recorded. {threshold} = kick."
+kick_message = "Kicked for excessive teamkills ({count})"

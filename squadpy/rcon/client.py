@@ -2,18 +2,111 @@
 
 import asyncio
 import logging
+import re
 from typing import Callable
 
+from squadpy.log_parser.id_parser import parse_online_ids
 from squadpy.rcon.protocol import (
     PacketType,
     RconPacket,
     encode_packet,
     decode_packet,
 )
+from squadpy.rcon.types import MapInfo, RconPlayer, RconSquad
 
 logger = logging.getLogger("squadpy.rcon")
 
 BUFFER_SIZE = 8192
+
+_PLAYER_RE = re.compile(
+    r"^ID: (?P<id>\d+) \| Online IDs:(?P<ids>[^|]+)\| Name: (?P<name>.+) \| "
+    r"Team ID: (?P<team_id>\d+|N/A) \| Squad ID: (?P<squad_id>\d+|N/A) \| "
+    r"Is Leader: (?P<is_leader>True|False) \| Role: (?P<role>.+?)(?:,?)$"
+)
+
+_TEAM_RE = re.compile(r"^Team ID: (?P<team_id>\d+) \((?P<team_name>.+)\)")
+_SQUAD_RE = re.compile(
+    r"^ID: (?P<id>\d+) \| Name: (?P<name>.+) \| Size: (?P<size>\d+) \| "
+    r"Locked: (?P<locked>True|False) \| Creator Name: (?P<creator_name>.+) \| "
+    r"Creator Online IDs:(?P<creator_ids>.+)$"
+)
+
+_CURRENT_MAP_RE = re.compile(
+    r"^Current level is (?P<level>[^,]+), layer is (?P<layer>[^,]+)"
+    r"(?:, factions (?P<factions>.+))?$"
+)
+
+_NEXT_MAP_RE = re.compile(
+    r"^Next level is (?P<level>[^,]+), layer is (?P<layer>[^,]+)"
+    r"(?:, factions (?P<factions>.+))?$"
+)
+
+
+def parse_players(response: str) -> list[RconPlayer]:
+    """Parse a ListPlayers RCON response into RconPlayer objects."""
+    players: list[RconPlayer] = []
+    for line in response.splitlines():
+        if line.startswith("----- Recently Disconnected"):
+            break
+        m = _PLAYER_RE.match(line)
+        if not m:
+            continue
+        ids = parse_online_ids(m.group("ids"))
+        team_raw = m.group("team_id")
+        squad_raw = m.group("squad_id")
+        players.append(RconPlayer(
+            id=int(m.group("id")),
+            steam_id=ids["steam_id"],
+            eos_id=ids["eos_id"],
+            name=m.group("name"),
+            team_id=int(team_raw) if team_raw != "N/A" else 0,
+            squad_id=int(squad_raw) if squad_raw != "N/A" else 0,
+            is_leader=m.group("is_leader") == "True",
+            role=m.group("role"),
+        ))
+    return players
+
+
+def parse_squads(response: str) -> list[RconSquad]:
+    """Parse a ListSquads RCON response into RconSquad objects."""
+    squads: list[RconSquad] = []
+    current_team_id = 0
+    current_team_name = ""
+    for line in response.splitlines():
+        tm = _TEAM_RE.match(line)
+        if tm:
+            current_team_id = int(tm.group("team_id"))
+            current_team_name = tm.group("team_name")
+            continue
+        sm = _SQUAD_RE.match(line)
+        if not sm:
+            continue
+        ids = parse_online_ids(sm.group("creator_ids"))
+        squads.append(RconSquad(
+            id=int(sm.group("id")),
+            name=sm.group("name"),
+            size=int(sm.group("size")),
+            locked=sm.group("locked") == "True",
+            creator_name=sm.group("creator_name"),
+            creator_steam_id=ids["steam_id"],
+            creator_eos_id=ids["eos_id"],
+            team_id=current_team_id,
+            team_name=current_team_name,
+        ))
+    return squads
+
+
+def parse_map(response: str, pattern: re.Pattern) -> MapInfo | None:
+    """Parse a ShowCurrentMap or ShowNextMap response."""
+    for line in response.splitlines():
+        m = pattern.match(line.strip())
+        if m:
+            return MapInfo(
+                level=m.group("level"),
+                layer=m.group("layer"),
+                factions=m.group("factions") or "",
+            )
+    return None
 
 
 class RconError(Exception):
@@ -229,6 +322,42 @@ class RconClient:
         self._reconnecting = False
         self._reconnect_event.set()
         logger.error("Failed to reconnect after %d attempts", self._max_retries)
+
+    # --- Convenience methods ---
+
+    async def list_players(self) -> list[RconPlayer]:
+        """Execute ListPlayers and return parsed results."""
+        response = await self.execute("ListPlayers")
+        return parse_players(response)
+
+    async def list_squads(self) -> list[RconSquad]:
+        """Execute ListSquads and return parsed results."""
+        response = await self.execute("ListSquads")
+        return parse_squads(response)
+
+    async def broadcast(self, message: str) -> str:
+        """Broadcast a message to all players."""
+        return await self.execute(f"AdminBroadcast {message}")
+
+    async def warn(self, player_id: str, message: str) -> str:
+        """Warn a player by steam ID or EOS ID."""
+        return await self.execute(f'AdminWarn "{player_id}" {message}')
+
+    async def kick(self, player_id: str, reason: str) -> str:
+        """Kick a player by steam ID or EOS ID."""
+        return await self.execute(f'AdminKick "{player_id}" {reason}')
+
+    async def show_current_map(self) -> MapInfo | None:
+        """Get current map info."""
+        response = await self.execute("ShowCurrentMap")
+        return parse_map(response, _CURRENT_MAP_RE)
+
+    async def show_next_map(self) -> MapInfo | None:
+        """Get next map info. Returns None when next map is not defined."""
+        response = await self.execute("ShowNextMap")
+        if "not defined" in response.lower():
+            return None
+        return parse_map(response, _NEXT_MAP_RE)
 
     async def close(self) -> None:
         self._connected = False

@@ -151,3 +151,13 @@ class DeployableDamaged(BaseEvent):
     damage_source: str = ""
     damage_type: str = ""
     direct_hit: bool = False
+
+
+@dataclass
+class ChatMessage(BaseEvent):
+    event_name: str = "chat_message"
+    player_name: str = ""
+    steam_id: str = ""
+    eos_id: str = ""
+    channel: str = ""
+    message: str = ""

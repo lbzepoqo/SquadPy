@@ -1,0 +1,7 @@
+enabled = true
+
+[settings]
+channel_id = 0
+chat_channels = ["ChatAll"]
+show_channel_prefix = true
+discord_to_game_format = "[Discord] {author}: {message}"

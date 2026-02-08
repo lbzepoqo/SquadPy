@@ -1,0 +1,7 @@
+enabled = true
+
+[settings]
+warnings_before_kick = 3
+min_players = 20
+warning_message = "Please join a squad or you will be kicked"
+kick_message = "Kicked for not joining a squad"

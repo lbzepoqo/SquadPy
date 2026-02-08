@@ -2,12 +2,15 @@
 
 import asyncio
 import logging
+import re
 import signal
 from pathlib import Path
 
 from squadpy.config import ServerConfig, LoggingConfig, DatabaseConfig
 from squadpy.database import DatabaseManager
 from squadpy.events.emitter import EventBus
+from squadpy.events.types import ChatMessage
+from squadpy.log_parser.id_parser import parse_online_ids
 from squadpy.logger import setup_logging
 from squadpy.plugin_loader import PluginLoader, LoadedPlugin, PluginStatus
 from squadpy.log_parser import LogParser, LocalLogReader
@@ -17,6 +20,12 @@ from squadpy.discord.connector import DiscordConnector
 logger = logging.getLogger("squadpy")
 
 VERSION = "0.1.0"
+
+_CHAT_RE = re.compile(
+    r"\[(?P<channel>ChatAll|ChatTeam|ChatSquad|ChatAdmin)\] "
+    r"\[Online IDs:(?P<ids>[^\]]+)\] "
+    r"(?P<name>.+?) : (?P<message>.*)"
+)
 
 
 def format_service_line(name: str, ok: bool, detail: str) -> str:
@@ -230,6 +239,18 @@ class SquadPyServer:
 
     def _handle_chat(self, body: str) -> None:
         logger.debug("Chat: %s", body)
+        m = _CHAT_RE.match(body)
+        if not m:
+            return
+        ids = parse_online_ids(m.group("ids"))
+        event = ChatMessage(
+            player_name=m.group("name"),
+            steam_id=ids["steam_id"],
+            eos_id=ids["eos_id"],
+            channel=m.group("channel"),
+            message=m.group("message"),
+        )
+        asyncio.get_event_loop().create_task(self._event_bus.emit(event))
 
     def _print_summary(self, rcon_ok: bool, rcon_detail: str, log_ok: bool = False, log_detail: str = "", discord_ok: bool = False, discord_detail: str = "", db_ok: bool = False, db_detail: str = "") -> None:
         lines = [
