@@ -51,7 +51,7 @@ class LogConfig(BaseModel):
     enabled: bool = False
     mode: Literal["local", "sftp"] = "local"
     path: str = ""
-    poll_interval: float = 1.0
+    poll_interval: float = 0.25
     host: str = ""
     port: int = 22
     username: str = ""

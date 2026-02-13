@@ -7,7 +7,7 @@ password = "your_rcon_password"
 # enabled = true
 # mode = "local"                               # "local" or "sftp"
 # path = "/path/to/SquadGame/SquadGame.log"    # log file path
-# poll_interval = 1.0                          # seconds between checks
+# poll_interval = 0.25                         # seconds between checks
 #
 # # SFTP settings (only used when mode = "sftp")
 # host = "192.168.1.10"

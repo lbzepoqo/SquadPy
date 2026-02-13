@@ -72,7 +72,7 @@ class TestLogConfig:
         assert config.enabled is False
         assert config.mode == "local"
         assert config.path == ""
-        assert config.poll_interval == 1.0
+        assert config.poll_interval == 0.25
 
     def test_local_mode(self):
         config = LogConfig(enabled=True, mode="local", path="/var/log/squad/SquadGame.log")

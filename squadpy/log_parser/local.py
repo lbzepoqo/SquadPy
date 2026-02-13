@@ -26,7 +26,7 @@ class LocalLogReader(LogReader):
     - in-place truncation (copytruncate)
     """
 
-    def __init__(self, path: str, poll_interval: float = 1.0):
+    def __init__(self, path: str, poll_interval: float = 0.25):
         self._path = Path(path)
         self._poll_interval = poll_interval
         self._running = False

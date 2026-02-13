@@ -37,7 +37,7 @@ class SFTPLogReader(LogReader):
         username: str,
         password: str,
         path: str,
-        poll_interval: float = 1.0,
+        poll_interval: float = 0.25,
     ):
         self._host = host
         self._port = port
