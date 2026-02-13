@@ -7,7 +7,8 @@ import pytest
 from squadpy.events.emitter import EventBus
 from squadpy.events.types import (
     BaseEvent, PlayerConnected, JoinSucceeded, PlayerDamaged,
-    PlayerWounded, PlayerDied, RoundEnded, ServerTickRate,
+    PlayerWounded, PlayerDied, PlayerPossess, PlayerUnpossess,
+    NewGame, RoundEnded, ServerTickRate, AdminBroadcast, DeployableDamaged,
 )
 from squadpy.log_parser.parser import LogParser
 from squadpy.log_parser.reader import LogReader
@@ -74,6 +75,55 @@ class TestLogParser:
         events = await self._run_parser(lines)
         assert len(events) == 2
         assert all(isinstance(e, ServerTickRate) for e in events)
+
+    async def test_emits_possess_and_unpossess_events(self):
+        lines = [
+            '[2026.02.06-15.05.03:337][386]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Gunrunner (Online IDs: EOS: 00022f823cdc4f1cad945c19ff4e8b37 steam: 76561198031492269) Pawn=BP_Soldier_TLF_Medic_01_C_2147464264 FullPath=BP_Soldier_TLF_Medic_01_C /Game/Maps/Sumari/Gameplay_Layers/Sumari_Seed_v1.Sumari_Seed_v1:PersistentLevel.BP_Soldier_TLF_Medic_01_C_2147464264',
+            '[2026.02.06-15.36.45:676][655]LogSquadTrace: [DedicatedServer]OnUnPossess(): PC=Gunrunner (Online IDs: EOS: 00022f823cdc4f1cad945c19ff4e8b37 steam: 76561198031492269) Exited Vehicle Pawn=Gunrunner (Asset Name=BP_Loach_CAS_Small_C) FullPath=BP_Loach_CAS_Small_C /Game/Maps/Jensens_Range/Gameplay_Layers/Jensens_Range_WPMC-TLF.Jensens_Range_WPMC-TLF:PersistentLevel.BP_Loach_CAS_Small_C_2147396130 Seat Number=0',
+        ]
+        events = await self._run_parser(lines)
+        assert len(events) == 2
+        assert isinstance(events[0], PlayerPossess)
+        assert isinstance(events[1], PlayerUnpossess)
+        assert events[1].exited_vehicle is True
+        assert events[1].vehicle_name == "BP_Loach_CAS_Small_C"
+
+    async def test_emits_admin_broadcast_and_deployable_damage(self):
+        lines = [
+            '[2026.02.06-11.00.09:436][125]LogSquad: ADMIN COMMAND: Message broadcasted <Server restart in 5 minutes> from RCON',
+            '[2026.02.06-17.05.08:591][826]LogSquadTrace: [DedicatedServer]TakeDamage(): ASQDeployable::TakeDamage[SQRadialDamage] BP_I_Sandbag_80 for 115.000000 damage (type=BP_Fragmentation_DamageType_C) direct hit = 0',
+        ]
+        events = await self._run_parser(lines)
+        assert len(events) == 2
+        assert isinstance(events[0], AdminBroadcast)
+        assert isinstance(events[1], DeployableDamaged)
+        assert events[1].deployable == "BP_I_Sandbag_80"
+        assert events[1].direct_hit is False
+
+    async def test_round_ended_uses_cached_winner_and_loser(self):
+        lines = [
+            '[2026.02.06-20.45.07:818][740]LogSquadGameEvents: Display: Team 1, Irregular Battle Group ( Middle Eastern Insurgents ) has won the match with 2 Tickets on layer Sumari Bala Seed v1 (level Sumari Bala)!',
+            '[2026.02.06-20.45.07:818][741]LogSquadGameEvents: Display: Team 2, 21st Division ( Ground Forces of Iran ) has lost the match with 0 Tickets on layer Sumari Bala Seed v1 (level Sumari Bala)!',
+            '[2026.02.06-15.18.55:666][475]LogGameState: Match State Changed from InProgress to WaitingPostMatch',
+        ]
+        events = await self._run_parser(lines)
+        assert len(events) == 1
+        assert isinstance(events[0], RoundEnded)
+        assert events[0].winner is not None
+        assert events[0].loser is not None
+        assert events[0].winner["tickets"] == 2
+        assert events[0].loser["tickets"] == 0
+
+    async def test_new_game_carries_prior_winner(self):
+        lines = [
+            '[2026.02.06-15.18.55:664][475]LogSquadTrace: [DedicatedServer]DetermineMatchWinner(): Manticore Security Task Force won on Sumari Bala',
+            '[2026.02.06-15.19.26:022][383]LogWorld: Bringing World /Game/Maps/Jensens_Range/Gameplay_Layers/Jensens_Range_WPMC-TLF.Jensens_Range_WPMC-TLF up for play (max tick rate 64) at 2026.02.06-15.19.26',
+        ]
+        events = await self._run_parser(lines)
+        assert len(events) == 1
+        assert isinstance(events[0], NewGame)
+        assert events[0].winner is not None
+        assert events[0].winner["winner"] == "Manticore Security Task Force"
 
     async def _run_parser(self, lines: list[str]) -> list[BaseEvent]:
         """Helper: run parser with mock reader and capture all emitted events."""

@@ -1,6 +1,7 @@
 """Tests for the async RCON client."""
 
 import asyncio
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -124,3 +125,57 @@ class TestRconReconnect:
         assert delays[1] == client._retry_delay * 2
         assert delays[2] == client._retry_delay * 4
         assert delays[3] == client._retry_delay * 8
+
+    async def test_handle_disconnect_clears_pending_requests(self):
+        client = RconClient(
+            host="127.0.0.1",
+            port=21114,
+            password="test",
+            auto_reconnect=False,
+        )
+        client._connected = True
+
+        request_id = 99
+        future: asyncio.Future[str] = asyncio.get_event_loop().create_future()
+        client._pending_requests[request_id] = future
+        client._response_buffers[request_id] = ["partial"]
+
+        await client._handle_disconnect()
+
+        assert client.connected is False
+        assert client._pending_requests == {}
+        assert client._response_buffers == {}
+        with pytest.raises(RconError, match="Connection lost"):
+            await future
+
+    async def test_handle_disconnect_calls_reconnect_when_enabled(self, client):
+        client._connected = True
+        client._reconnect = AsyncMock()
+
+        await client._handle_disconnect()
+
+        client._reconnect.assert_awaited_once()
+
+    async def test_reconnect_succeeds_after_retry(self, client):
+        client.connect = AsyncMock(side_effect=[RconError("try 1 failed"), None])
+        sleep_mock = AsyncMock()
+
+        with patch("squadpy.rcon.client.asyncio.sleep", new=sleep_mock):
+            await client._reconnect()
+
+        assert client.connect.await_count == 2
+        assert sleep_mock.await_count == 2
+        assert client._reconnecting is False
+        assert client._reconnect_event.is_set()
+
+    async def test_reconnect_failure_restores_event(self, client):
+        client.connect = AsyncMock(side_effect=RconError("always fails"))
+        sleep_mock = AsyncMock()
+
+        with patch("squadpy.rcon.client.asyncio.sleep", new=sleep_mock):
+            await client._reconnect()
+
+        assert client.connect.await_count == client._max_retries
+        assert sleep_mock.await_count == client._max_retries
+        assert client._reconnecting is False
+        assert client._reconnect_event.is_set()
