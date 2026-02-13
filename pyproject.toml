@@ -9,6 +9,7 @@ dependencies = [
     "asyncssh>=2.14",
     "sqlalchemy[asyncio]>=2.0",
     "aiosqlite>=0.20",
+    "watchfiles>=0.21",
 ]
 
 [project.optional-dependencies]

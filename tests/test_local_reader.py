@@ -2,6 +2,7 @@
 
 import asyncio
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -113,3 +114,46 @@ class TestLocalLogReader:
         # Stop should cause tail() to end
         await reader.stop()
         await asyncio.wait_for(collect(), timeout=1.0)
+
+    async def test_wait_for_update_uses_polling_fallback_without_watcher(self, tmp_path, monkeypatch):
+        reader = LocalLogReader(str(tmp_path / "SquadGame.log"), poll_interval=0.2)
+        sleep_mock = AsyncMock()
+        monkeypatch.setattr("squadpy.log_parser.local.asyncio.sleep", sleep_mock)
+
+        await reader._wait_for_update()
+
+        sleep_mock.assert_awaited_once_with(0.2)
+
+    async def test_wait_for_update_uses_watcher_when_available(self, tmp_path, monkeypatch):
+        reader = LocalLogReader(str(tmp_path / "SquadGame.log"), poll_interval=0.2)
+        emitted = False
+
+        async def watcher_events():
+            nonlocal emitted
+            emitted = True
+            yield {(1, "changed")}
+
+        reader._watch_events = watcher_events()
+        sleep_mock = AsyncMock()
+        monkeypatch.setattr("squadpy.log_parser.local.asyncio.sleep", sleep_mock)
+
+        await reader._wait_for_update()
+
+        assert emitted is True
+        sleep_mock.assert_not_awaited()
+
+    async def test_wait_for_update_falls_back_after_watcher_error(self, tmp_path, monkeypatch):
+        reader = LocalLogReader(str(tmp_path / "SquadGame.log"), poll_interval=0.2)
+
+        async def broken_watcher():
+            raise RuntimeError("watch failed")
+            yield set()
+
+        reader._watch_events = broken_watcher()
+        sleep_mock = AsyncMock()
+        monkeypatch.setattr("squadpy.log_parser.local.asyncio.sleep", sleep_mock)
+
+        await reader._wait_for_update()
+
+        assert reader._watch_events is None
+        sleep_mock.assert_awaited_once_with(0.2)

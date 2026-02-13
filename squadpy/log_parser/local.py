@@ -4,8 +4,14 @@ import asyncio
 import io
 import logging
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from pathlib import Path
+from typing import Any
+
+try:
+    from watchfiles import awatch
+except ModuleNotFoundError:  # pragma: no cover - exercised when optional dep missing
+    awatch = None
 
 from squadpy.log_parser.reader import LogReader
 
@@ -25,16 +31,27 @@ class LocalLogReader(LogReader):
         self._poll_interval = poll_interval
         self._running = False
         self._file: io.TextIOWrapper | None = None
+        self._watch_events: AsyncGenerator[set[tuple[Any, str]], None] | None = None
 
     async def start(self) -> None:
         if not self._path.exists():
             raise FileNotFoundError(f"Log file not found: {self._path}")
         self._file = self._open_file(seek_to_end=True)
+        self._watch_events = self._build_watcher()
         self._running = True
         logger.info("Tailing local log: %s", self._path)
 
     async def stop(self) -> None:
         self._running = False
+
+        if self._watch_events is not None:
+            try:
+                await self._watch_events.aclose()
+            except Exception:
+                logger.debug("Failed to close local log watcher", exc_info=True)
+            finally:
+                self._watch_events = None
+
         if self._file:
             self._file.close()
             self._file = None
@@ -49,7 +66,7 @@ class LocalLogReader(LogReader):
             else:
                 if self._refresh_file_handle():
                     continue
-                await asyncio.sleep(self._poll_interval)
+                await self._wait_for_update()
 
     def _open_file(self, seek_to_end: bool) -> io.TextIOWrapper:
         file_obj = open(self._path, "r", encoding="utf-8", errors="replace")
@@ -89,3 +106,31 @@ class LocalLogReader(LogReader):
             return True
 
         return False
+
+    def _build_watcher(self) -> AsyncGenerator[set[tuple[Any, str]], None] | None:
+        if awatch is None:
+            return None
+
+        return awatch(
+            self._path.parent,
+            recursive=False,
+            debounce=0,
+            step=50,
+        )
+
+    async def _wait_for_update(self) -> None:
+        if self._watch_events is None:
+            await asyncio.sleep(self._poll_interval)
+            return
+
+        try:
+            await asyncio.wait_for(anext(self._watch_events), timeout=self._poll_interval)
+        except asyncio.TimeoutError:
+            return
+        except StopAsyncIteration:
+            self._watch_events = None
+            await asyncio.sleep(self._poll_interval)
+        except Exception:
+            logger.debug("Local file watcher failed; falling back to polling", exc_info=True)
+            self._watch_events = None
+            await asyncio.sleep(self._poll_interval)
