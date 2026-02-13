@@ -30,6 +30,7 @@
 ## Commit & Pull Request Guidelines
 - Follow Conventional Commit prefixes seen in history: `feat:`, `fix:`, `docs:`, `test:`, `chore:`.
 - Keep commit subjects imperative and specific.
+- Keep commits logically scoped: separate feature changes, refactors, and test/chore updates into different commits.
 - PRs should include intent, behavior changes, linked issues, and test commands/results.
 - For Discord-facing or plugin UX changes, include a short output sample or screenshot.
 
