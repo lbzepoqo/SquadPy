@@ -40,6 +40,13 @@
 - Reuse existing repo patterns before introducing new abstractions.
 - Keep diffs minimal and report changed files plus validation commands in handoff notes.
 
+## Parity Program Workflow
+- For SquadJS/SquadTS parity work, treat `docs/plans/2026-02-13-parity-and-beyond-roadmap.md` as the strategic source of truth.
+- Treat `docs/plans/parity-tracker.md` as the execution source of truth for task status and acceptance criteria.
+- When implementing parity tasks, reference the tracker ID (for example `P0-RCON-001`) in commit messages, PR notes, and handoff summaries.
+- Update checkbox status and acceptance notes in `docs/plans/parity-tracker.md` in the same change whenever practical.
+- If scope changes, update both roadmap and tracker to keep strategy and execution aligned.
+
 ## Security & Configuration Tips
 - Do not commit secrets or server identifiers; only example TOMLs should be tracked.
 - Treat logs and raw sample data as sensitive; sanitize player IDs/IPs before sharing.
