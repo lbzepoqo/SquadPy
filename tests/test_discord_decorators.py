@@ -38,7 +38,8 @@ class TestSlashCommandDecorator:
     def test_marks_method_with_metadata(self):
         method = DiscordPlugin.show_status
         assert hasattr(method, "_squadpy_slash_command")
-        meta = method._squadpy_slash_command
+        meta = getattr(method, "_squadpy_slash_command", None)
+        assert isinstance(meta, dict)
         assert meta["name"] == "status"
         assert meta["description"] == "Show server status"
 
@@ -59,22 +60,26 @@ class TestOnDiscordDecorator:
     def test_marks_button_click_handler(self):
         method = DiscordPlugin.handle_claim
         assert hasattr(method, "_squadpy_on_discord")
-        meta = method._squadpy_on_discord
+        meta = getattr(method, "_squadpy_on_discord", None)
+        assert isinstance(meta, dict)
         assert meta["event_type"] == "button_click"
         assert meta["custom_id"] == "claim"
 
     def test_marks_select_menu_handler(self):
-        meta = DiscordPlugin.handle_select._squadpy_on_discord
+        meta = getattr(DiscordPlugin.handle_select, "_squadpy_on_discord", None)
+        assert isinstance(meta, dict)
         assert meta["event_type"] == "select_menu"
         assert meta["custom_id"] == "team_select"
 
     def test_marks_modal_submit_handler(self):
-        meta = DiscordPlugin.handle_modal._squadpy_on_discord
+        meta = getattr(DiscordPlugin.handle_modal, "_squadpy_on_discord", None)
+        assert isinstance(meta, dict)
         assert meta["event_type"] == "modal_submit"
         assert meta["custom_id"] == "report_form"
 
     def test_marks_thread_message_handler(self):
-        meta = DiscordPlugin.handle_thread._squadpy_on_discord
+        meta = getattr(DiscordPlugin.handle_thread, "_squadpy_on_discord", None)
+        assert isinstance(meta, dict)
         assert meta["event_type"] == "thread_message"
         assert meta["custom_id"] is None
 

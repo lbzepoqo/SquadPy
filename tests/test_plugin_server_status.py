@@ -1,6 +1,7 @@
 """Tests for ServerStatus plugin."""
 
 import importlib.util
+from importlib.abc import Loader
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
@@ -15,8 +16,11 @@ def _load_plugin_class():
         "server_status",
         Path(__file__).parent.parent / "plugins" / "server_status" / "plugin.py",
     )
+    assert spec is not None
+    loader = spec.loader
+    assert isinstance(loader, Loader)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    loader.exec_module(module)
     return module.ServerStatus
 
 

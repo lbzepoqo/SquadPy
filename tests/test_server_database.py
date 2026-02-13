@@ -265,4 +265,5 @@ class DbPlugin(Plugin):
 
         assert len(results) == 1
         assert results[0].status == PluginStatus.ENABLED
+        assert results[0].instance is not None
         assert results[0].instance.db is mock_db

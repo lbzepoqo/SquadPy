@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.0",
     "discord.py>=2.3",
+    "asyncssh>=2.14",
     "sqlalchemy[asyncio]>=2.0",
     "aiosqlite>=0.20",
 ]

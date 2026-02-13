@@ -1,37 +1,35 @@
 """Tests for the built-in PluginManager plugin."""
 
+import importlib.util
+from importlib.abc import Loader
+from pathlib import Path
+from types import ModuleType
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from squadpy.plugin import slash_command, on_event
+
+def _load_plugin_module() -> ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        "plugin_manager",
+        Path(__file__).parent.parent / "plugins" / "plugin_manager" / "plugin.py",
+    )
+    assert spec is not None
+    loader = spec.loader
+    assert isinstance(loader, Loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
 
 
 class TestPluginManagerImport:
     def test_can_import_plugin(self):
         """PluginManager plugin can be imported."""
-        import importlib.util
-        from pathlib import Path
-
-        spec = importlib.util.spec_from_file_location(
-            "plugin_manager",
-            Path(__file__).parent.parent / "plugins" / "plugin_manager" / "plugin.py",
-        )
-        assert spec is not None
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_plugin_module()
         assert hasattr(module, "PluginManager")
 
     def test_plugin_has_required_attributes(self):
-        import importlib.util
-        from pathlib import Path
-
-        spec = importlib.util.spec_from_file_location(
-            "plugin_manager",
-            Path(__file__).parent.parent / "plugins" / "plugin_manager" / "plugin.py",
-        )
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_plugin_module()
         cls = module.PluginManager
 
         assert cls.name == "Plugin Manager"
@@ -39,15 +37,7 @@ class TestPluginManagerImport:
         assert "discord" in cls.requires
 
     def test_plugin_has_slash_commands(self):
-        import importlib.util
-        from pathlib import Path
-
-        spec = importlib.util.spec_from_file_location(
-            "plugin_manager",
-            Path(__file__).parent.parent / "plugins" / "plugin_manager" / "plugin.py",
-        )
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_plugin_module()
         cls = module.PluginManager
 
         commands = cls.get_slash_commands()
@@ -60,15 +50,7 @@ class TestPluginManagerImport:
 class TestPluginManagerHandlers:
     @pytest.fixture
     async def plugin(self):
-        import importlib.util
-        from pathlib import Path
-
-        spec = importlib.util.spec_from_file_location(
-            "plugin_manager",
-            Path(__file__).parent.parent / "plugins" / "plugin_manager" / "plugin.py",
-        )
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_plugin_module()
 
         mock_rcon = MagicMock()
         mock_discord = MagicMock()

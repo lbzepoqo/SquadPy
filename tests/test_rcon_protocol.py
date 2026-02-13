@@ -64,7 +64,9 @@ class TestEncodePacket:
 class TestDecodePacket:
     def test_decode_response_packet(self):
         raw = encode_packet(PacketType.RESPONSE_VALUE, 7, "OK")
-        packet, consumed = decode_packet(raw)
+        result = decode_packet(raw)
+        assert result is not None
+        packet, consumed = result
         assert packet.id == 7
         assert packet.type == PacketType.RESPONSE_VALUE
         assert packet.body == "OK"
@@ -72,18 +74,24 @@ class TestDecodePacket:
 
     def test_decode_auth_response_success(self):
         raw = encode_packet(PacketType.AUTH_RESPONSE, 1, "")
-        packet, consumed = decode_packet(raw)
+        result = decode_packet(raw)
+        assert result is not None
+        packet, consumed = result
         assert packet.id == 1
         assert packet.type == PacketType.AUTH_RESPONSE
 
     def test_decode_auth_response_failure(self):
         raw = encode_packet(PacketType.AUTH_RESPONSE, -1, "")
-        packet, consumed = decode_packet(raw)
+        result = decode_packet(raw)
+        assert result is not None
+        packet, consumed = result
         assert packet.id == -1
 
     def test_decode_chat_packet(self):
         raw = encode_packet(PacketType.CHAT_VALUE, 0, "Player said hello")
-        packet, consumed = decode_packet(raw)
+        result = decode_packet(raw)
+        assert result is not None
+        packet, consumed = result
         assert packet.type == PacketType.CHAT_VALUE
         assert packet.body == "Player said hello"
 
@@ -105,7 +113,9 @@ class TestDecodePacket:
         The size field lies (says 10, actual data is 21 bytes)."""
         empty_pkt = encode_packet(PacketType.RESPONSE_VALUE, 1, "")
         follow = empty_pkt + FOLLOW_RESPONSE_BODY
-        packet, consumed = decode_packet(follow)
+        result = decode_packet(follow)
+        assert result is not None
+        packet, consumed = result
         assert packet.body == ""
         assert packet.is_follow_response is True
         assert consumed == len(follow)
@@ -114,7 +124,11 @@ class TestDecodePacket:
         pkt1 = encode_packet(PacketType.RESPONSE_VALUE, 1, "first")
         pkt2 = encode_packet(PacketType.RESPONSE_VALUE, 2, "second")
         buf = pkt1 + pkt2
-        packet1, consumed1 = decode_packet(buf)
+        result1 = decode_packet(buf)
+        assert result1 is not None
+        packet1, consumed1 = result1
         assert packet1.body == "first"
-        packet2, consumed2 = decode_packet(buf[consumed1:])
+        result2 = decode_packet(buf[consumed1:])
+        assert result2 is not None
+        packet2, consumed2 = result2
         assert packet2.body == "second"

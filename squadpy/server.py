@@ -13,7 +13,7 @@ from squadpy.events.types import ChatMessage
 from squadpy.log_parser.id_parser import parse_online_ids
 from squadpy.logger import setup_logging
 from squadpy.plugin_loader import PluginLoader, LoadedPlugin, PluginStatus
-from squadpy.log_parser import LogParser, LocalLogReader
+from squadpy.log_parser import LogParser, LocalLogReader, SFTPLogReader
 from squadpy.rcon.client import RconClient
 from squadpy.discord.connector import DiscordConnector
 
@@ -97,8 +97,17 @@ class SquadPyServer:
                     self._server_config.log.path,
                     poll_interval=self._server_config.log.poll_interval,
                 )
+            elif self._server_config.log.mode == "sftp":
+                reader = SFTPLogReader(
+                    host=self._server_config.log.host,
+                    port=self._server_config.log.port,
+                    username=self._server_config.log.username,
+                    password=self._server_config.log.password,
+                    path=self._server_config.log.path,
+                    poll_interval=self._server_config.log.poll_interval,
+                )
             else:
-                raise NotImplementedError("SFTP log reader not yet implemented")
+                raise ValueError(f"Unsupported log mode: {self._server_config.log.mode}")
             self._log_parser = LogParser(reader=reader, event_bus=self._event_bus)
             self._log_parser_task = asyncio.create_task(self._log_parser.run())
             return True, f"tailing ({self._server_config.log.mode})"

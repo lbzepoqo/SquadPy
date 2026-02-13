@@ -242,6 +242,8 @@ class TestRoundEnded:
         line = '[2026.02.06-15.18.55:666][475]LogGameState: Match State Changed from InProgress to WaitingPostMatch'
         event = match_line(line, store)
         assert isinstance(event, RoundEnded)
+        assert event.winner is not None
+        assert event.loser is not None
         assert event.winner["team"] == "1"
         assert event.loser["team"] == "2"
         assert store.round_winner is None

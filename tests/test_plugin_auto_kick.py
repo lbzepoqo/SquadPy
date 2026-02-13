@@ -1,6 +1,7 @@
 """Tests for AutoKickUnassigned plugin."""
 
 import importlib.util
+from importlib.abc import Loader
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
@@ -14,8 +15,11 @@ def _load_plugin_class():
         "auto_kick_unassigned",
         Path(__file__).parent.parent / "plugins" / "auto_kick_unassigned" / "plugin.py",
     )
+    assert spec is not None
+    loader = spec.loader
+    assert isinstance(loader, Loader)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    loader.exec_module(module)
     return module.AutoKickUnassigned
 
 

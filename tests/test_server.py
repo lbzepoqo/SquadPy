@@ -6,21 +6,21 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from squadpy.server import SquadPyServer, format_service_line, format_plugin_line
-from squadpy.config import ServerConfig, LoggingConfig, DiscordConfig
+from squadpy.config import LoggingConfig, ServerConfig
+from squadpy.server import SquadPyServer, format_plugin_line, format_service_line
 from squadpy.plugin_loader import LoadedPlugin, PluginStatus
 
 
 class TestSquadPyServer:
     @pytest.fixture
     def server_config(self):
-        return ServerConfig(
-            rcon={"host": "127.0.0.1", "port": 21114, "password": "test"}
-        )
+        return ServerConfig.model_validate({
+            "rcon": {"host": "127.0.0.1", "port": 21114, "password": "test"},
+        })
 
     @pytest.fixture
     def logging_config(self):
-        return LoggingConfig(level="INFO", file={"enabled": False})
+        return LoggingConfig.model_validate({"level": "INFO", "file": {"enabled": False}})
 
     @pytest.fixture
     def server(self, server_config, logging_config):
@@ -80,42 +80,78 @@ class TestStartupSummary:
 class TestServerLogReaderIntegration:
     def test_log_reader_in_services_when_configured(self):
         """Server config with log enabled should register log_reader service."""
-        config = ServerConfig(
-            rcon={"host": "127.0.0.1", "password": "test"},
-            log={"enabled": True, "mode": "local", "path": "/tmp/test.log"},
-        )
+        config = ServerConfig.model_validate({
+            "rcon": {"host": "127.0.0.1", "password": "test"},
+            "log": {"enabled": True, "mode": "local", "path": "/tmp/test.log"},
+        })
         assert config.log.enabled is True
 
     def test_log_reader_not_in_services_when_disabled(self):
-        config = ServerConfig(
-            rcon={"host": "127.0.0.1", "password": "test"},
-        )
+        config = ServerConfig.model_validate({
+            "rcon": {"host": "127.0.0.1", "password": "test"},
+        })
         assert config.log.enabled is False
+
+    async def test_start_log_reader_uses_sftp_reader(self):
+        server = SquadPyServer(
+            server_config=ServerConfig.model_validate({
+                "rcon": {"host": "127.0.0.1", "port": 21114, "password": "test"},
+                "log": {
+                    "enabled": True,
+                    "mode": "sftp",
+                    "path": "/remote/SquadGame.log",
+                    "poll_interval": 0.5,
+                    "host": "sftp.example.com",
+                    "port": 2022,
+                    "username": "tester",
+                    "password": "secret",
+                },
+            }),
+            logging_config=LoggingConfig.model_validate({"level": "INFO", "file": {"enabled": False}}),
+            base_dir=Path("/tmp/test"),
+        )
+
+        with patch("squadpy.server.SFTPLogReader") as mock_sftp_reader:
+            with patch("squadpy.server.LogParser") as mock_parser:
+                with patch("squadpy.server.asyncio.create_task", return_value=MagicMock()):
+                    ok, detail = await server._start_log_reader()
+
+        assert ok is True
+        assert detail == "tailing (sftp)"
+        mock_sftp_reader.assert_called_once_with(
+            host="sftp.example.com",
+            port=2022,
+            username="tester",
+            password="secret",
+            path="/remote/SquadGame.log",
+            poll_interval=0.5,
+        )
+        mock_parser.assert_called_once()
 
 
 class TestServerDiscordConfig:
     def test_server_config_with_discord(self):
         """ServerConfig accepts discord section."""
-        config = ServerConfig(
-            rcon={"host": "127.0.0.1", "password": "test"},
-            discord={"enabled": True, "token": "tok", "guild_id": 123},
-        )
+        config = ServerConfig.model_validate({
+            "rcon": {"host": "127.0.0.1", "password": "test"},
+            "discord": {"enabled": True, "token": "tok", "guild_id": 123},
+        })
         assert config.discord.enabled is True
 
     def test_server_config_without_discord(self):
-        config = ServerConfig(
-            rcon={"host": "127.0.0.1", "password": "test"},
-        )
+        config = ServerConfig.model_validate({
+            "rcon": {"host": "127.0.0.1", "password": "test"},
+        })
         assert config.discord.enabled is False
 
 
 class TestHotReloadPeriodicTasks:
     async def test_reload_cancels_periodic_tasks_for_target_plugin(self):
         server = SquadPyServer(
-            server_config=ServerConfig(
-                rcon={"host": "127.0.0.1", "port": 21114, "password": "test"}
-            ),
-            logging_config=LoggingConfig(level="INFO", file={"enabled": False}),
+            server_config=ServerConfig.model_validate({
+                "rcon": {"host": "127.0.0.1", "port": 21114, "password": "test"},
+            }),
+            logging_config=LoggingConfig.model_validate({"level": "INFO", "file": {"enabled": False}}),
             base_dir=Path("/tmp/test"),
         )
         server._running = True

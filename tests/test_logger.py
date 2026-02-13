@@ -23,13 +23,16 @@ class TestSetupLogging:
         assert logging.StreamHandler in handler_types
 
     def test_file_handler_added_when_enabled(self, tmp_path):
-        config = LoggingConfig(level="DEBUG", file={"enabled": True, "path": str(tmp_path)})
+        config = LoggingConfig.model_validate({
+            "level": "DEBUG",
+            "file": {"enabled": True, "path": str(tmp_path)},
+        })
         logger = setup_logging(config, log_dir=tmp_path)
         handler_types = [type(h) for h in logger.handlers]
         assert SquadPyTimedRotatingHandler in handler_types
 
     def test_no_file_handler_when_disabled(self):
-        config = LoggingConfig(level="INFO", file={"enabled": False})
+        config = LoggingConfig.model_validate({"level": "INFO", "file": {"enabled": False}})
         logger = setup_logging(config, log_dir=None)
         handler_types = [type(h) for h in logger.handlers]
         assert SquadPyTimedRotatingHandler not in handler_types

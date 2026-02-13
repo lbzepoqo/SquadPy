@@ -1,34 +1,36 @@
 """Tests for TOML config loading and validation."""
 
-import pytest
 from pathlib import Path
-from squadpy.config import ServerConfig, LoggingConfig, LogConfig, load_config, DiscordConfig
+
+import pytest
+
+from squadpy.config import DiscordConfig, LogConfig, LoggingConfig, ServerConfig, load_config
 
 
 class TestServerConfig:
     def test_valid_config(self):
-        config = ServerConfig(
-            rcon={"host": "192.168.1.10", "port": 21114, "password": "secret"}
-        )
+        config = ServerConfig.model_validate({
+            "rcon": {"host": "192.168.1.10", "port": 21114, "password": "secret"},
+        })
         assert config.rcon.host == "192.168.1.10"
         assert config.rcon.port == 21114
         assert config.rcon.password == "secret"
 
     def test_default_port(self):
-        config = ServerConfig(rcon={"host": "127.0.0.1", "password": "pass"})
+        config = ServerConfig.model_validate({"rcon": {"host": "127.0.0.1", "password": "pass"}})
         assert config.rcon.port == 21114
 
     def test_missing_host_raises(self):
         with pytest.raises(Exception):
-            ServerConfig(rcon={"password": "pass"})
+            ServerConfig.model_validate({"rcon": {"password": "pass"}})
 
     def test_missing_password_raises(self):
         with pytest.raises(Exception):
-            ServerConfig(rcon={"host": "127.0.0.1"})
+            ServerConfig.model_validate({"rcon": {"host": "127.0.0.1"}})
 
     def test_invalid_port_raises(self):
         with pytest.raises(Exception):
-            ServerConfig(rcon={"host": "127.0.0.1", "port": 99999, "password": "p"})
+            ServerConfig.model_validate({"rcon": {"host": "127.0.0.1", "port": 99999, "password": "p"}})
 
 
 class TestLoggingConfig:
@@ -87,7 +89,7 @@ class TestLogConfig:
 
     def test_invalid_mode_raises(self):
         with pytest.raises(Exception):
-            LogConfig(mode="ftp")
+            LogConfig.model_validate({"mode": "ftp"})
 
     def test_invalid_poll_interval_raises(self):
         with pytest.raises(Exception):
@@ -96,14 +98,14 @@ class TestLogConfig:
 
 class TestServerConfigWithLog:
     def test_log_is_optional(self):
-        config = ServerConfig(rcon={"host": "127.0.0.1", "password": "pass"})
+        config = ServerConfig.model_validate({"rcon": {"host": "127.0.0.1", "password": "pass"}})
         assert config.log.enabled is False
 
     def test_log_section_parsed(self):
-        config = ServerConfig(
-            rcon={"host": "127.0.0.1", "password": "pass"},
-            log={"enabled": True, "mode": "local", "path": "/tmp/SquadGame.log"},
-        )
+        config = ServerConfig.model_validate({
+            "rcon": {"host": "127.0.0.1", "password": "pass"},
+            "log": {"enabled": True, "mode": "local", "path": "/tmp/SquadGame.log"},
+        })
         assert config.log.enabled is True
         assert config.log.path == "/tmp/SquadGame.log"
 
@@ -136,13 +138,13 @@ class TestDiscordConfig:
 
 class TestServerConfigWithDiscord:
     def test_discord_is_optional(self):
-        config = ServerConfig(rcon={"host": "127.0.0.1", "password": "pass"})
+        config = ServerConfig.model_validate({"rcon": {"host": "127.0.0.1", "password": "pass"}})
         assert config.discord.enabled is False
 
     def test_discord_section_parsed(self):
-        config = ServerConfig(
-            rcon={"host": "127.0.0.1", "password": "pass"},
-            discord={"enabled": True, "token": "tok", "guild_id": 123456789012345678},
-        )
+        config = ServerConfig.model_validate({
+            "rcon": {"host": "127.0.0.1", "password": "pass"},
+            "discord": {"enabled": True, "token": "tok", "guild_id": 123456789012345678},
+        })
         assert config.discord.enabled is True
         assert config.discord.token == "tok"

@@ -79,7 +79,8 @@ class TestOnEventDecorator:
             config={}, server=MagicMock(),
         )
         assert hasattr(p.handle_connect, "_squadpy_event")
-        assert p.handle_connect._squadpy_event == "player_connected"
+        event_name = getattr(p.handle_connect, "_squadpy_event", None)
+        assert event_name == "player_connected"
 
     def test_collects_all_event_handlers(self):
         handlers = SamplePlugin.get_event_handlers()
@@ -100,7 +101,8 @@ class TestPeriodicDecorator:
             config={}, server=MagicMock(),
         )
         assert hasattr(p.check_something, "_squadpy_periodic")
-        assert p.check_something._squadpy_periodic == 5
+        interval = getattr(p.check_something, "_squadpy_periodic", None)
+        assert interval == 5
 
     def test_collects_periodic_tasks(self):
         tasks = SamplePlugin.get_periodic_tasks()

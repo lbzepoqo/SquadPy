@@ -1,6 +1,7 @@
 """Tests for DiscordChatBridge plugin."""
 
 import importlib.util
+from importlib.abc import Loader
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
@@ -14,8 +15,11 @@ def _load_plugin_class():
         "discord_chat_bridge",
         Path(__file__).parent.parent / "plugins" / "discord_chat_bridge" / "plugin.py",
     )
+    assert spec is not None
+    loader = spec.loader
+    assert isinstance(loader, Loader)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    loader.exec_module(module)
     return module.DiscordChatBridge
 
 
