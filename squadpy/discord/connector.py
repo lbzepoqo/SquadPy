@@ -121,14 +121,32 @@ class DiscordConnector:
         self, plugin_name: str, func, *, name: str, description: str = ""
     ) -> None:
         """Register a slash command for a plugin."""
+        guild = discord.Object(id=self.guild_id)
+        if self.bot.tree.get_command(name, guild=guild) is not None:
+            logger.warning(
+                "Skipped slash command /%s for %s: name already registered",
+                name,
+                plugin_name,
+            )
+            return
+
         cmd = app_commands.Command(
             name=name,
             description=description or name,
             callback=func,
         )
+        try:
+            self.bot.tree.add_command(cmd, guild=guild)
+        except app_commands.CommandAlreadyRegistered:
+            logger.warning(
+                "Skipped slash command /%s for %s: command already registered",
+                name,
+                plugin_name,
+            )
+            return
+
         key = f"{plugin_name}:{name}"
         self._slash_commands[key] = cmd
-        self.bot.tree.add_command(cmd, guild=discord.Object(id=self.guild_id))
         logger.debug("Registered slash command /%s for %s", name, plugin_name)
 
     def register_interaction_handler(

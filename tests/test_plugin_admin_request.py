@@ -27,6 +27,7 @@ class TestAdminRequest:
         mock_rcon = AsyncMock()
         mock_discord = AsyncMock()
         mock_message = AsyncMock()
+        mock_message.id = 44444
         mock_message.embeds = []
         mock_discord.send.return_value = mock_message
         mock_discord.namespace_custom_id = MagicMock(return_value="admin_request:claim_ticket")
@@ -96,13 +97,54 @@ class TestAdminRequest:
 
         interaction = AsyncMock()
         interaction.message = MagicMock()
+        interaction.message.id = 44444
+        interaction.message.embeds = [mock_embed]
+        interaction.user = MagicMock()
+        interaction.user.display_name = "AdminUser"
+        interaction.response = AsyncMock()
+
+        plugin._tickets[99999] = {
+            "steam_id": "76561198000000001",
+            "player_name": "Player1",
+            "message_id": 44444,
+            "claimed_by": None,
+        }
+
+        await plugin.handle_claim(interaction)
+        interaction.response.edit_message.assert_awaited_once()
+        assert plugin._tickets[99999]["claimed_by"] == "AdminUser"
+
+    async def test_claim_updates_matching_ticket_only(self, plugin):
+        """Claim maps by originating message, not first unclaimed ticket."""
+        import discord as _discord
+        mock_embed = MagicMock(spec=_discord.Embed)
+        mock_embed.color = None
+
+        plugin._tickets[11111] = {
+            "steam_id": "steam-a",
+            "player_name": "PlayerA",
+            "message_id": 1001,
+            "claimed_by": None,
+        }
+        plugin._tickets[22222] = {
+            "steam_id": "steam-b",
+            "player_name": "PlayerB",
+            "message_id": 1002,
+            "claimed_by": None,
+        }
+
+        interaction = AsyncMock()
+        interaction.message = MagicMock()
+        interaction.message.id = 1002
         interaction.message.embeds = [mock_embed]
         interaction.user = MagicMock()
         interaction.user.display_name = "AdminUser"
         interaction.response = AsyncMock()
 
         await plugin.handle_claim(interaction)
-        interaction.response.edit_message.assert_awaited_once()
+
+        assert plugin._tickets[11111]["claimed_by"] is None
+        assert plugin._tickets[22222]["claimed_by"] == "AdminUser"
 
     async def test_thread_message_relays_to_player(self, plugin):
         """Thread message relays to player via RCON warn."""

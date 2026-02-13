@@ -41,6 +41,20 @@ class TestURLBuilding:
         url = mgr._build_url(config)
         assert url == "mysql+aiomysql://admin:secret@db.example.com:3306/mydb"
 
+    def test_postgresql_url_escapes_credentials(self):
+        config = DatabaseConfig(
+            enabled=True,
+            driver="postgresql",
+            host="localhost",
+            port=5432,
+            username="user:name",
+            password="p@ss:word",
+            database="squad",
+        )
+        mgr = DatabaseManager()
+        url = mgr._build_url(config)
+        assert url == "postgresql+asyncpg://user%3Aname:p%40ss%3Aword@localhost:5432/squad"
+
 
 class _TestRecord(Base):
     __tablename__ = "test_records"

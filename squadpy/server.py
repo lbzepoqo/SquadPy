@@ -58,7 +58,7 @@ class SquadPyServer:
         self._event_bus = EventBus()
         self._rcon: RconClient | None = None
         self._loaded_plugins: list[LoadedPlugin] = []
-        self._periodic_tasks: list[asyncio.Task] = []
+        self._periodic_tasks: list[tuple[str, asyncio.Task]] = []
         self._log_parser: LogParser | None = None
         self._log_parser_task: asyncio.Task | None = None
         self._shutdown_event = asyncio.Event()
@@ -170,17 +170,17 @@ class SquadPyServer:
         discord_ok, discord_detail = await self._connect_discord()
         db_ok, db_detail = await self._connect_database()
 
-        services = self._build_services(
-            rcon=self._rcon if rcon_ok else None,
-            log_parser=self._log_parser if log_ok else None,
-        )
-        await self._load_plugins(services)
-
         if self._db:
             try:
                 await self._db.create_tables()
             except Exception as e:
                 logger.error("Failed to create database tables: %s", e)
+
+        services = self._build_services(
+            rcon=self._rcon if rcon_ok else None,
+            log_parser=self._log_parser if log_ok else None,
+        )
+        await self._load_plugins(services)
 
         for lp in self._loaded_plugins:
             if lp.status == PluginStatus.ENABLED and lp.instance:
@@ -212,7 +212,16 @@ class SquadPyServer:
             task = asyncio.create_task(
                 self._run_periodic(loaded.name, method, interval)
             )
-            self._periodic_tasks.append(task)
+            self._periodic_tasks.append((loaded.dir_name, task))
+
+    def _cancel_periodic_tasks(self, plugin_dir_name: str) -> None:
+        remaining: list[tuple[str, asyncio.Task]] = []
+        for dir_name, task in self._periodic_tasks:
+            if dir_name == plugin_dir_name:
+                task.cancel()
+            else:
+                remaining.append((dir_name, task))
+        self._periodic_tasks = remaining
 
     def _register_plugin_discord(self, loaded: LoadedPlugin) -> None:
         if not self._discord:
@@ -283,8 +292,9 @@ class SquadPyServer:
         if self._log_parser_task:
             self._log_parser_task.cancel()
 
-        for task in self._periodic_tasks:
+        for _, task in self._periodic_tasks:
             task.cancel()
+        self._periodic_tasks.clear()
 
         for lp in self._loaded_plugins:
             if lp.status == PluginStatus.ENABLED and lp.instance:
@@ -317,6 +327,7 @@ class SquadPyServer:
             return False, f"Plugin '{plugin_name}' not found"
 
         if target.instance:
+            self._cancel_periodic_tasks(target.dir_name)
             try:
                 await target.instance.on_disable()
             except Exception:
@@ -339,13 +350,13 @@ class SquadPyServer:
         if info is None:
             return False, "Plugin directory no longer exists"
 
-        new_loaded = await loader._load_one(info, services)
-
         if self._db:
             try:
                 await self._db.create_tables()
             except Exception:
                 logger.exception("Failed to create tables after reload")
+
+        new_loaded = await loader._load_one(info, services)
 
         idx = self._loaded_plugins.index(target)
         self._loaded_plugins[idx] = new_loaded

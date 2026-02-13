@@ -61,6 +61,7 @@ class AdminRequest(Plugin):
         self._tickets[thread.id] = {
             "steam_id": event.steam_id,
             "player_name": event.player_name,
+            "message_id": message.id,
             "claimed_by": None,
         }
 
@@ -68,9 +69,22 @@ class AdminRequest(Plugin):
 
     @on_discord("button_click", custom_id="claim_ticket")
     async def handle_claim(self, interaction):
-        # Find ticket by looking up the thread from the message
         message = interaction.message
         if not message:
+            return
+
+        ticket = None
+        message_id = getattr(message, "id", None)
+        if message_id is not None:
+            for candidate in self._tickets.values():
+                if candidate.get("message_id") == message_id:
+                    ticket = candidate
+                    break
+
+        if ticket is None and interaction.channel and interaction.channel.id in self._tickets:
+            ticket = self._tickets[interaction.channel.id]
+
+        if ticket is None:
             return
 
         embed = message.embeds[0] if message.embeds else None
@@ -81,12 +95,7 @@ class AdminRequest(Plugin):
         embed.color = discord.Color.blue()
 
         await interaction.response.edit_message(embed=embed, view=None)
-
-        # Update ticket claimed_by
-        for ticket in self._tickets.values():
-            if ticket.get("claimed_by") is None:
-                ticket["claimed_by"] = interaction.user.display_name
-                break
+        ticket["claimed_by"] = interaction.user.display_name
 
     @on_discord("thread_message")
     async def handle_thread_msg(self, interaction):

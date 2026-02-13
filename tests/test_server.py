@@ -1,7 +1,8 @@
 """Tests for the server orchestrator."""
 
+import asyncio
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -106,6 +107,62 @@ class TestServerDiscordConfig:
             rcon={"host": "127.0.0.1", "password": "test"},
         )
         assert config.discord.enabled is False
+
+
+class TestHotReloadPeriodicTasks:
+    async def test_reload_cancels_periodic_tasks_for_target_plugin(self):
+        server = SquadPyServer(
+            server_config=ServerConfig(
+                rcon={"host": "127.0.0.1", "port": 21114, "password": "test"}
+            ),
+            logging_config=LoggingConfig(level="INFO", file={"enabled": False}),
+            base_dir=Path("/tmp/test"),
+        )
+        server._running = True
+
+        old_task = asyncio.create_task(asyncio.sleep(60))
+        other_task = asyncio.create_task(asyncio.sleep(60))
+        server._periodic_tasks = [
+            ("target_plugin", old_task),
+            ("other_plugin", other_task),
+        ]
+
+        target_instance = AsyncMock()
+        target_instance.on_disable = AsyncMock()
+        server._loaded_plugins = [
+            LoadedPlugin(
+                name="Target Plugin",
+                dir_name="target_plugin",
+                status=PluginStatus.ENABLED,
+                instance=target_instance,
+            )
+        ]
+
+        with patch("squadpy.server.PluginLoader") as mock_loader_cls:
+            mock_loader = MagicMock()
+            mock_loader.discover.return_value = [MagicMock(dir_name="target_plugin")]
+            mock_loader._load_one = AsyncMock(
+                return_value=LoadedPlugin(
+                    name="Target Plugin",
+                    dir_name="target_plugin",
+                    status=PluginStatus.FAILED,
+                    error="reload failed",
+                )
+            )
+            mock_loader_cls.return_value = mock_loader
+
+            ok, error = await server.reload_plugin("target_plugin")
+
+        await asyncio.sleep(0)
+        assert ok is False
+        assert error == "reload failed"
+        assert old_task.cancelled()
+        assert not other_task.cancelled()
+        assert len(server._periodic_tasks) == 1
+        assert server._periodic_tasks[0][0] == "other_plugin"
+
+        other_task.cancel()
+        await asyncio.sleep(0)
 
 
 class TestStartupSummaryDiscord:

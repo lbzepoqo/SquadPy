@@ -8,8 +8,7 @@ import pytest
 
 from squadpy.config import ServerConfig, LoggingConfig, RconConfig, DatabaseConfig
 from squadpy.server import SquadPyServer
-from squadpy.plugin import Plugin
-from squadpy.plugin_loader import PluginLoader, PluginStatus
+from squadpy.plugin_loader import PluginLoader, PluginStatus, LoadedPlugin
 
 
 @pytest.fixture
@@ -115,6 +114,85 @@ class TestServerDatabaseLifecycle:
         server._db = mock_db
         services = server._build_services(rcon=None, log_parser=None)
         assert services["db"] is mock_db
+
+    async def test_tables_created_before_plugins_loaded(self, base_configs, db_config_enabled):
+        server_config, logging_config = base_configs
+        server = SquadPyServer(
+            server_config=server_config,
+            logging_config=logging_config,
+            base_dir=Path("/tmp"),
+            db_config=db_config_enabled,
+        )
+        mock_db = AsyncMock()
+        mock_db.create_tables = AsyncMock()
+        mock_db.shutdown = AsyncMock()
+
+        async def fake_connect_database():
+            server._db = mock_db
+            return True, "mocked-db"
+
+        async def fake_load_plugins(_services):
+            mock_db.create_tables.assert_awaited_once()
+            server._loaded_plugins = []
+
+        with patch.object(server, "_connect_rcon", new=AsyncMock(return_value=(False, "mocked"))):
+            with patch.object(server, "_start_log_reader", new=AsyncMock(return_value=(False, "mocked"))):
+                with patch.object(server, "_connect_discord", new=AsyncMock(return_value=(False, "mocked"))):
+                    with patch.object(server, "_connect_database", new=AsyncMock(side_effect=fake_connect_database)):
+                        with patch.object(server, "_load_plugins", new=AsyncMock(side_effect=fake_load_plugins)):
+                            with patch.object(server, "_print_summary"):
+                                with patch.object(server, "_setup_signals"):
+                                    task = asyncio.create_task(server.start())
+                                    await asyncio.sleep(0.1)
+                                    await server.stop()
+                                    await task
+
+        mock_db.create_tables.assert_awaited_once()
+
+    async def test_reload_creates_tables_before_plugin_enable(self, base_configs, db_config_enabled):
+        server_config, logging_config = base_configs
+        server = SquadPyServer(
+            server_config=server_config,
+            logging_config=logging_config,
+            base_dir=Path("/tmp"),
+            db_config=db_config_enabled,
+        )
+        mock_db = AsyncMock()
+        mock_db.create_tables = AsyncMock()
+        server._db = mock_db
+
+        plugin_instance = AsyncMock()
+        plugin_instance.on_disable = AsyncMock()
+        server._loaded_plugins = [
+            LoadedPlugin(
+                name="DB Plugin",
+                dir_name="db_plugin",
+                status=PluginStatus.ENABLED,
+                instance=plugin_instance,
+            )
+        ]
+
+        with patch("squadpy.server.PluginLoader") as mock_loader_cls:
+            loader = MagicMock()
+            loader.discover.return_value = [MagicMock(dir_name="db_plugin")]
+
+            async def fake_load_one(_info, _services):
+                mock_db.create_tables.assert_awaited_once()
+                return LoadedPlugin(
+                    name="DB Plugin",
+                    dir_name="db_plugin",
+                    status=PluginStatus.FAILED,
+                    error="reload failed",
+                )
+
+            loader._load_one = AsyncMock(side_effect=fake_load_one)
+            mock_loader_cls.return_value = loader
+
+            success, error = await server.reload_plugin("db_plugin")
+
+        assert success is False
+        assert error == "reload failed"
+        mock_db.create_tables.assert_awaited_once()
 
 
 class TestServerDatabaseSummary:

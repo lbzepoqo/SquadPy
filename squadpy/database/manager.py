@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+from urllib.parse import quote_plus
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -31,7 +32,9 @@ class DatabaseManager:
         dialect = _DRIVER_MAP[config.driver]
         if config.driver == "sqlite":
             return f"{dialect}:///{config.path}"
-        return f"{dialect}://{config.username}:{config.password}@{config.host}:{config.port}/{config.database}"
+        username = quote_plus(config.username or "")
+        password = quote_plus(config.password or "")
+        return f"{dialect}://{username}:{password}@{config.host}:{config.port}/{config.database}"
 
     async def initialize(self, config: DatabaseConfig) -> None:
         url = self._build_url(config)

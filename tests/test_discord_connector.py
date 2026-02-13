@@ -33,14 +33,16 @@ class TestConnectorInit:
 class TestConnectorLifecycle:
     async def test_start_creates_task(self, discord_config):
         with patch("squadpy.discord.connector.commands") as mock_commands:
-            mock_bot = AsyncMock()
+            mock_bot = MagicMock()
+            mock_bot.start = AsyncMock()
             mock_commands.Bot.return_value = mock_bot
             connector = DiscordConnector(discord_config)
             assert callable(connector.start)
 
     async def test_close_calls_bot_close(self, discord_config):
         with patch("squadpy.discord.connector.commands") as mock_commands:
-            mock_bot = AsyncMock()
+            mock_bot = MagicMock()
+            mock_bot.close = AsyncMock()
             mock_commands.Bot.return_value = mock_bot
             connector = DiscordConnector(discord_config)
             connector._bot_task = MagicMock()
@@ -90,6 +92,7 @@ class TestConnectorInteractionRouting:
             with patch("squadpy.discord.connector.app_commands") as mock_app:
                 mock_bot = MagicMock()
                 mock_bot.tree = MagicMock()
+                mock_bot.tree.get_command.return_value = None
                 mock_commands.Bot.return_value = mock_bot
 
                 connector = DiscordConnector(discord_config)
@@ -98,6 +101,42 @@ class TestConnectorInteractionRouting:
                     "my_plugin", handler, name="test", description="A test command"
                 )
                 assert mock_bot.tree.add_command.called
+
+    async def test_register_slash_command_skips_duplicate_name(self, discord_config):
+        with patch("squadpy.discord.connector.commands") as mock_commands:
+            mock_bot = MagicMock()
+            mock_bot.tree = MagicMock()
+            mock_bot.tree.get_command.return_value = MagicMock()
+            mock_commands.Bot.return_value = mock_bot
+
+            connector = DiscordConnector(discord_config)
+            handler = AsyncMock()
+            connector.register_slash_command(
+                "my_plugin", handler, name="status", description="A status command"
+            )
+
+            mock_bot.tree.add_command.assert_not_called()
+            assert connector._slash_commands == {}
+
+    async def test_register_slash_command_handles_add_collision(self, discord_config):
+        with patch("squadpy.discord.connector.commands") as mock_commands:
+            mock_bot = MagicMock()
+            mock_bot.tree = MagicMock()
+            mock_bot.tree.get_command.return_value = None
+            mock_bot.tree.add_command.side_effect = discord.app_commands.CommandAlreadyRegistered(
+                "status", discord_config.guild_id
+            )
+            mock_commands.Bot.return_value = mock_bot
+
+            connector = DiscordConnector(discord_config)
+            async def handler(_interaction):
+                return None
+
+            connector.register_slash_command(
+                "my_plugin", handler, name="status", description="A status command"
+            )
+
+            assert connector._slash_commands == {}
 
     async def test_register_interaction_handler(self, discord_config):
         with patch("squadpy.discord.connector.commands") as mock_commands:

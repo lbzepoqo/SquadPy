@@ -22,3 +22,6 @@ include = ["squadpy*"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore:'audioop' is deprecated and slated for removal in Python 3.13:DeprecationWarning:discord.player",
+]
