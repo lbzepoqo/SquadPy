@@ -46,6 +46,59 @@ class TestLocalLogReader:
         assert lines == ["line A", "line B", "line C"]
         await reader.stop()
 
+    async def test_reopens_on_rotation(self, log_file):
+        reader = LocalLogReader(str(log_file), poll_interval=0.01)
+        await reader.start()
+
+        lines = []
+
+        async def collect():
+            async for line in reader.tail():
+                lines.append(line)
+                if len(lines) >= 2:
+                    break
+
+        task = asyncio.create_task(collect())
+        await asyncio.sleep(0.03)
+
+        with open(log_file, "a") as f:
+            f.write("line before rotate\n")
+
+        await asyncio.sleep(0.03)
+        rotated_path = log_file.with_name(f"{log_file.name}.1")
+        log_file.rename(rotated_path)
+        log_file.write_text("line after rotate\n")
+
+        await asyncio.wait_for(task, timeout=1.0)
+        assert lines == ["line before rotate", "line after rotate"]
+        await reader.stop()
+
+    async def test_handles_copytruncate(self, log_file):
+        reader = LocalLogReader(str(log_file), poll_interval=0.01)
+        await reader.start()
+
+        lines = []
+
+        async def collect():
+            async for line in reader.tail():
+                lines.append(line)
+                if len(lines) >= 2:
+                    break
+
+        task = asyncio.create_task(collect())
+        await asyncio.sleep(0.03)
+
+        with open(log_file, "a") as f:
+            f.write("line before truncate\n")
+
+        await asyncio.sleep(0.03)
+        with open(log_file, "w") as f:
+            f.write("line after truncate\n")
+
+        await asyncio.wait_for(task, timeout=1.0)
+        assert lines == ["line before truncate", "line after truncate"]
+        await reader.stop()
+
     async def test_handles_missing_file(self, tmp_path):
         reader = LocalLogReader(str(tmp_path / "nonexistent.log"), poll_interval=0.05)
         with pytest.raises(FileNotFoundError):
