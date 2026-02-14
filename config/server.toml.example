@@ -27,3 +27,6 @@ password = "your_rcon_password"
 # port = 8090
 # websocket_path = "/ws/control"
 # auth_token = "replace_with_long_random_token"
+# rbac_enabled = false
+# rbac_default_role = "admin"
+# rbac_role_permissions = { admin = ["*"], moderator = ["control.health", "control.status"], observer = ["control.health"] }

@@ -41,6 +41,9 @@ class WebsocketControlService:
         host: str = "127.0.0.1",
         port: int = 8090,
         path: str = "/ws/control",
+        rbac_enabled: bool = False,
+        rbac_default_role: str = "admin",
+        rbac_role_permissions: dict[str, list[str]] | None = None,
         server: Any = None,
         rcon: Any = None,
     ):
@@ -48,6 +51,9 @@ class WebsocketControlService:
         self._host = host
         self._port = port
         self._path = path
+        self._rbac_enabled = bool(rbac_enabled)
+        self._rbac_default_role = self._normalize_role(rbac_default_role) or "admin"
+        self._rbac_role_permissions = self._build_rbac_permissions(rbac_role_permissions)
         self._server = server
         self._rcon = rcon
         self._runner: web.AppRunner | None = None
@@ -89,6 +95,7 @@ class WebsocketControlService:
         token: str | None,
         origin: str = "websocket",
         actor: str = "",
+        role: str = "",
     ) -> dict[str, Any]:
         request_id = str(payload.get("request_id", "")).strip()
         if not self._is_authorized(token):
@@ -106,8 +113,24 @@ class WebsocketControlService:
                 request_id=request_id,
             ).as_dict()
 
+        role_name = self._effective_role(role)
         action = str(payload.get("action", "")).strip().lower()
         if action == "rcon.execute":
+            if not self._is_allowed(role_name, "rcon.execute"):
+                self._audit(
+                    actor=actor or "unknown",
+                    origin=origin,
+                    target="rcon.execute",
+                    outcome="rejected",
+                    detail=f"forbidden role={role_name} permission=rcon.execute",
+                )
+                return ControlResponse(
+                    ok=False,
+                    error="Forbidden",
+                    code="forbidden",
+                    request_id=request_id,
+                ).as_dict()
+
             command = str(payload.get("command", "")).strip()
             if not command:
                 self._audit(
@@ -168,6 +191,30 @@ class WebsocketControlService:
         ).as_dict()
 
     async def process_health(self, *, token: str | None) -> dict[str, Any]:
+        return await self.process_health_with_role(token=token, role="")
+
+    async def process_health_with_role(
+        self,
+        *,
+        token: str | None,
+        role: str = "",
+    ) -> dict[str, Any]:
+        return await self._process_health_or_status(
+            token=token,
+            role=role,
+            permission="control.health",
+            result={"status": "ok"},
+        )
+
+    async def process_status(self, *, token: str | None) -> dict[str, Any]:
+        return await self.process_status_with_role(token=token, role="")
+
+    async def process_status_with_role(
+        self,
+        *,
+        token: str | None,
+        role: str = "",
+    ) -> dict[str, Any]:
         if not self._is_authorized(token):
             return ControlResponse(
                 ok=False,
@@ -175,17 +222,12 @@ class WebsocketControlService:
                 code="unauthorized",
             ).as_dict()
 
-        return ControlResponse(
-            ok=True,
-            result={"status": "ok"},
-        ).as_dict()
-
-    async def process_status(self, *, token: str | None) -> dict[str, Any]:
-        if not self._is_authorized(token):
+        role_name = self._effective_role(role)
+        if not self._is_allowed(role_name, "control.status"):
             return ControlResponse(
                 ok=False,
-                error="Unauthorized",
-                code="unauthorized",
+                error="Forbidden",
+                code="forbidden",
             ).as_dict()
 
         rcon = self._resolve_rcon()
@@ -206,6 +248,7 @@ class WebsocketControlService:
         token: str | None,
         origin: str = "rest",
         actor: str = "",
+        role: str = "",
     ) -> dict[str, Any]:
         request_id = str(payload.get("request_id", "")).strip()
         command = str(payload.get("command", "")).strip()
@@ -218,12 +261,14 @@ class WebsocketControlService:
             token=token,
             origin=origin,
             actor=actor,
+            role=role,
         )
 
     async def _handle_ws(self, request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
         session_token = self._request_token(request)
+        session_role = self._request_role(request)
 
         async for msg in ws:
             if msg.type == WSMsgType.TEXT:
@@ -249,11 +294,13 @@ class WebsocketControlService:
                             actor = str(payload.get("actor", "")).strip()
                         else:
                             actor = str(payload.get("request_id", "")).strip()
+                        role = str(payload.get("role", "")).strip() or session_role
                         response = await self.process_payload(
                             payload,
                             token=request_token,
                             origin="websocket",
                             actor=actor or "websocket_client",
+                            role=role,
                         )
 
                 await ws.send_json(response)
@@ -267,12 +314,14 @@ class WebsocketControlService:
 
     async def _handle_health(self, request: web.Request) -> web.Response:
         token = self._request_token(request)
-        response = await self.process_health(token=token)
+        role = self._request_role(request)
+        response = await self.process_health_with_role(token=token, role=role)
         return web.json_response(response, status=self._http_status(response))
 
     async def _handle_status(self, request: web.Request) -> web.Response:
         token = self._request_token(request)
-        response = await self.process_status(token=token)
+        role = self._request_role(request)
+        response = await self.process_status_with_role(token=token, role=role)
         return web.json_response(response, status=self._http_status(response))
 
     async def _handle_command(self, request: web.Request) -> web.Response:
@@ -297,11 +346,13 @@ class WebsocketControlService:
 
         request_token = str(payload.get("token", "")).strip() or token
         actor = str(payload.get("actor", "")).strip() or "rest_client"
+        role = str(payload.get("role", "")).strip() or self._request_role(request)
         response = await self.process_command(
             payload,
             token=request_token,
             origin="rest",
             actor=actor,
+            role=role,
         )
         return web.json_response(response, status=self._http_status(response))
 
@@ -313,6 +364,16 @@ class WebsocketControlService:
         query_token = request.query.get("token")
         if query_token:
             return str(query_token).strip()
+        return ""
+
+    def _request_role(self, request: web.Request) -> str:
+        header_role = request.headers.get("X-SquadPy-Role")
+        if header_role:
+            return str(header_role).strip()
+
+        query_role = request.query.get("role")
+        if query_role:
+            return str(query_role).strip()
         return ""
 
     def _is_authorized(self, token: str | None) -> bool:
@@ -341,11 +402,85 @@ class WebsocketControlService:
         code = str(response.get("code", ""))
         if code == "unauthorized":
             return 401
+        if code == "forbidden":
+            return 403
         if code in {"invalid_json", "invalid_request", "unknown_action"}:
             return 400
         if code == "unavailable":
             return 503
         return 500
+
+    async def _process_health_or_status(
+        self,
+        *,
+        token: str | None,
+        role: str,
+        permission: str,
+        result: dict[str, Any],
+    ) -> dict[str, Any]:
+        if not self._is_authorized(token):
+            return ControlResponse(
+                ok=False,
+                error="Unauthorized",
+                code="unauthorized",
+            ).as_dict()
+
+        role_name = self._effective_role(role)
+        if not self._is_allowed(role_name, permission):
+            return ControlResponse(
+                ok=False,
+                error="Forbidden",
+                code="forbidden",
+            ).as_dict()
+
+        return ControlResponse(
+            ok=True,
+            result=result,
+        ).as_dict()
+
+    def _build_rbac_permissions(
+        self,
+        configured: dict[str, list[str]] | None,
+    ) -> dict[str, set[str]]:
+        if not configured:
+            configured = {self._rbac_default_role: ["*"]}
+
+        normalized: dict[str, set[str]] = {}
+        for role, permissions in configured.items():
+            role_name = self._normalize_role(role)
+            if not role_name:
+                continue
+            normalized[role_name] = {
+                str(permission).strip().lower()
+                for permission in permissions
+                if str(permission).strip()
+            }
+        if not normalized:
+            normalized = {self._rbac_default_role: {"*"}}
+        return normalized
+
+    def _effective_role(self, role: str) -> str:
+        normalized = self._normalize_role(role)
+        if normalized:
+            return normalized
+        return self._rbac_default_role
+
+    def _is_allowed(self, role: str, permission: str) -> bool:
+        if not self._rbac_enabled:
+            return True
+
+        permissions = self._rbac_role_permissions.get(self._normalize_role(role), set())
+        target = permission.strip().lower()
+        if "*" in permissions or target in permissions:
+            return True
+        return any(
+            wildcard.endswith(".*") and target.startswith(wildcard[:-1])
+            for wildcard in permissions
+        )
+
+    @staticmethod
+    def _normalize_role(role: str) -> str:
+        return str(role).strip().lower()
 
     def recent_audit_records(self) -> list[dict[str, Any]]:
         return list(self._audit_records)

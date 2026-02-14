@@ -30,6 +30,12 @@ class TestServerApiIntegration:
                     "port": 18090,
                     "websocket_path": "/ws/control",
                     "auth_token": "secret_token",
+                    "rbac_enabled": True,
+                    "rbac_default_role": "moderator",
+                    "rbac_role_permissions": {
+                        "moderator": ["control.health", "control.status"],
+                        "admin": ["*"],
+                    },
                 },
             }),
             logging_config=LoggingConfig.model_validate({"level": "INFO", "file": {"enabled": False}}),
@@ -43,6 +49,19 @@ class TestServerApiIntegration:
 
         assert ok is True
         assert "ws://127.0.0.1:18090/ws/control" in detail
+        mock_cls.assert_called_once_with(
+            token="secret_token",
+            host="127.0.0.1",
+            port=18090,
+            path="/ws/control",
+            rbac_enabled=True,
+            rbac_default_role="moderator",
+            rbac_role_permissions={
+                "moderator": ["control.health", "control.status"],
+                "admin": ["*"],
+            },
+            server=server,
+        )
         service.start.assert_awaited_once()
 
     async def test_stop_shuts_down_api_service(self):

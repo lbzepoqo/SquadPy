@@ -163,6 +163,9 @@ class SquadPyServer:
                 host=self._server_config.api.host,
                 port=self._server_config.api.port,
                 path=self._server_config.api.websocket_path,
+                rbac_enabled=self._server_config.api.rbac_enabled,
+                rbac_default_role=self._server_config.api.rbac_default_role,
+                rbac_role_permissions=self._server_config.api.rbac_role_permissions,
                 server=self,
             )
             await self._api.start()

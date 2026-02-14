@@ -4,7 +4,7 @@ import tomllib
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class RconConfig(BaseModel):
@@ -87,6 +87,9 @@ class ApiConfig(BaseModel):
     port: int = 8090
     websocket_path: str = "/ws/control"
     auth_token: str = ""
+    rbac_enabled: bool = False
+    rbac_default_role: str = "admin"
+    rbac_role_permissions: dict[str, list[str]] = Field(default_factory=dict)
 
     @field_validator("port")
     @classmethod
@@ -106,6 +109,13 @@ class ApiConfig(BaseModel):
     def validate_enabled_fields(self) -> "ApiConfig":
         if self.enabled and not self.auth_token:
             raise ValueError("API auth_token is required when enabled")
+        if not self.rbac_default_role.strip():
+            raise ValueError("API rbac_default_role must not be empty")
+        for role, permissions in self.rbac_role_permissions.items():
+            if not str(role).strip():
+                raise ValueError("API rbac_role_permissions contains an empty role key")
+            if not isinstance(permissions, list):
+                raise ValueError("API rbac_role_permissions values must be lists")
         return self
 
 

@@ -165,6 +165,9 @@ class TestApiConfig:
         assert config.port == 8090
         assert config.websocket_path == "/ws/control"
         assert config.auth_token == ""
+        assert config.rbac_enabled is False
+        assert config.rbac_default_role == "admin"
+        assert config.rbac_role_permissions == {}
 
     def test_enabled_requires_auth_token(self):
         with pytest.raises(Exception):
@@ -177,6 +180,14 @@ class TestApiConfig:
     def test_invalid_websocket_path_raises(self):
         with pytest.raises(Exception):
             ApiConfig(websocket_path="ws/control")
+
+    def test_invalid_empty_default_role_raises(self):
+        with pytest.raises(Exception):
+            ApiConfig(rbac_default_role="   ")
+
+    def test_invalid_role_permissions_value_raises(self):
+        with pytest.raises(Exception):
+            ApiConfig.model_validate({"rbac_role_permissions": {"admin": "not-a-list"}})
 
 
 class TestServerConfigWithApi:
@@ -193,8 +204,17 @@ class TestServerConfigWithApi:
                 "port": 18090,
                 "websocket_path": "/ws/control",
                 "auth_token": "secret_token",
+                "rbac_enabled": True,
+                "rbac_default_role": "moderator",
+                "rbac_role_permissions": {
+                    "moderator": ["control.health", "control.status"],
+                    "admin": ["*"],
+                },
             },
         })
         assert config.api.enabled is True
         assert config.api.port == 18090
         assert config.api.auth_token == "secret_token"
+        assert config.api.rbac_enabled is True
+        assert config.api.rbac_default_role == "moderator"
+        assert config.api.rbac_role_permissions["admin"] == ["*"]

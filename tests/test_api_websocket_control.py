@@ -67,3 +67,52 @@ class TestWebsocketControlService:
         )
         assert response["ok"] is False
         assert response["code"] == "unknown_action"
+
+    async def test_rbac_denies_rcon_execute_for_disallowed_role(self):
+        rcon = AsyncMock()
+        rcon.execute = AsyncMock(return_value="OK")
+        service = WebsocketControlService(
+            token="secret_token",
+            rcon=rcon,
+            rbac_enabled=True,
+            rbac_default_role="observer",
+            rbac_role_permissions={
+                "observer": ["control.health", "control.status"],
+                "admin": ["*"],
+            },
+        )
+
+        response = await service.process_payload(
+            {"request_id": "rbac-deny", "action": "rcon.execute", "command": "ListPlayers"},
+            token="secret_token",
+            role="observer",
+        )
+
+        rcon.execute.assert_not_awaited()
+        assert response["ok"] is False
+        assert response["request_id"] == "rbac-deny"
+        assert response["code"] == "forbidden"
+
+    async def test_rbac_allows_rcon_execute_for_permitted_role(self):
+        rcon = AsyncMock()
+        rcon.execute = AsyncMock(return_value="OK")
+        service = WebsocketControlService(
+            token="secret_token",
+            rcon=rcon,
+            rbac_enabled=True,
+            rbac_default_role="observer",
+            rbac_role_permissions={
+                "observer": ["control.health", "control.status"],
+                "admin": ["rcon.execute"],
+            },
+        )
+
+        response = await service.process_payload(
+            {"request_id": "rbac-allow", "action": "rcon.execute", "command": "ListPlayers"},
+            token="secret_token",
+            role="admin",
+        )
+
+        rcon.execute.assert_awaited_once_with("ListPlayers")
+        assert response["ok"] is True
+        assert response["request_id"] == "rbac-allow"

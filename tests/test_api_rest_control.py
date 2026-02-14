@@ -54,6 +54,44 @@ class TestRestControlEndpoints:
         assert response["request_id"] == "r1"
         assert response["result"]["response"] == "ACK"
 
+    async def test_rbac_denies_status_for_role_without_permission(self):
+        service = WebsocketControlService(
+            token="secret_token",
+            rbac_enabled=True,
+            rbac_default_role="observer",
+            rbac_role_permissions={
+                "observer": ["control.health"],
+                "admin": ["*"],
+            },
+        )
+
+        response = await service.process_status_with_role(
+            token="secret_token",
+            role="observer",
+        )
+
+        assert response["ok"] is False
+        assert response["code"] == "forbidden"
+        assert service._http_status(response) == 403
+
+    async def test_rbac_allows_status_for_role_with_permission(self):
+        service = WebsocketControlService(
+            token="secret_token",
+            rbac_enabled=True,
+            rbac_default_role="observer",
+            rbac_role_permissions={
+                "observer": ["control.health", "control.status"],
+            },
+        )
+
+        response = await service.process_status_with_role(
+            token="secret_token",
+            role="observer",
+        )
+
+        assert response["ok"] is True
+        assert response["result"]["service"] == "control_api"
+
     def test_routes_include_health_status_and_command(self):
         service = WebsocketControlService(token="secret_token")
         app = service._build_app()
