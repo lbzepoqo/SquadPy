@@ -1,7 +1,7 @@
 """Tests for the async RCON client."""
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -179,3 +179,32 @@ class TestRconReconnect:
         assert sleep_mock.await_count == client._max_retries
         assert client._reconnecting is False
         assert client._reconnect_event.is_set()
+
+    async def test_execute_waits_for_reconnect_and_replays_command(self, client):
+        client._connected = False
+        client._reconnecting = True
+        client._reconnect_event.clear()
+        client._writer = AsyncMock()
+        client._writer.write = Mock()
+        client._writer.drain = AsyncMock()
+
+        execute_task = asyncio.create_task(client.execute("ListPlayers"))
+        await asyncio.sleep(0)
+        assert not execute_task.done()
+
+        client._connected = True
+        client._reconnecting = False
+        client._reconnect_event.set()
+        await asyncio.sleep(0)
+
+        request_id = client._packet_id_counter
+        client._handle_response_packet(
+            RconPacket(id=request_id, type=PacketType.RESPONSE_VALUE, body="ok")
+        )
+        client._handle_response_packet(
+            RconPacket(id=request_id, type=PacketType.RESPONSE_VALUE, body="")
+        )
+
+        assert await execute_task == "ok"
+        client._writer.write.assert_called_once()
+        client._writer.drain.assert_awaited_once()

@@ -9,11 +9,11 @@ Status: Draft for execution
 As of 2026-02-14, from `docs/plans/parity-tracker.md`:
 
 - Total tracked checklist items: `90`
-- Done: `19`
+- Done: `20`
 - In progress: `0`
 - Blocked: `0`
-- Not started: `71`
-- `P0` completion: `19/45` (42%)
+- Not started: `70`
+- `P0` completion: `20/45` (44%)
 - `P1` completion: `0/28`
 - `P2` completion: `0/8`
 - Release gates completion: `0/9` (`GATE-*` and `GATE-B-*`)
@@ -23,7 +23,7 @@ Area breakdown (done/total):
 - Program setup (`P0-PROG`): `7/8`
 - RCON surface (`P0-RCON`): `5/5`
 - Event parity (`P0-EVT`): `7/7`
-- Runtime reliability (`P0-RT`): `0/2`
+- Runtime reliability (`P0-RT`): `1/2`
 - Moderation plugins (`P0-PLUG` + `P1-PLUG`): `0/12`
 - Seeding plugins (`P0-SEED` + `P1-SEED`): `0/12`
 - Data/API/Connectors (`P0/P1-DATA`, `P0/P1-API`, `P0/P1-CONN`): `0/14`

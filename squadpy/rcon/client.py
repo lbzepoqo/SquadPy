@@ -204,9 +204,18 @@ class RconClient:
 
     async def execute(self, command: str) -> str:
         if not self._connected:
-            raise RconError("Not connected")
+            waiting_for_reconnect = (
+                self.auto_reconnect
+                and (self._reconnecting or not self._reconnect_event.is_set())
+            )
+            if waiting_for_reconnect:
+                await self._reconnect_event.wait()
+            else:
+                raise RconError("Not connected")
 
         await self._reconnect_event.wait()
+        if not self._connected or self._writer is None:
+            raise RconError("Not connected")
 
         request_id = self._next_packet_id()
         cmd_packet = encode_packet(PacketType.EXEC_COMMAND, request_id, command)
@@ -293,6 +302,8 @@ class RconClient:
 
     async def _handle_disconnect(self) -> None:
         self._connected = False
+        if self.auto_reconnect:
+            self._reconnect_event.clear()
         for future in self._pending_requests.values():
             if not future.done():
                 future.set_exception(RconError("Connection lost"))
