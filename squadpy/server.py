@@ -126,7 +126,7 @@ class SquadPyServer:
             return False, "not configured"
         try:
             self._discord = DiscordConnector(self._server_config.discord)
-            await self._discord.start(self._server_config.discord.token)
+            await self._discord.start()
             await asyncio.wait_for(self._discord.wait_until_ready(), timeout=30.0)
             bot_name = str(self._discord.bot.user) if self._discord.bot.user else "unknown"
             return True, f"connected ({bot_name})"

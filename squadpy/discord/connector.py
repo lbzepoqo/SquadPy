@@ -8,15 +8,17 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from squadpy.connectors import Connector, ConnectorState
 from squadpy.config import DiscordConfig
 
 logger = logging.getLogger("squadpy.discord")
 
 
-class DiscordConnector:
+class DiscordConnector(Connector):
     """Core Discord service wrapping a discord.py Bot."""
 
     def __init__(self, config: DiscordConfig):
+        super().__init__(name="discord")
         self._config = config
         self.guild_id = config.guild_id
 
@@ -62,21 +64,28 @@ class DiscordConnector:
                     except Exception:
                         logger.exception("Error in modal handler for %s", custom_id)
 
-    async def start(self, token: str) -> None:
+    async def _start(self) -> None:
         """Start the Discord bot as an asyncio task."""
-        self._bot_task = asyncio.create_task(self.bot.start(token))
+        self._bot_task = asyncio.create_task(self.bot.start(self._config.token))
         logger.info("Discord bot starting...")
 
     async def wait_until_ready(self) -> None:
         """Wait until the bot is connected and ready."""
         await self._ready.wait()
 
-    async def close(self) -> None:
+    async def _stop(self) -> None:
         """Shut down the Discord bot."""
         await self.bot.close()
         if self._bot_task:
             self._bot_task.cancel()
+            self._bot_task = None
         logger.info("Discord bot closed")
+
+    async def close(self) -> None:
+        if self.state == ConnectorState.STOPPED:
+            await self._stop()
+            return
+        await super().close()
 
     # --- Convenience methods ---
 
