@@ -1,0 +1,35 @@
+schema_version = 1
+created_on = "2026-02-14"
+description = "Parity fixture packs curated from sanitized real Squad server logs."
+
+[defaults]
+source_root = "tests/fixtures/samples/logs"
+timezone = "UTC"
+line_endings = "LF"
+
+[[packs]]
+id = "log-no-mods"
+kind = "log"
+source = "tests/fixtures/samples/logs/SquadGame (No Mods).log"
+sha256 = "4a56a696906a7a8c8a494d2e3cb006bab849ff3c8855e7d06efc027b07c4ed17"
+line_count = 783148
+size_bytes = 141769434
+notes = "Baseline server run without gameplay mods."
+
+[[packs]]
+id = "log-sat-mod-only"
+kind = "log"
+source = "tests/fixtures/samples/logs/SquadGame (Using SAT mod only).log"
+sha256 = "1608bf4736d678a106711b23821aad3f43e743b8944d3bb1fd3f68aed860a989"
+line_count = 540981
+size_bytes = 92024843
+notes = "Server run with SAT mod enabled for parser coverage."
+
+[[packs]]
+id = "log-sat-hlp-mods"
+kind = "log"
+source = "tests/fixtures/samples/logs/SquadGame (Using SAT and HLP Mod).log"
+sha256 = "36be6c0c147a46a924f42850e5ce8e7888cfd6e271ed0f57e1b856a57ec71e97"
+line_count = 809261
+size_bytes = 135344128
+notes = "Server run with SAT and HLP mods enabled for parity edge cases."

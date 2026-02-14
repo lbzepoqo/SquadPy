@@ -1,0 +1,5 @@
+----- Active Players -----
+ID: 1 | Online IDs: EOS: 000257c4077a47a28aada914041df502 steam: 76561199011399320 | Name: ʟʏʙ PANZERDIVISION | Team ID: 1 | Squad ID: N/A | Is Leader: False | Role: RGF_Rifleman_01
+ID: 2 | Online IDs: EOS: 00029e5d00e947bbaed1b364814dd427 steam: 76561198061567555 | Name: NE WT ❀ Skied | Team ID: 2 | Squad ID: N/A | Is Leader: False | Role: INS_Rifleman_01
+----- Recently Disconnected Players [Max of 15] -----
+ID: 0 | Online IDs: EOS: 0002b2ce5d254f63821146034328df0e steam: 76561198431814563 | Since Disconnect: 00m.35s | Name:  UpsideDownFloof

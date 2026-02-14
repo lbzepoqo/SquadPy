@@ -1,0 +1,27 @@
+----- Active Squads -----
+Team ID: 1 (Overwatch 6 Patrol Group)
+ID: 1 | Name: Squad 1 | Size: 1 | Locked: True | Creator Name: Arrex | Creator Online IDs: EOS: 0002d52d94444153aa5084c59a43850f steam: 76561198112209427
+ID: 2 | Name: LOGI | Size: 1 | Locked: True | Creator Name: Sarkassm | Creator Online IDs: EOS: 0002a7caf66f4f6b894c5931c3f3adf1 steam: 76561198428328030
+ID: 3 | Name: Command Squad | Size: 8 | Locked: False | Creator Name: NytroManiac_ttv | Creator Online IDs: EOS: 0002c243b78c4d33b841d158f674c79a steam: 76561198151913015
+ID: 4 | Name: MI-8 | Size: 2 | Locked: True | Creator Name: Sagura | Creator Online IDs: EOS: 00029a6f48c34a609dc3415a5dde790c steam: 76561199101781273
+ID: 5 | Name: BMP2 | Size: 5 | Locked: False | Creator Name: DEFERZJ | Creator Online IDs: EOS: 00024a39587f4a6c93d7f3f6f1317bbb steam: 76561199160052102
+ID: 6 | Name: LOGI RUN & FOB DEF | Size: 2 | Locked: False | Creator Name: Pvt.Kawe | Creator Online IDs: EOS: 0002119980574bf9a1664c634db91f8a steam: 76561198197659647
+ID: 7 | Name: IDN INF MIC | Size: 8 | Locked: False | Creator Name: Hypa | Creator Online IDs: EOS: 00026b904b96422e9405425ab1cac838 steam: 76561198313377961
+ID: 8 | Name: MI-8TV | Size: 1 | Locked: True | Creator Name: Nhanhhf | Creator Online IDs: EOS: 0002d6714d114ad1a8e4edda27de44c0 steam: 76561198275468508
+ID: 10 | Name: MT-LBM 6MB | Size: 5 | Locked: True | Creator Name: Hazelnats | Creator Online IDs: EOS: 000231e73c614c3cb3e488a954ad4aac steam: 76561199112232027
+ID: 11 | Name: Squad 11 | Size: 8 | Locked: False | Creator Name: MasterM | Creator Online IDs: EOS: 0002ab433d7b497d85c427bf4cd650ce steam: 76561199031262839
+ID: 12 | Name: Squad 12 | Size: 1 | Locked: True | Creator Name: rhooooooooooooooooongo | Creator Online IDs: EOS: 00023c69d56941288bff8d5cbf2416f7 steam: 76561198349310195
+ID: 13 | Name: T72 | Size: 3 | Locked: True | Creator Name: Ritos | Creator Online IDs: EOS: 00028999a56f4db895b14cc1d79665c7 steam: 76561198991568347
+ID: 14 | Name: Squad 14 | Size: 3 | Locked: False | Creator Name: DoBinGo | Creator Online IDs: EOS: 00027840dc28497fbe2c1f30db06b14e steam: 76561198803814783
+Team ID: 2 (7th Armored Brigade "Saar me-Golan")
+ID: 1 | Name: RWS | Size: 1 | Locked: True | Creator Name: Sillychilli <3 | Creator Online IDs: EOS: 000231a3763c417d9d1e16883f5b1e27 steam: 76561199123057630
+ID: 2 | Name: Squad 2 | Size: 8 | Locked: False | Creator Name: Dyer | Creator Online IDs: EOS: 0002813d3cdb4117a8d3abeda2181e82 steam: 76561199140147036
+ID: 3 | Name: Squad 3 | Size: 4 | Locked: True | Creator Name: Dwhitz | Creator Online IDs: EOS: 0002a0cef65e44fcac1d529feb27c723 steam: 76561198050937307
+ID: 4 | Name: Squad 4 | Size: 8 | Locked: False | Creator Name: HOOVYSIGMAGOON | Creator Online IDs: EOS: 0002cbc6b58c4ff1a1d72f05f4ceae7b steam: 76561199139857301
+ID: 5 | Name: NAMER | Size: 2 | Locked: True | Creator Name: iMissYouHarambe | Creator Online IDs: EOS: 0002e54455ec4ec4a267edbaf9253669 steam: 76561198135929896
+ID: 6 | Name: MERKAVA4 | Size: 1 | Locked: True | Creator Name: Chú Tùng | Creator Online IDs: EOS: 0002618489ba4f8d914c54c902f23ede steam: 76561198353498328
+ID: 7 | Name: Command Squad | Size: 8 | Locked: False | Creator Name: FireHorse47 | Creator Online IDs: EOS: 00028534aa264a1c8722fdbdf9a6a965 steam: 76561198135779855
+ID: 8 | Name: IFV | Size: 2 | Locked: True | Creator Name: HOOVYSIGMAGOON | Creator Online IDs: EOS: 0002cbc6b58c4ff1a1d72f05f4ceae7b steam: 76561199139857301
+ID: 9 | Name: Squad 9 | Size: 8 | Locked: False | Creator Name: LuRenJ | Creator Online IDs: EOS: 0002a51f64514434a97145579ee74451 steam: 76561199177674291
+ID: 10 | Name: M121 | Size: 1 | Locked: True | Creator Name: L3VIATHAN | Creator Online IDs: EOS: 0002a5481b2b4aae94fe23d4ad32ea1b steam: 76561199213247075
+ID: 11 | Name: MERKAVA-MBT | Size: 2 | Locked: True | Creator Name: Kraven | Creator Online IDs: EOS: 000249045cf64c959c4411b29cc413ee steam: 76561198078683203

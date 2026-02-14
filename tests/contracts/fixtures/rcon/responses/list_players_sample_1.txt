@@ -1,0 +1,101 @@
+----- Active Players -----
+ID: 87 | Online IDs: EOS: 000249f6e3454b2cae8e993a96838faa steam: 76561199202672950 | Name: [INAF]  AMIN OPLEN | Team ID: 1 | Squad ID: 1 | Is Leader: False | Role: USA_MachineGunner_01
+ID: 18 | Online IDs: EOS: 000252857b9d4b80b67377c513d1cf56 steam: 76561198350901998 | Name: [NEW] Ace O'Yeah | Team ID: 2 | Squad ID: 2 | Is Leader: True | Role: WPMC_SLPilot_01
+ID: 106 | Online IDs: EOS: 00028d45d8b241f19979267bc14a89be steam: 76561198215639541 | Name: [TSP] AlZ | Team ID: 2 | Squad ID: 10 | Is Leader: False | Role: WPMC_LAT_02
+ID: 26 | Online IDs: EOS: 00021602466e46178a9888a5456516e0 steam: 76561198135818545 | Name: [MILF] Alexy's Mum | Team ID: 2 | Squad ID: 3 | Is Leader: False | Role: WPMC_HAT_02
+ID: 7 | Online IDs: EOS: 0002c672cdb84154a07587dc6f7b650d steam: 76561198024774978 | Name: [New] Ariff-Miner | Team ID: 1 | Squad ID: 8 | Is Leader: True | Role: USA_SL_02
+ID: 95 | Online IDs: EOS: 00023c97d124409b9b8998dbcca1cbcc steam: 76561199089979772 | Name:  Bondu | Team ID: 1 | Squad ID: 7 | Is Leader: False | Role: USA_Marksman_01
+ID: 31 | Online IDs: EOS: 00020e31ca3b470d9ed9e5ac0e546381 steam: 76561198153281071 | Name: [TSP] Braincell | Team ID: 2 | Squad ID: 10 | Is Leader: True | Role: WPMC_SL_05
+ID: 54 | Online IDs: EOS: 00025fbad50646a89ed310524bb1663d steam: 76561198114268662 | Name: [PH]  CTBOSSING | Team ID: 2 | Squad ID: 12 | Is Leader: True | Role: WPMC_SLPilot_01
+ID: 107 | Online IDs: EOS: 000270bf73b643919ab2f7c06398a60e steam: 76561198144975962 | Name:   Caleb Martin | Team ID: 1 | Squad ID: 9 | Is Leader: False | Role: USA_LAT_02
+ID: 22 | Online IDs: EOS: 00025c44975740ca82effe91ef190757 steam: 76561199267250463 | Name: 612M Callsign | Team ID: 1 | Squad ID: 4 | Is Leader: True | Role: USA_SL_02
+ID: 33 | Online IDs: EOS: 0002948ee8d74f288e057d8132371f06 steam: 76561198155312025 | Name:  Chae | Team ID: 2 | Squad ID: 7 | Is Leader: False | Role: WPMC_MachineGunner_01
+ID: 14 | Online IDs: EOS: 000248e6940e45b78fd661fd1c70d76a steam: 76561199023313907 | Name: [NEW] CouncilJoker53 | Team ID: 2 | Squad ID: 7 | Is Leader: False | Role: WPMC_Medic_01
+ID: 60 | Online IDs: EOS: 0002ef9321c54f9190296667620f959d steam: 76561198035187422 | Name: [ASS] EZIO [AI] | Team ID: 2 | Squad ID: 3 | Is Leader: True | Role: WPMC_SL_05
+ID: 25 | Online IDs: EOS: 0002d75454854f3eb175b80c46155234 steam: 76561198106225955 | Name: ^ʷ﹖ Ecchi0w0 | Team ID: 2 | Squad ID: 3 | Is Leader: False | Role: WPMC_LAT_01
+ID: 99 | Online IDs: EOS: 000200d5f74e45cd9c5f4eec5a130bca steam: 76561199086234539 | Name:   Echo Sierra | Team ID: 1 | Squad ID: 1 | Is Leader: False | Role: USA_Medic_02
+ID: 4 | Online IDs: EOS: 00026eafb0e34413b5a02ad6db6eb5ab steam: 76561198328202223 | Name:  Eiennein | Team ID: 1 | Squad ID: N/A | Is Leader: False | Role: USA_Rifleman_01
+ID: 50 | Online IDs: EOS: 00022d2fd3f547bdafd8efbf8d7d36f2 steam: 76561199774491517 | Name: 612M El warui | Team ID: 2 | Squad ID: 8 | Is Leader: True | Role: WPMC_SL_04
+ID: 3 | Online IDs: EOS: 000285f1a6d8422bb0d8bc36bd33d362 steam: 76561198123143189 | Name:  FineBoy | Team ID: 2 | Squad ID: 7 | Is Leader: False | Role: WPMC_LAT_01
+ID: 103 | Online IDs: EOS: 00026d2a1c414eb08d220cd870161370 steam: 76561198074117066 | Name:  Finn Catto | Team ID: 1 | Squad ID: 7 | Is Leader: False | Role: USA_Medic_01
+ID: 24 | Online IDs: EOS: 00028534aa264a1c8722fdbdf9a6a965 steam: 76561198135779855 | Name: ╘ӄ†ɢ╛ FireHorse47 | Team ID: 2 | Squad ID: 4 | Is Leader: True | Role: WPMC_SL_05
+ID: 35 | Online IDs: EOS: 0002bea6edcd491eafc96c67d95f6b46 steam: 76561198057112759 | Name:  Gacha | Team ID: 1 | Squad ID: 5 | Is Leader: True | Role: USA_SLPilot_01
+ID: 29 | Online IDs: EOS: 0002b5c016654be2b9393984370fc277 steam: 76561199003363060 | Name: [MILF]  Gracy's Mum | Team ID: 1 | Squad ID: 6 | Is Leader: True | Role: USA_SLCrewman_01
+ID: 53 | Online IDs: EOS: 0002711bed9d41d1a4c69aded46b85c2 steam: 76561198841138427 | Name:  Hakanai | Team ID: 2 | Squad ID: 7 | Is Leader: False | Role: WPMC_Rifleman_08,
+ID: 73 | Online IDs: EOS: 0002d0b7d6ae4ea791fe2ddccad23853 steam: 76561198396901854 | Name: 612M HenCock | Team ID: 2 | Squad ID: 4 | Is Leader: False | Role: WPMC_LAT_01
+ID: 37 | Online IDs: EOS: 000296ac14ac4682aaef157f5422d00f steam: 76561198082575651 | Name:  HippyJibbie | Team ID: 2 | Squad ID: 7 | Is Leader: False | Role: WPMC_Grenadier_01
+ID: 72 | Online IDs: EOS: 000200d729064ccbbbfa2079d3896ca9 steam: 76561198092265686 | Name:  Irvine | Team ID: 1 | Squad ID: 7 | Is Leader: False | Role: USA_LAT_02
+ID: 28 | Online IDs: EOS: 0002d167c7494f95839dc67a026c09c0 steam: 76561199415233250 | Name:  JOHJOH | Team ID: 2 | Squad ID: 8 | Is Leader: False | Role: WPMC_Grenadier_01
+ID: 78 | Online IDs: EOS: 000225db316146678089796a1f16dd30 steam: 76561198847022643 | Name:  Jinwoo | Team ID: 1 | Squad ID: 7 | Is Leader: False | Role: USA_HAT_01
+ID: 90 | Online IDs: EOS: 000242bfa0814f55b76348b073c66b18 steam: 76561198088347981 | Name: LYB Khlore | Team ID: 1 | Squad ID: 7 | Is Leader: False | Role: USA_Grenadier_01
+ID: 15 | Online IDs: EOS: 000252c191f9460f830b5755ef6d2d22 steam: 76561198957515798 | Name: [GS] King Tonka | Team ID: 2 | Squad ID: 5 | Is Leader: False | Role: WPMC_Rifleman_03
+ID: 74 | Online IDs: EOS: 0002e4bb0e6142359af5b6c439cc70be steam: 76561198036039712 | Name:  Kollice | Team ID: 2 | Squad ID: 8 | Is Leader: False | Role: WPMC_HAT_01
+ID: 68 | Online IDs: EOS: 0002e7c7c58c4854acb93b9b92642c79 steam: 76561198424938340 | Name:  Kompromat | Team ID: 1 | Squad ID: 9 | Is Leader: False | Role: USA_Marksman_01
+ID: 30 | Online IDs: EOS: 0002a848ad1746cab47c003a3075cdf4 steam: 76561198361600983 | Name:  LUCIFER | Team ID: 1 | Squad ID: 1 | Is Leader: False | Role: USA_Engineer_01
+ID: 64 | Online IDs: EOS: 00021d78c523426a8895a7cc410b1bef steam: 76561198061476536 | Name:  LegallyBlind | Team ID: 1 | Squad ID: 1 | Is Leader: False | Role: USA_LAT_02
+ID: 44 | Online IDs: EOS: 0002fb00122c44399dd86c06cee3e231 steam: 76561199563314233 | Name: ╘ӄ†ɢ╛ Lorax | Team ID: 1 | Squad ID: 9 | Is Leader: False | Role: USA_LAT_01
+ID: 104 | Online IDs: EOS: 0002ab433d7b497d85c427bf4cd650ce steam: 76561199031262839 | Name: ɴямʟ ✿ MasterM | Team ID: 2 | Squad ID: 1 | Is Leader: True | Role: WPMC_SL_03
+ID: 76 | Online IDs: EOS: 00025d4c138a46f8b41553bd6ae13739 steam: 76561198010679638 | Name:  Oolong | Team ID: 2 | Squad ID: 7 | Is Leader: False | Role: WPMC_Sapper_01
+ID: 47 | Online IDs: EOS: 00025f97b98540fa8fb2f4af92aaac40 steam: 76561199678919842 | Name: ╘ӄ†ɢ╛ Osama bin killng | Team ID: 2 | Squad ID: 4 | Is Leader: False | Role: WPMC_Marksman_03
+ID: 65 | Online IDs: EOS: 000223e2efb843309fcad8fd2d47ec94 steam: 76561198837525419 | Name: [sqmy] PAKTEH | Team ID: 1 | Squad ID: 8 | Is Leader: False | Role: USA_Grenadier_01
+ID: 77 | Online IDs: EOS: 0002acc55d0b4daebbeff89f585dee68 steam: 76561198097894482 | Name:  PAPA JONES | Team ID: 1 | Squad ID: 10 | Is Leader: True | Role: USA_SL_01
+ID: 40 | Online IDs: EOS: 0002101faf0046f9801ac973b91ba1a1 steam: 76561198415019302 | Name: ╘ӄ†ɢ╛ Popcorn | Team ID: 2 | Squad ID: 7 | Is Leader: False | Role: WPMC_AR_03
+ID: 48 | Online IDs: EOS: 0002c239b02742c8a735668c6cdc3fcc steam: 76561199300270604 | Name:  Private Marksman | Team ID: 2 | Squad ID: 4 | Is Leader: False | Role: WPMC_Rifleman_07
+ID: 63 | Online IDs: EOS: 0002fc60400040cb9f9ab69a5a0d6e8d steam: 76561197990385443 | Name:  Purrfat | Team ID: 1 | Squad ID: 8 | Is Leader: False | Role: USA_Medic_01
+ID: 58 | Online IDs: EOS: 0002b42a2ff54e7f9fba5e570a57f847 steam: 76561198134751467 | Name:  Quiché | Team ID: 1 | Squad ID: 1 | Is Leader: False | Role: USA_Rifleman_03
+ID: 52 | Online IDs: EOS: 00025341ed6f404cbe9add195fd413a9 steam: 76561198127810799 | Name: ɴямʟ Raizen | Team ID: 2 | Squad ID: 1 | Is Leader: False | Role: WPMC_Crewman_01
+ID: 71 | Online IDs: EOS: 000224f0bc9b4bf984748c7db74450af steam: 76561198061320098 | Name: [AoS] Rawzri | Team ID: 2 | Squad ID: 7 | Is Leader: True | Role: WPMC_SL_03,
+ID: 51 | Online IDs: EOS: 00021a950223495495b05cac1eacc432 steam: 76561198053617252 | Name:  Sad Boi | Team ID: 1 | Squad ID: 1 | Is Leader: True | Role: USA_SL_02
+ID: 96 | Online IDs: EOS: 0002d86dd12c43d19e23bf946a7f908c steam: 76561199174807931 | Name:  Sag Madic | Team ID: 1 | Squad ID: 4 | Is Leader: False | Role: USA_Medic_01
+ID: 23 | Online IDs: EOS: 0002cb11fe4542b690138237c649b0f0 steam: 76561198362081776 | Name: 616M Sam WukonG | Team ID: 1 | Squad ID: 4 | Is Leader: False | Role: USA_AR_01
+ID: 38 | Online IDs: EOS: 00029e5d00e947bbaed1b364814dd427 steam: 76561198061567555 | Name:  Seeloem | Team ID: 1 | Squad ID: N/A | Is Leader: False | Role: USA_Rifleman_01
+ID: 69 | Online IDs: EOS: 0002b93a004b4bcaad6325afbe647a19 steam: 76561199234713812 | Name: [TSP]  Serg | Team ID: 2 | Squad ID: 10 | Is Leader: False | Role: WPMC_Grenadier_01
+ID: 105 | Online IDs: EOS: 0002c5952f7f4efda3931e3dae7b05a7 steam: 76561199035895098 | Name: [NEW] Seth Tan | Team ID: 1 | Squad ID: 4 | Is Leader: False | Role: USA_Marksman_01
+ID: 6 | Online IDs: EOS: 00026e45f88f481aa548849b446d5aa5 steam: 76561199361882519 | Name:  Sgt. Ambatukam | Team ID: 1 | Squad ID: 1 | Is Leader: False | Role: USA_Marksman_01
+ID: 8 | Online IDs: EOS: 00028974764c4040afaa5eb1983a9259 steam: 76561198119002965 | Name: [BAAL] Shelpts | Team ID: 1 | Squad ID: 1 | Is Leader: False | Role: USA_Rifleman_03
+ID: 42 | Online IDs: EOS: 00027027cb9d444cb78eb67645c33d66 steam: 76561198182108546 | Name: ɴямʟ |  SkandiaP [TH] | Team ID: 1 | Squad ID: 4 | Is Leader: False | Role: USA_HAT_02
+ID: 21 | Online IDs: EOS: 000272ba1a6f46f58fdc2033f13c0652 steam: 76561199222349323 | Name: [sqмү] SovietOnion | Team ID: 1 | Squad ID: 8 | Is Leader: False | Role: USA_LAT_01
+ID: 86 | Online IDs: EOS: 0002a15d370a494e8b0eaa1b39fb40cc steam: 76561198375585401 | Name:  Srw. | Team ID: 1 | Squad ID: 9 | Is Leader: False | Role: USA_AR_01
+ID: 66 | Online IDs: EOS: 0002addfd4ba4ec0887c2e0d83111064 steam: 76561198128521491 | Name: ʟʏʙ TAKUMI | Team ID: 2 | Squad ID: 3 | Is Leader: False | Role: WPMC_Grenadier_01
+ID: 62 | Online IDs: EOS: 000218128a354b61ae7e5de4e8e93929 steam: 76561198106423122 | Name: [DGH] TEMP | Team ID: 2 | Squad ID: 4 | Is Leader: False | Role: WPMC_Sniper_01
+ID: 43 | Online IDs: EOS: 00027f51ebf747a38b6f6db0146f2e06 steam: 76561198130913159 | Name:  TroyUrtiz | Team ID: 2 | Squad ID: 4 | Is Leader: False | Role: WPMC_Rifleman_07
+ID: 2 | Online IDs: EOS: 00021d21f54e42b6ad0cb1dd1b37cb60 steam: 76561199133104499 | Name:  Tuesday | Team ID: 1 | Squad ID: 1 | Is Leader: False | Role: USA_Medic_01
+ID: 19 | Online IDs: EOS: 00029de38ed043fa95b5335e9ed9b20b steam: 76561198831494039 | Name:  Valkyrie | Team ID: 2 | Squad ID: 13 | Is Leader: True | Role: WPMC_SLPilot_01
+ID: 41 | Online IDs: EOS: 0002418c186249b284ecd2c7ca1fb616 steam: 76561199072042093 | Name:  Verstappening | Team ID: 1 | Squad ID: 2 | Is Leader: False | Role: USA_Crewman_01
+ID: 83 | Online IDs: EOS: 0002d4e8d46a4ee7b77ae268a8fd25df steam: 76561198062584905 | Name: ╘ӄ†ɢ╛ Warknoxs | Team ID: 2 | Squad ID: 6 | Is Leader: False | Role: WPMC_Rifleman_07
+ID: 1 | Online IDs: EOS: 00026e5bb28c4f028803bc344dd6f90c steam: 76561197999141831 | Name:  WiLeY92 | Team ID: 1 | Squad ID: 4 | Is Leader: False | Role: USA_Rifleman_03
+ID: 98 | Online IDs: EOS: 00024ddccfc145d8abca24796d220be5 steam: 76561199015004020 | Name: [GS] Will | Team ID: 2 | Squad ID: 5 | Is Leader: True | Role: WPMC_SL_05
+ID: 81 | Online IDs: EOS: 000295b500684750b3028256bb5b56ed steam: 76561198829964730 | Name: [Mo1st] YaFi | Team ID: 2 | Squad ID: 11 | Is Leader: True | Role: WPMC_SLCrewman_01
+ID: 59 | Online IDs: EOS: 0002d2fd2cf84d82894e38ad3f3f9b1c steam: 76561198119734860 | Name:  [OTOG] daki | Team ID: 2 | Squad ID: 3 | Is Leader: False | Role: WPMC_Rifleman_04
+ID: 32 | Online IDs: EOS: 000262e04a7441eda7606a4a8cbb0289 steam: 76561199337619410 | Name:   _LazySama | Team ID: 1 | Squad ID: 6 | Is Leader: False | Role: USA_Crewman_01,
+ID: 0 | Online IDs: EOS: 00029137c810454d8fbb33186464bdb3 steam: 76561198130497217 | Name: ╘ӄ†ɢ╛ aze | Team ID: 2 | Squad ID: 6 | Is Leader: True | Role: WPMC_SL_03
+ID: 46 | Online IDs: EOS: 00029b8470ce43fea0a5b6f4cec97c37 steam: 76561198151233778 | Name: pizza bobo warrior | Team ID: 1 | Squad ID: 3 | Is Leader: True | Role: USA_SL_01
+ID: 56 | Online IDs: EOS: 000239198578414a9684c19d861d98bf steam: 76561198286282451 | Name: ╘ӄ†ɢ╛ c3loo | Team ID: 2 | Squad ID: 6 | Is Leader: False | Role: WPMC_Rifleman_02
+ID: 88 | Online IDs: EOS: 0002712540d04e8093c123d9aa57c6d9 steam: 76561198199479699 | Name:  cateater123 | Team ID: 2 | Squad ID: 10 | Is Leader: False | Role: WPMC_HAT_01
+ID: 36 | Online IDs: EOS: 000281f22ae84c04a8e970529f341b97 steam: 76561199125739056 | Name:  cheekibreeki | Team ID: 1 | Squad ID: 9 | Is Leader: False | Role: USA_Medic_02
+ID: 84 | Online IDs: EOS: 0002d2c8399c4f97a79c916ed9758894 steam: 76561198127530370 | Name:  cobra comando | Team ID: 1 | Squad ID: 7 | Is Leader: False | Role: USA_Crewman_01
+ID: 67 | Online IDs: EOS: 000226d186ee44d8ac0c93c8a5761cb9 steam: 76561198838204259 | Name: [Mo1st] diddys meat | Team ID: 2 | Squad ID: 11 | Is Leader: False | Role: WPMC_Crewman_01
+ID: 10 | Online IDs: EOS: 0002d785c3a44fe7ab50e7b00ff66233 steam: 76561198257793684 | Name:  doppie | Team ID: 2 | Squad ID: 8 | Is Leader: False | Role: WPMC_LAT_02
+ID: 85 | Online IDs: EOS: 000277471797408880ac52b9651de6fd steam: 76561198330952692 | Name:  felixardyansyah | Team ID: 1 | Squad ID: 7 | Is Leader: True | Role: USA_SLCrewman_01
+ID: 20 | Online IDs: EOS: 0002779c468e4feaa02fea4820d0abe8 steam: 76561199230466185 | Name: ☆  flaco | Team ID: 2 | Squad ID: 9 | Is Leader: True | Role: WPMC_SLPilot_01
+ID: 49 | Online IDs: EOS: 00021147d585403db7b6a09cdbe5cd1b steam: 76561198820749620 | Name:   fy234 | Team ID: 1 | Squad ID: 9 | Is Leader: False | Role: USA_Rifleman_03
+ID: 9 | Online IDs: EOS: 0002e54455ec4ec4a267edbaf9253669 steam: 76561198135929896 | Name:  iMissYouHarambe | Team ID: 1 | Squad ID: 2 | Is Leader: True | Role: USA_SLCrewman_01
+ID: 16 | Online IDs: EOS: 0002e4230a634bc592045f7f22beae32 steam: 76561198193305377 | Name:  iZNoGouD | Team ID: 2 | Squad ID: 3 | Is Leader: False | Role: WPMC_Medic_02
+ID: 13 | Online IDs: EOS: 0002a65f8f0d4769b114a81ad30599bb steam: 76561199018645865 | Name:   menien | Team ID: 1 | Squad ID: 4 | Is Leader: False | Role: USA_LAT_01
+ID: 45 | Online IDs: EOS: 000250321e8849d980d24990416ca40a steam: 76561198394448000 | Name: [NEW] mikeyychorr | Team ID: 1 | Squad ID: 4 | Is Leader: False | Role: USA_Medic_02
+ID: 39 | Online IDs: EOS: 000260887aa24bb6a0b9e6d85b23eae0 steam: 76561198074788528 | Name:  nobita | Team ID: 2 | Squad ID: 4 | Is Leader: False | Role: WPMC_MachineGunner_01
+ID: 70 | Online IDs: EOS: 0002f429062241e898c5cb1518256662 steam: 76561198822770517 | Name:   obytch | Team ID: 2 | Squad ID: 3 | Is Leader: False | Role: WPMC_LAT_01
+ID: 100 | Online IDs: EOS: 0002e91e18d04b34bc0fdbf38fbba799 steam: 76561198819497211 | Name:  pingg | Team ID: 2 | Squad ID: 4 | Is Leader: False | Role: WPMC_AR_03
+ID: 80 | Online IDs: EOS: 0002b8fec4f64f98b4198e2d22214a13 steam: 76561199551656685 | Name: [ASS] rch | Team ID: 2 | Squad ID: 3 | Is Leader: False | Role: WPMC_Rifleman_05
+ID: 34 | Online IDs: EOS: 0002ee70a05943b8bcb67079f670dc2b steam: 76561198362048764 | Name:  rekudo | Team ID: 1 | Squad ID: 9 | Is Leader: True | Role: USA_SL_03
+ID: 5 | Online IDs: EOS: 0002a60bdd7e4b748983cd54397a70c6 steam: 76561199186596549 | Name:  relice | Team ID: 1 | Squad ID: 7 | Is Leader: False | Role: USA_Medic_02
+ID: 61 | Online IDs: EOS: 000249ca7cb54df9a1a880e32c3c7cb1 steam: 76561199555037475 | Name: [sqmy] rex | Team ID: 1 | Squad ID: 8 | Is Leader: False | Role: USA_LAT_02
+ID: 11 | Online IDs: EOS: 00023c69d56941288bff8d5cbf2416f7 steam: 76561198349310195 | Name:  rhongo | Team ID: 2 | Squad ID: 7 | Is Leader: False | Role: WPMC_Medic_02,
+ID: 55 | Online IDs: EOS: 0002705ceb974618a0518c77b5a05d31 steam: 76561198002966724 | Name:  stokes | Team ID: 1 | Squad ID: 4 | Is Leader: False | Role: USA_LAT_02
+ID: 27 | Online IDs: EOS: 0002a53d00f34fdc93b8c6165723776d steam: 76561198382282251 | Name: [sqmy] v.alentino | Team ID: 1 | Squad ID: 8 | Is Leader: False | Role: USA_MachineGunner_01
+ID: 12 | Online IDs: EOS: 0002e76d13fd498c9cc15df1bed890fa steam: 76561198990042186 | Name:  ɴямʟ | AllHailTheKing♞ | Team ID: 1 | Squad ID: 7 | Is Leader: False | Role: USA_Rifleman_02
+ID: 57 | Online IDs: EOS: 0002f80306644d9799c30f7f241d2fec steam: 76561199541206015 | Name:  ɴямʟ | Dkx.aj.ʟʏʙ | Team ID: 2 | Squad ID: 1 | Is Leader: False | Role: WPMC_LAT_01
+ID: 17 | Online IDs: EOS: 0002c30de5c94f6f8edaee11823c5b8c steam: 76561198141366919 | Name:  ɴямʟ | Fried noodles ♜ | Team ID: 2 | Squad ID: 1 | Is Leader: False | Role: WPMC_HAT_02
+ID: 101 | Online IDs: EOS: 0002501d3ab04c41bd24fe51b92f226a steam: 76561198852836836 | Name:  ɴямʟ | VINCENT.ʟʏʙ | Team ID: 2 | Squad ID: 1 | Is Leader: False | Role: WPMC_LAT_02
+ID: 92 | Online IDs: EOS: 00025a94207c4f388bd6074665f4d862 steam: 76561199493351864 | Name:  名人堂 BUTCHER | Team ID: 2 | Squad ID: 4 | Is Leader: False | Role: WPMC_Medic_02
+----- Recently Disconnected Players [Max of 15] -----

@@ -1,0 +1,1 @@
+AdminWarn "{player_id}" {message}

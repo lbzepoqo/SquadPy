@@ -1,0 +1,1 @@
+AdminKick "{player_id}" {reason}

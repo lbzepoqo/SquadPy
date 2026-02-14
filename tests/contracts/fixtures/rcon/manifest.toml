@@ -1,0 +1,125 @@
+schema_version = 1
+created_on = "2026-02-14"
+description = "Golden RCON command fixtures for parity command contracts."
+source_roadmap = "docs/plans/2026-02-13-parity-and-beyond-roadmap.md"
+source_tracker = "docs/plans/parity-tracker.md"
+
+[[commands]]
+id = "list_players"
+helper = "list_players"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/list_players.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/list_players_sample_1.txt"
+notes = "Primary ListPlayers sample response for parser contracts."
+
+[[commands]]
+id = "list_squads"
+helper = "list_squads"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/list_squads.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/list_squads_sample_1.txt"
+notes = "ListSquads sample response used for structure parsing."
+
+[[commands]]
+id = "broadcast"
+helper = "broadcast"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/broadcast.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_ok.txt"
+notes = "Admin broadcast command acknowledgement baseline."
+
+[[commands]]
+id = "warn"
+helper = "warn"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/warn.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_ok.txt"
+notes = "Warn command quoting and response baseline."
+
+[[commands]]
+id = "kick"
+helper = "kick"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/kick.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_ok.txt"
+notes = "Kick command quoting and response baseline."
+
+[[commands]]
+id = "show_current_map"
+helper = "show_current_map"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/show_current_map.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/show_current_map_sample_1.txt"
+notes = "Current map output parsing fixture."
+
+[[commands]]
+id = "show_next_map"
+helper = "show_next_map"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/show_next_map.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/show_next_map_voting_disabled.txt"
+notes = "Next map output parsing fixture when voting is disabled."
+
+[[commands]]
+id = "ban"
+helper = "ban"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/ban.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_ok.txt"
+notes = "Parity helper command fixture for AdminBan."
+
+[[commands]]
+id = "switch_team"
+helper = "switch_team"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/switch_team.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_ok.txt"
+notes = "Parity helper command fixture for team switching."
+
+[[commands]]
+id = "force_team_change"
+helper = "force_team_change"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/force_team_change.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_failure_invalid_id.txt"
+notes = "Parity helper command fixture for forced team change invalid-id path."
+
+[[commands]]
+id = "set_fog_of_war"
+helper = "set_fog_of_war"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/set_fog_of_war.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_ok.txt"
+notes = "Parity helper command fixture for fog mode changes."
+
+[[commands]]
+id = "set_next_layer"
+helper = "set_next_layer"
+priority = "p0"
+request_fixture = "tests/contracts/fixtures/rcon/requests/set_next_layer.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_ok.txt"
+notes = "Parity helper command fixture for next layer selection."
+
+[[commands]]
+id = "demote_commander"
+helper = "demote_commander"
+priority = "p1"
+request_fixture = "tests/contracts/fixtures/rcon/requests/demote_commander.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_ok.txt"
+notes = "Optional parity-depth admin helper fixture."
+
+[[commands]]
+id = "set_team"
+helper = "set_team"
+priority = "p1"
+request_fixture = "tests/contracts/fixtures/rcon/requests/set_team.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_ok.txt"
+notes = "Optional parity-depth helper for explicit team assignment."
+
+[[commands]]
+id = "end_match"
+helper = "end_match"
+priority = "p1"
+request_fixture = "tests/contracts/fixtures/rcon/requests/end_match.txt"
+response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_ok.txt"
+notes = "Optional parity-depth helper for match control."

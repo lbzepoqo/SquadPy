@@ -1,6 +1,6 @@
 # SquadPy Parity Tracker (SquadJS + SquadTS)
 
-Last updated: 2026-02-13
+Last updated: 2026-02-14
 Primary roadmap: `docs/plans/2026-02-13-parity-and-beyond-roadmap.md`
 
 ## Purpose
@@ -31,16 +31,21 @@ Status legend:
 
 ## 0) Phase 0 - Program Setup and Acceptance Harness
 
-- [ ] `P0-PROG-001` Create `tests/contracts/` structure and test markers (`@core-runtime`, `P0`)
+- [x] `P0-PROG-001` Create `tests/contracts/` structure and test markers (`@core-runtime`, `P0`)
   - Acceptance: `pytest -m contract` runs and reports discovered tests.
-- [ ] `P0-PROG-002` Create parity fixture packs from real logs (`@parser`, `P0`)
+  - Acceptance note (2026-02-14): Added `tests/contracts/core_runtime/test_contract_harness.py` with `contract`, `core_runtime`, and `p0` markers; registered markers in `pyproject.toml`.
+- [x] `P0-PROG-002` Create parity fixture packs from real logs (`@parser`, `P0`)
   - Acceptance: fixture manifest exists at `tests/contracts/fixtures/manifest.toml`.
-- [ ] `P0-PROG-003` Create RCON golden response fixtures (`@core-runtime`, `P0`)
+  - Acceptance note (2026-02-14): Added log pack manifest at `tests/contracts/fixtures/manifest.toml` and parser contract test `tests/contracts/parser/test_fixture_manifest.py` for manifest/reference validation.
+- [x] `P0-PROG-003` Create RCON golden response fixtures (`@core-runtime`, `P0`)
   - Acceptance: fixtures for all parity commands exist under `tests/contracts/fixtures/rcon/`.
-- [ ] `P0-PROG-004` Add contract CI job (`@qa-release`, `P0`)
+  - Acceptance note (2026-02-14): Added `tests/contracts/fixtures/rcon/manifest.toml` with fixtures for 15 parity command IDs, request/response fixture files under `tests/contracts/fixtures/rcon/`, and contract coverage in `tests/contracts/core_runtime/test_rcon_fixture_manifest.py`.
+- [x] `P0-PROG-004` Add contract CI job (`@qa-release`, `P0`)
   - Acceptance: CI runs `unit + contract` and fails on contract regressions.
-- [ ] `P0-PROG-005` Add integration CI job with mocked Discord/RCON (`@qa-release`, `P0`)
+  - Acceptance note (2026-02-14): Added GitHub Actions workflow `.github/workflows/ci.yml` with separate `unit` (`pytest -m "not contract"`) and `contract` (`pytest -m contract`) jobs.
+- [x] `P0-PROG-005` Add integration CI job with mocked Discord/RCON (`@qa-release`, `P0`)
   - Acceptance: CI workflow includes integration matrix stage.
+  - Acceptance note (2026-02-14): Added `integration` matrix job (`discord`, `rcon`) in `.github/workflows/ci.yml` running mocked Discord/RCON integration suites.
 - [ ] `P0-PROG-006` Define event contract schema docs (`@parser`, `P0`)
   - Acceptance: schema document exists at `docs/plans/event-contracts.md`.
 - [ ] `P0-PROG-007` Define command contract schema docs (`@core-runtime`, `P0`)
@@ -291,4 +296,3 @@ Week of:
 - New risks:
 - Mitigations applied:
 - Next week top 5 IDs:
-
