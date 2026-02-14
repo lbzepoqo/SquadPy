@@ -1,0 +1,29 @@
+enabled = false
+
+[settings]
+# Helicopter source data (SquadLayerList layers.json schema)
+fetch_helicopters_from_layer_source = true
+layer_source_url = "https://raw.githubusercontent.com/fantinodavide/SquadLayerList/refs/heads/main/layers.json"
+layer_source_timeout_seconds = 8
+
+# Optional static helicopter names (used in addition to fetched data)
+helicopter_names = []
+
+# Detect clustered helicopter-related deaths in this time window
+incident_window_seconds = 15
+min_victims = 3
+
+# Prevent repeated broadcasts for the same ongoing incident
+cooldown_seconds = 60
+
+# Weapon token matching used to classify heli-related death causes
+heli_weapon_tokens = ["loach", "heli", "helicopter", "mi8", "uh60", "littlebird", "blackhawk", "chopper"]
+
+# Broadcast output
+broadcast_message = "Potential heli crash: {victim_count} death(s) in {window_seconds}s via {weapon}."
+include_victim_names = false
+max_victim_names = 6
+
+# State management
+max_recent_deaths = 200
+reset_on_new_game = true

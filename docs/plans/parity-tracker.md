@@ -33,7 +33,7 @@ Status legend:
 
 - Active in-progress IDs: none.
 - Rationale: completed second seeding wave, DBLog foundation/migrations, and authenticated websocket/REST control with audit baseline (`P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`, `P0-API-001`, `P0-API-002`, `P0-API-003`) after finishing the moderation+seeding kickoff wave; next execution focus is making layer metadata a shared SquadPy subsystem instead of plugin-local fetch logic.
-- Next queued IDs: `P1-LAYER-001`, `P1-LAYER-002`, `P1-SEED-011`.
+- Next queued IDs: `P1-SEED-012`, `P1-DATA-003`, `P1-API-004`.
 
 ## 0) Phase 0 - Program Setup and Acceptance Harness
 
@@ -223,10 +223,12 @@ Status legend:
 
 ### 3.1 Layer catalog subsystem (phase 1/2/3 delivery)
 
-- [ ] `P1-LAYER-001` Build `squadpy/layers` core catalog service and normalizer (`@core-runtime`, `P1`)
+- [x] `P1-LAYER-001` Build `squadpy/layers` core catalog service and normalizer (`@core-runtime`, `P1`)
   - Acceptance: service loads and normalizes SquadLayerList `layers.json` payloads into a typed catalog/query interface with unit coverage for parsing and lookup behavior.
-- [ ] `P1-LAYER-002` Integrate catalog metadata into `plugins/heli_crash_broadcast` (`@plugins-seeding`, `P1`)
+  - Acceptance note (2026-02-14): Added shared layer catalog package (`squadpy/layers/__init__.py`, `squadpy/layers/catalog.py`) with remote fetch support, payload normalization into typed catalog queries (`layers`, `factions`, `vehicles_by_class`), and helper lookups (`has_layer`, `has_faction`, `vehicle_names`, `helicopter_names`, `helicopter_tokens`); added targeted coverage in `tests/test_layers_catalog.py`.
+- [x] `P1-LAYER-002` Integrate catalog metadata into `plugins/heli_crash_broadcast` (`@plugins-seeding`, `P1`)
   - Acceptance: heli crash detection consumes shared catalog helicopter metadata first, then deterministic fallback tokens; targeted plugin tests validate both paths.
+  - Acceptance note (2026-02-14): Integrated `plugins/heli_crash_broadcast/plugin.py` with `LayerCatalogService` for shared helicopter metadata loading, retained deterministic token/static-name fallback behavior, and added targeted integration coverage in `tests/test_plugin_heli_crash_broadcast.py` for catalog-backed detection.
 - [ ] `P2-LAYER-003` Add scheduled sync, conditional fetch, and stale-data health signaling (`@data-platform`, `P2`)
   - Acceptance: scheduler supports timeout/backoff + ETag/Last-Modified behavior and exposes stale/fetch-failure state in tests.
 - [ ] `P2-LAYER-004` Add persisted last-known-good catalog snapshot (`@data-platform`, `P2`)
@@ -234,8 +236,9 @@ Status legend:
 - [ ] `P2-LAYER-005` Expose shared layer query surfaces (plugin APIs + authenticated control APIs) (`@api-security`, `P2`)
   - Acceptance: plugin consumers and authenticated API callers can query layer/faction/vehicle metadata with integration tests for allowed/denied access.
 
-- [ ] `P1-SEED-011` Implement `plugins/heli_crash_broadcast` (`@plugins-seeding`, `P1`)
+- [x] `P1-SEED-011` Implement `plugins/heli_crash_broadcast` (`@plugins-seeding`, `P1`)
   - Acceptance: relevant event detection and broadcast tests pass using shared layer catalog metadata from `P1-LAYER-001`/`P1-LAYER-002`, with fallback-only mode covered by tests.
+  - Acceptance note (2026-02-14): Added `plugins/heli_crash_broadcast/plugin.py` for death-cluster detection with incident-window thresholding, cooldown dedupe, configurable broadcast formatting, and optional new-game reset; added config template `config/plugins/heli_crash_broadcast.toml.example` and targeted coverage in `tests/test_plugin_heli_crash_broadcast.py` for threshold behavior, cooldown, reset, fallback classification, and catalog-backed helicopter detection.
 - [ ] `P1-SEED-012` Implement `plugins/knife_broadcast` (`@plugins-seeding`, `P1`)
   - Acceptance: knife kill detection and formatting tests pass.
 
@@ -343,7 +346,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | Squad name validator | Yes | Done | `P1-SEED-008` |
 | Intervalled broadcasts | Yes | Done | `P1-SEED-009` |
 | Fog of war automation | Yes | Done | `P1-SEED-010` |
-| Heli crash broadcast | Yes | Planned (Layer Phase 1) | `P1-LAYER-001`, `P1-LAYER-002`, `P1-SEED-011` |
+| Heli crash broadcast | Yes | Done | `P1-LAYER-001`, `P1-LAYER-002`, `P1-SEED-011` |
 | Knife broadcast | Yes | Planned | `P1-SEED-012` |
 | DB event logging plugin | Yes | Done | `P0-DATA-001` |
 | Websocket API plugin/service | Yes | Done | `P0-API-001` |
@@ -372,6 +375,6 @@ Week of: 2026-02-14
 - Completed IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`, `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`, `P0-API-001`, `P0-API-002`, `P0-API-003`
 - In-progress IDs: none
 - Blocked IDs: none
-- New risks: layer metadata drift or remote source outages could cause plugin-local divergence if layer intelligence is not centralized early.
-- Mitigations applied: added dedicated layer-catalog phase plan (`P1-LAYER-001`..`P2-LAYER-005`) before finishing heli crash parity.
-- Next week top 5 IDs: `P1-LAYER-001`, `P1-LAYER-002`, `P1-SEED-011`, `P1-DATA-003`, `P1-API-004`
+- New risks: remote layer source availability and schema drift can still impact metadata freshness until Phase 2 sync/caching hardening (`P2-LAYER-003`, `P2-LAYER-004`) lands.
+- Mitigations applied: centralized layer metadata usage and normalization in shared `squadpy/layers` service before heli crash parity completion.
+- Next week top 5 IDs: `P1-SEED-012`, `P1-DATA-003`, `P1-DATA-004`, `P1-API-004`, `P0-CONN-001`
