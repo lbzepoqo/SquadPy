@@ -1,0 +1,24 @@
+enabled = false
+
+[settings]
+# Maximum allowed players in a single squad
+max_players = 9
+
+# Only enforce when at least this many players are online (0 disables gate)
+min_players = 0
+
+# Number of checks before kicking offending players
+warnings_before_kick = 2
+
+# Skip squad leaders from enforcement actions
+exempt_leaders = true
+
+# Exempt these player IDs (Steam or EOS IDs used by RCON target resolution)
+exempt_steam_ids = []
+
+# Exempt these squad IDs from size enforcement
+exempt_squad_ids = []
+
+# Warning and kick messages
+warning_message = "Squad {squad_id} is over {max_players}. Please leave or be kicked ({warnings_remaining} warning left)."
+kick_reason = "Squad {squad_id} exceeds {max_players} players."

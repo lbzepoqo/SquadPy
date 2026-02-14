@@ -208,8 +208,9 @@ Status legend:
 - [x] `P0-SEED-006` Implement `plugins/end_match_vote` (`@plugins-seeding`, `P0`)
   - Acceptance: vote quorum and action thresholds tested.
   - Acceptance note (2026-02-14): Added `plugins/end_match_vote/plugin.py` with chat-triggered vote sessions, configurable quorum thresholds, vote-window expiry, and success cooldown enforcement that issues `AdminEndMatch` on pass; added example config at `config/plugins/end_match_vote.toml.example` and coverage in `tests/test_plugin_end_match_vote.py`.
-- [ ] `P1-SEED-007` Implement `plugins/max_player_in_squad` (`@plugins-seeding`, `P1`)
+- [x] `P1-SEED-007` Implement `plugins/max_player_in_squad` (`@plugins-seeding`, `P1`)
   - Acceptance: enforcement, exemptions, and warning paths tested.
+  - Acceptance note (2026-02-14): Added `plugins/max_player_in_squad/plugin.py` with periodic squad-size enforcement, configurable warning-to-kick escalation, and exemption controls for leader role, player IDs, and squad IDs; added config template `config/plugins/max_player_in_squad.toml.example` and coverage in `tests/test_plugin_max_player_in_squad.py` for direct enforcement, warning escalation, exemption behavior, recovery reset, new-game reset, and handler/task registration.
 - [ ] `P1-SEED-008` Implement `plugins/squad_name_validator` (`@plugins-seeding`, `P1`)
   - Acceptance: invalid names trigger warnings/actions per config.
 - [ ] `P1-SEED-009` Implement `plugins/intervalled_broadcasts` (`@plugins-seeding`, `P1`)
@@ -321,7 +322,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | Team randomizer | Yes | Done | `P0-SEED-004` |
 | Switch command | Yes | Done | `P0-SEED-005` |
 | End match vote | Yes | Done | `P0-SEED-006` |
-| Max players in squad | Yes | Missing | `P1-SEED-007` |
+| Max players in squad | Yes | Done | `P1-SEED-007` |
 | Squad name validator | Yes | Missing | `P1-SEED-008` |
 | Fog of war automation | Yes | Missing | `P1-SEED-010` |
 | DB event logging plugin | Yes | Done | `P0-DATA-001` |
