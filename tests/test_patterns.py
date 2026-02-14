@@ -5,7 +5,7 @@ from squadpy.log_parser.patterns import match_line
 from squadpy.events.types import (
     PlayerConnected, JoinSucceeded, PlayerDisconnected,
     PlayerDamaged, PlayerWounded, PlayerDied, PlayerRevived,
-    Teamkill, SquadCreated,
+    Teamkill, SquadCreated, PlayerSwitchedTeam,
     PlayerPossess, PlayerUnpossess, NewGame, RoundEnded,
     ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked, PlayerBanned,
     AdminCamPossess, AdminCamUnpossess, DeployableDamaged,
@@ -97,6 +97,29 @@ class TestSquadCreated:
         event = match_line(line, store)
         assert isinstance(event, SquadCreated)
         assert event.team_id == 1
+
+
+class TestPlayerSwitchedTeam:
+    def test_emits_when_cached_team_changes(self):
+        store = EventStore()
+        first_assignment = "[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 1"
+        switch_assignment = "[2026.02.14-00.51.32:400][ 46]LogSquad: Player  PamanPanda has been added to Team 2"
+
+        first_event = match_line(first_assignment, store)
+        second_event = match_line(switch_assignment, store)
+
+        assert first_event is None
+        assert isinstance(second_event, PlayerSwitchedTeam)
+        assert second_event.player.name == "PamanPanda"
+        assert second_event.old_team == 1
+        assert second_event.new_team == 2
+
+    def test_does_not_emit_for_duplicate_team_assignment(self):
+        store = EventStore()
+        line = "[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 2"
+        match_line(line, store)
+        event = match_line(line, store)
+        assert event is None
 
 
 class TestPlayerDisconnected:

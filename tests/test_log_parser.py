@@ -10,7 +10,8 @@ from squadpy.events.types import (
     BaseEvent, PlayerConnected, JoinSucceeded, PlayerDamaged,
     PlayerWounded, PlayerDied, PlayerPossess, PlayerUnpossess,
     NewGame, RoundEnded, ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked,
-    PlayerBanned, AdminCamPossess, AdminCamUnpossess, Teamkill, SquadCreated, DeployableDamaged,
+    PlayerBanned, AdminCamPossess, AdminCamUnpossess, Teamkill, SquadCreated,
+    PlayerSwitchedTeam, DeployableDamaged,
 )
 from squadpy.log_parser.parser import LogParser
 from squadpy.log_parser.reader import LogReader
@@ -224,6 +225,18 @@ class TestLogParser:
         assert teamkill.victim.name == "PamanPanda"
         assert teamkill.weapon == "BP_M134_Loach_Dual_C"
 
+    async def test_emits_player_switched_team_on_transition(self):
+        lines = [
+            "[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 1",
+            "[2026.02.14-00.51.32:400][ 46]LogSquad: Player  PamanPanda has been added to Team 2",
+        ]
+        events = await self._run_parser(lines)
+        switched = [event for event in events if isinstance(event, PlayerSwitchedTeam)]
+        assert len(switched) == 1
+        assert switched[0].player.name == "PamanPanda"
+        assert switched[0].old_team == 1
+        assert switched[0].new_team == 2
+
     async def test_emits_teamkill_from_rcon_player_cache(self):
         lines = [
             "[2026.02.14-01.16.31:277][417]LogSquadTrace: [DedicatedServer]Wound(): Player:[INAF]  PamanPanda KillingDamage=150.000000 from BP_PlayerController_SATSeed_C_2147382416 (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778 | Controller ID: BP_PlayerController_SATSeed_C_2147382416) caused by BP_M134_Loach_Dual_C_2147377585",
@@ -330,7 +343,7 @@ class TestLogParser:
             "player_possess", "player_unpossess", "new_game", "round_ended",
             "server_tick_rate", "admin_broadcast", "player_warned", "player_kicked",
             "player_banned", "admin_cam_possess", "admin_cam_unpossess",
-            "squad_created", "teamkill", "deployable_damaged",
+            "squad_created", "teamkill", "player_switched_team", "deployable_damaged",
         ]
         for name in event_names:
             bus.subscribe(name, capture)

@@ -96,6 +96,14 @@ class SquadCreated(BaseEvent):
 
 
 @dataclass
+class PlayerSwitchedTeam(BaseEvent):
+    event_name: str = "player_switched_team"
+    player: PlayerID = field(default_factory=PlayerID)
+    old_team: int = 0
+    new_team: int = 0
+
+
+@dataclass
 class PlayerRevived(BaseEvent):
     event_name: str = "player_revived"
     reviver: PlayerID = field(default_factory=PlayerID)

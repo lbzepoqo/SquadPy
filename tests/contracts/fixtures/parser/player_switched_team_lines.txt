@@ -1,0 +1,2 @@
+[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 1
+[2026.02.14-00.51.32:400][ 46]LogSquad: Player  PamanPanda has been added to Team 2

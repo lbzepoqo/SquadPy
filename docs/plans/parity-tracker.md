@@ -119,8 +119,9 @@ Status legend:
 - [x] `P0-EVT-007` Add explicit `Teamkill` event (`@parser`, `P0`)
   - Acceptance: teamkill detection path has dedicated contracts.
   - Acceptance note (2026-02-14): Added `Teamkill` dataclass in `squadpy/events/types.py`, parser correlation in `squadpy/log_parser/patterns.py` from native combat logs with RCON `ListPlayers` cache preference and team-assignment log fallback, plus `Die()` fallback detection for teamkills that skip `Wound()` while deduping normal `Wound() -> Die()` chains; contract fixture/test remains `tests/contracts/fixtures/parser/teamkill_lines.txt` + `tests/contracts/parser/test_teamkill_contract.py`.
-- [ ] `P1-EVT-008` Add `PlayerSwitchedTeam` event (`@parser`, `P1`)
+- [x] `P1-EVT-008` Add `PlayerSwitchedTeam` event (`@parser`, `P1`)
   - Acceptance: parser and event contracts pass.
+  - Acceptance note (2026-02-14): Added `PlayerSwitchedTeam` dataclass in `squadpy/events/types.py`, parser transition emission in `squadpy/log_parser/patterns.py` when a cached player team assignment changes, unit coverage in `tests/test_patterns.py` and `tests/test_log_parser.py`, plus parser contract fixture/test at `tests/contracts/fixtures/parser/player_switched_team_lines.txt` and `tests/contracts/parser/test_player_switched_team_contract.py`.
 - [ ] `P1-EVT-009` Add `NextLayerSet` event (`@parser`, `P1`)
   - Acceptance: layer mutation is emitted as structured event.
 - [ ] `P1-EVT-010` Add seeding threshold transition events (`@parser`, `P1`)

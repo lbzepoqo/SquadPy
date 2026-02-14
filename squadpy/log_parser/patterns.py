@@ -19,6 +19,7 @@ from squadpy.events.types import (
     PlayerDied,
     Teamkill,
     SquadCreated,
+    PlayerSwitchedTeam,
     PlayerRevived,
     PlayerPossess,
     PlayerUnpossess,
@@ -286,9 +287,10 @@ _PLAYER_ADDED_TO_TEAM_RE = re.compile(
 
 def _on_player_added_to_team(
     m: re.Match, chain_id: int, time: str, store: EventStore
-) -> None:
+) -> PlayerSwitchedTeam | None:
     player_name = m.group(3).strip()
     team_id = int(m.group(4))
+    previous_team = _team_for_name(player_name, store)
 
     # Cache by raw and cleaned names for later combat correlation.
     store.player_teams_by_name[player_name] = team_id
@@ -300,6 +302,14 @@ def _on_player_added_to_team(
         record_name = str(record.get("name", "")).strip()
         if record_name and _names_match(player_name, record_name):
             record["team_id"] = team_id
+
+    if previous_team is not None and previous_team != team_id:
+        player = _find_player_by_name(player_name, store)
+        return PlayerSwitchedTeam(
+            player=player,
+            old_team=previous_team,
+            new_team=team_id,
+        )
     return None
 
 
