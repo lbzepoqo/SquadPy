@@ -41,6 +41,8 @@ _NEXT_MAP_RE = re.compile(
     r"(?:, factions (?P<factions>.+))?$"
 )
 
+_SAFE_NEXT_LAYER_RE = re.compile(r"^[A-Za-z0-9_+\- ]+$")
+
 
 def parse_players(response: str) -> list[RconPlayer]:
     """Parse a ListPlayers RCON response into RconPlayer objects."""
@@ -382,6 +384,22 @@ class RconClient:
             raise ValueError("mode must be 0 or 1")
 
         return await self.execute(f"AdminSetFogOfWar {parsed_mode}")
+
+    async def set_next_layer(self, layer: str) -> str:
+        """Set the next layer using a validated layer/faction string."""
+        if not isinstance(layer, str):
+            raise ValueError("layer must be a non-empty safe string")
+
+        normalized_layer = layer.strip()
+        if not normalized_layer:
+            raise ValueError("layer must be a non-empty safe string")
+
+        if not _SAFE_NEXT_LAYER_RE.fullmatch(normalized_layer):
+            raise ValueError(
+                "layer may contain only letters, numbers, spaces, '_', '-', and '+'",
+            )
+
+        return await self.execute(f"AdminSetNextLayer {normalized_layer}")
 
     async def show_current_map(self) -> MapInfo | None:
         """Get current map info."""

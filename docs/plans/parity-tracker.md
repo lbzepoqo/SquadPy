@@ -73,8 +73,9 @@ Status legend:
 - [x] `P0-RCON-004` Add `set_fog_of_war(mode)` helper (`@core-runtime`, `P0`)
   - Acceptance: mode validation and command dispatch tests pass.
   - Acceptance note (2026-02-14): Added `RconClient.set_fog_of_war(...)` in `squadpy/rcon/client.py` with `0|1` mode validation, unit tests in `tests/test_rcon_helpers.py`, and contract test `tests/contracts/core_runtime/test_rcon_set_fog_of_war_contract.py` for exact command-template + response passthrough.
-- [ ] `P0-RCON-005` Add `set_next_layer(layer)` helper (`@core-runtime`, `P0`)
+- [x] `P0-RCON-005` Add `set_next_layer(layer)` helper (`@core-runtime`, `P0`)
   - Acceptance: contract test confirms layer string safety and command dispatch.
+  - Acceptance note (2026-02-14): Added `RconClient.set_next_layer(...)` in `squadpy/rcon/client.py` with safe layer-string validation, unit tests in `tests/test_rcon_helpers.py`, and contract tests in `tests/contracts/core_runtime/test_rcon_set_next_layer_contract.py` for exact command template + unsafe-input rejection.
 - [ ] `P1-RCON-006` Add `demote_commander(player_id)` helper (`@core-runtime`, `P1`)
   - Acceptance: helper implemented with tests.
 - [ ] `P1-RCON-007` Add explicit `set_team(player_id, team)` helper (`@core-runtime`, `P1`)

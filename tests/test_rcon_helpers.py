@@ -284,6 +284,22 @@ class TestRconClientConvenience:
             await client.set_fog_of_war(2)
         client.execute.assert_not_called()
 
+    async def test_set_next_layer_calls_execute_with_valid_layer(self, client):
+        client.execute.return_value = ""
+        layer = "Sumari_Seed_v1 RGF+Support INS"
+        await client.set_next_layer(layer)
+        client.execute.assert_awaited_once_with(f"AdminSetNextLayer {layer}")
+
+    async def test_set_next_layer_rejects_unsafe_layer(self, client):
+        with pytest.raises(ValueError, match="letters, numbers, spaces"):
+            await client.set_next_layer("Sumari_Seed_v1;AdminEndMatch")
+        client.execute.assert_not_called()
+
+    async def test_set_next_layer_rejects_empty_layer(self, client):
+        with pytest.raises(ValueError, match="non-empty safe string"):
+            await client.set_next_layer("   ")
+        client.execute.assert_not_called()
+
     async def test_show_current_map_calls_execute(self, client):
         client.execute.return_value = "Current level is Test, layer is Test_v1, factions A B"
         result = await client.show_current_map()
