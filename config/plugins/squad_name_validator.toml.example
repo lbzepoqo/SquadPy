@@ -1,0 +1,26 @@
+enabled = false
+
+[settings]
+# Validation behavior
+validate_on_create = true
+min_length = 3
+max_length = 24
+ignore_case = true
+
+# Block specific names/terms and regex patterns
+blocked_exact_names = ["squad", "new squad"]
+blocked_terms = []
+invalid_patterns = ["^squad\\s*\\d+$"]
+required_pattern = ""
+
+# Enforcement mode: warn | warn_then_kick | kick
+enforcement_action = "warn_then_kick"
+warnings_before_kick = 2
+
+# Exemptions
+exempt_steam_ids = []
+exempt_squad_ids = []
+
+# Action messages
+warning_message = "Squad name '{squad_name}' is invalid. Rename squad {squad_id} to comply ({warnings_remaining} warning left)."
+kick_reason = "Kicked for invalid squad name policy violation in squad {squad_id}."
