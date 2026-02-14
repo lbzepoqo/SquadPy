@@ -3,9 +3,13 @@ enabled = true
 [settings]
 channel_id = 0
 
-# Graph trend settings (Players + Tick Rate)
+# Graph trend settings (Players)
 graph_enabled = true
 graph_window_minutes = 60
 graph_max_points = 24
 graph_width = 900
 graph_height = 340
+graph_y_min = 0
+graph_y_max = 100
+graph_y_step = 10
+graph_right_to_left = true
