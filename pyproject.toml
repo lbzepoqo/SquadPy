@@ -17,6 +17,7 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
+    "pyright>=1.1.402",
 ]
 
 [tool.setuptools.packages.find]
@@ -36,3 +37,13 @@ markers = [
 filterwarnings = [
     "ignore:'audioop' is deprecated and slated for removal in Python 3.13:DeprecationWarning:discord.player",
 ]
+
+[tool.pyright]
+pythonVersion = "3.12"
+venvPath = "."
+venv = ".venv"
+include = ["squadpy", "tests"]
+typeCheckingMode = "basic"
+reportMissingTypeStubs = "none"
+reportAttributeAccessIssue = "none"
+reportOptionalMemberAccess = "error"

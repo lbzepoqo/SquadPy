@@ -3,7 +3,7 @@ VENV_DIR ?= .venv
 VENV_PYTHON := $(VENV_DIR)/bin/python
 DEV_STAMP := $(VENV_DIR)/.dev-deps.stamp
 
-.PHONY: setup-dev check-dev test test-unit test-contract
+.PHONY: setup-dev check-dev test test-unit test-contract typecheck
 
 $(VENV_PYTHON):
 	$(PYTHON) -m venv $(VENV_DIR)
@@ -27,3 +27,7 @@ test-unit: check-dev
 
 test-contract: check-dev
 	$(VENV_PYTHON) -m pytest -m contract -v
+
+typecheck: check-dev
+	@$(VENV_PYTHON) -m pyright --version >/dev/null 2>&1 || (echo "pyright is not installed in $(VENV_DIR). Run 'make setup-dev' in a network-enabled environment." && exit 1)
+	$(VENV_PYTHON) -m pyright --pythonpath $(VENV_PYTHON)

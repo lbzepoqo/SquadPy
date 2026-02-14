@@ -95,7 +95,14 @@ class TestRestControlEndpoints:
     def test_routes_include_health_status_and_command(self):
         service = WebsocketControlService(token="secret_token")
         app = service._build_app()
-        paths = {route.resource.canonical for route in app.router.routes()}
+        paths: set[str] = set()
+        for route in app.router.routes():
+            resource = route.resource
+            if resource is None:
+                continue
+            canonical = getattr(resource, "canonical", "")
+            if canonical:
+                paths.add(canonical)
         assert "/api/health" in paths
         assert "/api/status" in paths
         assert "/api/command" in paths

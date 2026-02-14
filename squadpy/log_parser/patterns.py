@@ -81,11 +81,15 @@ def _names_match(left: str, right: str) -> bool:
     if left_clean and right_clean and left_clean == right_clean:
         return True
 
+    clean_suffix_match = (
+        bool(left_clean)
+        and bool(right_clean)
+        and (left_clean.endswith(right_clean) or right_clean.endswith(left_clean))
+    )
     return (
         left_raw.endswith(right_raw)
         or right_raw.endswith(left_raw)
-        or (left_clean and right_clean and left_clean.endswith(right_clean))
-        or (left_clean and right_clean and right_clean.endswith(left_clean))
+        or clean_suffix_match
     )
 
 
