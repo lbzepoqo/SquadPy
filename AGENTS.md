@@ -50,3 +50,12 @@
 ## Security & Configuration Tips
 - Do not commit secrets or server identifiers; only example TOMLs should be tracked.
 - Treat logs and raw sample data as sensitive; sanitize player IDs/IPs before sharing.
+
+## Live Capture Workflow (Logs + RCON)
+- For live parity validation, prefer a windowed capture approach instead of long-running noisy tails.
+- `start capture`: record baseline log offset/time and snapshot `ListPlayers` + `ListSquads`.
+- During the action window, monitor both sources:
+  - appended log lines from baseline offset
+  - RCON state deltas (players/squads) via polling
+- `stop capture`: collect only appended log bytes and post-action `ListPlayers`/`ListSquads`.
+- Store sanitized excerpts as fixtures and reference the scenario window in handoff notes.
