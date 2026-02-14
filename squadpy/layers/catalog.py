@@ -36,6 +36,7 @@ _VEHICLE_NAME_KEYS = {
     "blueprint",
     "id",
 }
+_MELEE_VALUE_KEYS = {"meleeweapons", "melee_weapons", "melee_weapon"}
 
 
 @dataclass
@@ -45,6 +46,7 @@ class LayerCatalog:
     layers: frozenset[str] = field(default_factory=frozenset)
     factions: frozenset[str] = field(default_factory=frozenset)
     vehicles_by_class: dict[str, frozenset[str]] = field(default_factory=dict)
+    melee_weapons: frozenset[str] = field(default_factory=frozenset)
     source_url: str = ""
     fetched_at_monotonic: float = 0.0
 
@@ -77,6 +79,9 @@ class LayerCatalog:
 
     def helicopter_tokens(self, *, min_length: int = 3) -> set[str]:
         return _tokenize_names(self.helicopter_names, min_length=min_length)
+
+    def melee_weapon_tokens(self, *, min_length: int = 3) -> set[str]:
+        return _tokenize_names(set(self.melee_weapons), min_length=min_length)
 
 
 class LayerCatalogService:
@@ -111,6 +116,7 @@ def normalize_layers_payload(payload: Any) -> LayerCatalog:
     layers: set[str] = set()
     factions: set[str] = set()
     vehicles_by_class: dict[str, set[str]] = {}
+    melee_weapons: set[str] = set()
 
     def add_layer(value: Any) -> None:
         text = _clean_name(value)
@@ -134,6 +140,15 @@ def normalize_layers_payload(payload: Any) -> LayerCatalog:
         if key == "HELICOPTER" and _norm(text) in {"helicopter", "helicopters"}:
             return
         vehicles_by_class.setdefault(key, set()).add(text)
+
+    def add_melee_weapon(value: Any) -> None:
+        text = _clean_name(value)
+        if not text:
+            return
+        lowered = _norm(text)
+        if lowered in {"meleeweapon", "meleeweapons", "knife", "knives"}:
+            return
+        melee_weapons.add(text)
 
     def collect_vehicle_names(node: Any, inferred_class: str | None = None) -> None:
         if isinstance(node, str):
@@ -168,6 +183,23 @@ def normalize_layers_payload(payload: Any) -> LayerCatalog:
                 continue
             if isinstance(value, (dict, list)):
                 collect_vehicle_names(value, local_class)
+
+    def collect_name_strings(node: Any, *, add_value) -> None:
+        if isinstance(node, str):
+            add_value(node)
+            return
+        if isinstance(node, list):
+            for item in node:
+                collect_name_strings(item, add_value=add_value)
+            return
+        if not isinstance(node, dict):
+            return
+        for key, value in node.items():
+            key_norm = _norm(key)
+            if key_norm in _VEHICLE_NAME_KEYS and isinstance(value, str):
+                add_value(value)
+            elif isinstance(value, (dict, list)):
+                collect_name_strings(value, add_value=add_value)
 
     def walk(node: Any) -> None:
         if isinstance(node, list):
@@ -207,6 +239,8 @@ def normalize_layers_payload(payload: Any) -> LayerCatalog:
                         collect_vehicle_names(vehicle_values, inferred_class=str(vehicle_class))
                 else:
                     collect_vehicle_names(value)
+            elif key_norm in _MELEE_VALUE_KEYS:
+                collect_name_strings(value, add_value=add_melee_weapon)
             elif key_norm in _VEHICLE_CLASS_KEYS:
                 if isinstance(value, str):
                     collect_vehicle_names(node, inferred_class=value)
@@ -224,6 +258,7 @@ def normalize_layers_payload(payload: Any) -> LayerCatalog:
         layers=frozenset(sorted(layers)),
         factions=frozenset(sorted(factions)),
         vehicles_by_class=normalized_vehicles,
+        melee_weapons=frozenset(sorted(melee_weapons)),
     )
 
 

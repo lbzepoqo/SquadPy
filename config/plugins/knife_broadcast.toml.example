@@ -1,0 +1,23 @@
+enabled = false
+
+[settings]
+# Melee source data (SquadLayerList layers.json schema)
+fetch_melee_weapons_from_layer_source = true
+layer_source_url = "https://raw.githubusercontent.com/fantinodavide/SquadLayerList/refs/heads/main/layers.json"
+layer_source_timeout_seconds = 8
+
+# Optional static melee names (used in addition to fetched data)
+melee_weapon_names = []
+
+# Token fallback used for melee classification
+knife_weapon_tokens = ["knife", "bayonet", "combatknife", "melee"]
+
+# Prevent repeated knife announcements in bursty fights
+cooldown_seconds = 5
+
+# Broadcast output
+broadcast_message = "{attacker} knifed {victim} with {weapon}!"
+include_weapon_name = true
+
+# State management
+reset_on_new_game = true

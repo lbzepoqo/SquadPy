@@ -33,7 +33,7 @@ Status legend:
 
 - Active in-progress IDs: none.
 - Rationale: completed second seeding wave, DBLog foundation/migrations, and authenticated websocket/REST control with audit baseline (`P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`, `P0-API-001`, `P0-API-002`, `P0-API-003`) after finishing the moderation+seeding kickoff wave; next execution focus is making layer metadata a shared SquadPy subsystem instead of plugin-local fetch logic.
-- Next queued IDs: `P1-SEED-012`, `P1-DATA-003`, `P1-API-004`.
+- Next queued IDs: `P1-DATA-003`, `P1-DATA-004`, `P1-API-004`.
 
 ## 0) Phase 0 - Program Setup and Acceptance Harness
 
@@ -239,8 +239,9 @@ Status legend:
 - [x] `P1-SEED-011` Implement `plugins/heli_crash_broadcast` (`@plugins-seeding`, `P1`)
   - Acceptance: relevant event detection and broadcast tests pass using shared layer catalog metadata from `P1-LAYER-001`/`P1-LAYER-002`, with fallback-only mode covered by tests.
   - Acceptance note (2026-02-14): Added `plugins/heli_crash_broadcast/plugin.py` for death-cluster detection with incident-window thresholding, cooldown dedupe, configurable broadcast formatting, and optional new-game reset; added config template `config/plugins/heli_crash_broadcast.toml.example` and targeted coverage in `tests/test_plugin_heli_crash_broadcast.py` for threshold behavior, cooldown, reset, fallback classification, and catalog-backed helicopter detection.
-- [ ] `P1-SEED-012` Implement `plugins/knife_broadcast` (`@plugins-seeding`, `P1`)
+- [x] `P1-SEED-012` Implement `plugins/knife_broadcast` (`@plugins-seeding`, `P1`)
   - Acceptance: knife kill detection and formatting tests pass.
+  - Acceptance note (2026-02-14): Added `plugins/knife_broadcast/plugin.py` with knife/melee kill detection from configurable tokens plus shared layer-catalog `MeleeWeapons` metadata (`LayerCatalogService`) and optional static melee-name fallback; added config template `config/plugins/knife_broadcast.toml.example` and targeted coverage in `tests/test_plugin_knife_broadcast.py` for token detection, cooldown behavior, new-game reset, formatting toggles, and catalog-backed melee detection.
 
 ## 4) Phase 4 - Data, API, Integration Parity
 
@@ -347,7 +348,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | Intervalled broadcasts | Yes | Done | `P1-SEED-009` |
 | Fog of war automation | Yes | Done | `P1-SEED-010` |
 | Heli crash broadcast | Yes | Done | `P1-LAYER-001`, `P1-LAYER-002`, `P1-SEED-011` |
-| Knife broadcast | Yes | Planned | `P1-SEED-012` |
+| Knife broadcast | Yes | Done | `P1-SEED-012` |
 | DB event logging plugin | Yes | Done | `P0-DATA-001` |
 | Websocket API plugin/service | Yes | Done | `P0-API-001` |
 
@@ -376,5 +377,5 @@ Week of: 2026-02-14
 - In-progress IDs: none
 - Blocked IDs: none
 - New risks: remote layer source availability and schema drift can still impact metadata freshness until Phase 2 sync/caching hardening (`P2-LAYER-003`, `P2-LAYER-004`) lands.
-- Mitigations applied: centralized layer metadata usage and normalization in shared `squadpy/layers` service before heli crash parity completion.
-- Next week top 5 IDs: `P1-SEED-012`, `P1-DATA-003`, `P1-DATA-004`, `P1-API-004`, `P0-CONN-001`
+- Mitigations applied: centralized layer metadata usage and normalization in shared `squadpy/layers` service for both heli and melee detection paths.
+- Next week top 5 IDs: `P1-DATA-003`, `P1-DATA-004`, `P1-API-004`, `P1-API-005`, `P0-CONN-001`

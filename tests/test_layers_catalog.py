@@ -5,6 +5,10 @@ from squadpy.layers import LayerCatalogService, normalize_layers_payload
 
 def test_normalize_layers_payload_extracts_layer_faction_and_vehicle_classes():
     payload = {
+        "MeleeWeapons": [
+            "BP_Knife_Combat_C",
+            {"name": "BP_Melee_Dagger_C"},
+        ],
         "layers": [
             {
                 "name": "Narva_RAAS_v1",
@@ -25,6 +29,8 @@ def test_normalize_layers_payload_extracts_layer_faction_and_vehicle_classes():
     assert catalog.has_faction("usa")
     assert catalog.vehicle_names("ifv") == {"BTR-82A"}
     assert catalog.helicopter_names == {"BP_Loach_CAS_Small_C", "MI8 Transport"}
+    assert catalog.melee_weapons == {"BP_Knife_Combat_C", "BP_Melee_Dagger_C"}
+    assert "knife" in catalog.melee_weapon_tokens()
 
 
 def test_normalize_layers_payload_extracts_typed_vehicle_entries():
