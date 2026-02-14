@@ -1,0 +1,14 @@
+enabled = false
+
+[settings]
+seed_player_threshold = 50
+announce_transitions = true
+announce_initial_mode = false
+reset_on_new_game = true
+seed_mode_message = "Seeding mode active ({players}/{threshold})"
+live_mode_message = "Live mode active ({players}/{threshold})"
+
+# Optional fog toggling when transitions occur.
+set_fog_of_war_on_transition = false
+seed_fog_mode = "1"
+live_fog_mode = "0"

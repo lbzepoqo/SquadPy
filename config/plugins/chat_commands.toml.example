@@ -1,0 +1,25 @@
+enabled = false
+
+[settings]
+command_prefix = "!"
+default_role = "user"
+roles_order = ["user", "mod", "admin"]
+denied_message = "You do not have permission for !{command}."
+cooldown_message = "Command !{command} is on cooldown ({remaining}s)."
+usage_message = "Usage: {usage}"
+
+[settings.user_roles]
+# "76561198000000001" = "admin"
+# "76561198000000002" = "mod"
+
+[settings.commands.broadcast]
+min_role = "mod"
+cooldown_seconds = 5
+
+[settings.commands.warn]
+min_role = "mod"
+cooldown_seconds = 5
+
+[settings.commands.kick]
+min_role = "admin"
+cooldown_seconds = 10

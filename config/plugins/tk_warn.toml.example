@@ -1,6 +1,11 @@
 enabled = true
 
 [settings]
+# Use "teamkill" for explicit parser events (default), "player_wounded" for legacy cache mode,
+# or "auto" to accept both sources.
+event_source = "teamkill"
 kick_threshold = 5
+warning_cooldown_seconds = 0
+reset_on_new_game = true
 warning_message = "Team kill #{count} recorded. {threshold} = kick."
 kick_message = "Kicked for excessive teamkills ({count})"

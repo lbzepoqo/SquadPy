@@ -32,8 +32,8 @@ Status legend:
 ## Current Sprint Focus (2026-02-14)
 
 - Active in-progress IDs: none.
-- Rationale: completed first wave of Discord moderation parity plugins that directly reuse recent parser event additions.
-- Next queued IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`.
+- Rationale: completed queued moderation/seeding wave (`P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`) and validated with full green test suite.
+- Next queued IDs: `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`.
 
 ## 0) Phase 0 - Program Setup and Acceptance Harness
 
@@ -138,8 +138,9 @@ Status legend:
 
 ### 2.1 New moderation/Discord plugins
 
-- [ ] `P0-PLUG-MOD-001` Implement `plugins/chat_commands` (`@plugins-moderation`, `P0`)
+- [x] `P0-PLUG-MOD-001` Implement `plugins/chat_commands` (`@plugins-moderation`, `P0`)
   - Acceptance: role-based command permissions and cooldown tests pass.
+  - Acceptance note (2026-02-14): Added `plugins/chat_commands/plugin.py` with role-gated `!broadcast`/`!warn`/`!kick` commands, per-user per-command cooldown enforcement, configurable role hierarchy/mappings, and usage/denied/cooldown responses; added example config at `config/plugins/chat_commands.toml.example` and coverage in `tests/test_plugin_chat_commands.py`.
 - [x] `P0-PLUG-MOD-002` Implement `plugins/discord_admin_broadcast` (`@plugins-moderation`, `P0`)
   - Acceptance: Discord-triggered broadcast reaches server and logs action.
   - Acceptance note (2026-02-14): Added `plugins/discord_admin_broadcast/plugin.py` with privileged `/broadcast` slash command, optional role gating, and optional audit-channel logging; added example config at `config/plugins/discord_admin_broadcast.toml.example` and coverage in `tests/test_plugin_discord_admin_broadcast.py`.
@@ -164,8 +165,9 @@ Status legend:
 
 ### 2.2 Upgrade existing plugins to parity depth
 
-- [ ] `P0-PLUG-UPG-001` Upgrade `tk_warn` config flexibility and edge cases (`@plugins-moderation`, `P0`)
+- [x] `P0-PLUG-UPG-001` Upgrade `tk_warn` config flexibility and edge cases (`@plugins-moderation`, `P0`)
   - Acceptance: parity behavior matrix tests pass.
+  - Acceptance note (2026-02-14): Upgraded `plugins/tk_warn/plugin.py` with configurable `event_source` (`teamkill`/`player_wounded`/`auto`), warning cooldown support, reset toggle, safe threshold parsing, safe message formatting, and single-kick guard per offender; updated example config at `config/plugins/tk_warn.toml.example` and expanded parity behavior matrix coverage in `tests/test_plugin_tk_warn.py`.
 - [x] `P0-PLUG-UPG-002` Upgrade `admin_request` ticket lifecycle depth (`@plugins-moderation`, `P0`)
   - Acceptance: claim, relay, close, and timeout behaviors are tested.
   - Acceptance note (2026-02-14): Expanded `plugins/admin_request/plugin.py` with ticket close button handling, thread `!close` command flow, periodic timeout expiry (`ticket_timeout_minutes`), and configurable relay/timeout messaging; updated config template at `config/plugins/admin_request.toml.example` and added lifecycle tests in `tests/test_plugin_admin_request.py` for claim, relay, close, and timeout behavior.
@@ -174,8 +176,9 @@ Status legend:
 
 ## 3) Phase 3 - Seeding, Team Balance, Match Control
 
-- [ ] `P0-SEED-001` Implement `plugins/seeding_mode` (`@plugins-seeding`, `P0`)
+- [x] `P0-SEED-001` Implement `plugins/seeding_mode` (`@plugins-seeding`, `P0`)
   - Acceptance: seed/live mode transition contracts pass.
+  - Acceptance note (2026-02-14): Added `plugins/seeding_mode/plugin.py` with threshold-based seed/live transitions, optional transition broadcasts, optional fog-of-war transition hooks, and `new_game` reset behavior; added example config at `config/plugins/seeding_mode.toml.example` and transition coverage in `tests/test_plugin_seeding_mode.py`.
 - [ ] `P0-SEED-002` Implement `plugins/auto_seed_low_players` (`@plugins-seeding`, `P0`)
   - Acceptance: low-population automation actions validated by tests.
 - [ ] `P0-SEED-003` Implement `plugins/auto_rejoin_team` (`@plugins-seeding`, `P0`)
@@ -275,11 +278,11 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | Capability | SquadJS/SquadTS | SquadPy status | Tracker IDs |
 |---|---|---|---|
 | Auto kick unassigned | Yes | Done | Existing |
-| TK warn | Yes | Partial | `P0-PLUG-UPG-001` |
+| TK warn | Yes | Done | `P0-PLUG-UPG-001` |
 | Admin request workflow | Yes | Done | `P0-PLUG-UPG-002` |
 | Discord chat bridge | Yes | Done | Existing |
 | Server status embed | Yes | Partial | `P1-PLUG-UPG-003` |
-| Chat commands | Yes | Missing | `P0-PLUG-MOD-001` |
+| Chat commands | Yes | Done | `P0-PLUG-MOD-001` |
 | Discord admin broadcast | Yes | Done | `P0-PLUG-MOD-002` |
 | Discord admin cam logs | Yes | Done | `P0-PLUG-MOD-003` |
 | Discord killfeed | Yes | Done | `P0-PLUG-MOD-004` |
@@ -288,7 +291,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | Discord squad created | Yes | Missing | `P1-PLUG-MOD-007` |
 | Discord FOB/HAB damage | Yes | Missing | `P1-PLUG-MOD-008` |
 | Discord RCON console | Yes | Missing | `P1-PLUG-MOD-009` |
-| Seeding mode | Yes | Missing | `P0-SEED-001` |
+| Seeding mode | Yes | Done | `P0-SEED-001` |
 | Auto seed low players | Yes | Missing | `P0-SEED-002` |
 | Team randomizer | Yes | Missing | `P0-SEED-004` |
 | Switch command | Yes | Missing | `P0-SEED-005` |
@@ -318,11 +321,11 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 
 ## 9) Weekly Update Block (Copy/Paste)
 
-Week of:
+Week of: 2026-02-14
 
-- Completed IDs:
-- In-progress IDs:
-- Blocked IDs:
-- New risks:
-- Mitigations applied:
-- Next week top 5 IDs:
+- Completed IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`
+- In-progress IDs: none
+- Blocked IDs: none
+- New risks: chat command role maps and cooldown defaults require operator tuning to avoid under/over-restrictive behavior in live environments.
+- Mitigations applied: added explicit config defaults/examples plus targeted tests for permission, cooldown, transition, and edge-case behavior; full suite remains green.
+- Next week top 5 IDs: `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`
