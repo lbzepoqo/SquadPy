@@ -233,17 +233,10 @@ class ServerStatus(Plugin):
                     },
                 },
                 "scales": {
-                    "x": {
-                        "reverse": self._graph_right_to_left(),
-                    },
                     "y": {
                         "type": "linear",
                         "position": "left",
-                        "min": self._graph_y_min(),
-                        "max": self._graph_y_max(),
-                        "ticks": {
-                            "stepSize": self._graph_y_step(),
-                        },
+                        "beginAtZero": True,
                     },
                 },
             },
@@ -289,25 +282,6 @@ class ServerStatus(Plugin):
         if points > 48:
             return 48
         return points
-
-    def _graph_y_min(self) -> int:
-        return self._positive_int(self.config.get("graph_y_min", 0), 0)
-
-    def _graph_y_max(self) -> int:
-        configured = self._positive_int(self.config.get("graph_y_max", 100), 100)
-        minimum = self._graph_y_min()
-        if configured <= minimum:
-            return minimum + 10
-        return configured
-
-    def _graph_y_step(self) -> int:
-        step = self._positive_int(self.config.get("graph_y_step", 10), 10)
-        if step > (self._graph_y_max() - self._graph_y_min()):
-            return max(1, self._graph_y_max() - self._graph_y_min())
-        return step
-
-    def _graph_right_to_left(self) -> bool:
-        return bool(self.config.get("graph_right_to_left", True))
 
     def _channel_id(self) -> int:
         return self._positive_int(self.config.get("channel_id", 0), 0)
