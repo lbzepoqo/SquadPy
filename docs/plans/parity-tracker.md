@@ -166,8 +166,9 @@ Status legend:
 - [x] `P0-PLUG-MOD-006` Implement `plugins/discord_round_events` (`@plugins-moderation`, `P0`)
   - Acceptance: round start/end/winner payloads are posted reliably.
   - Acceptance note (2026-02-14): Added `plugins/discord_round_events/plugin.py` for `new_game` and `round_ended` lifecycle notifications with configurable winner/loser payload verbosity, example config at `config/plugins/discord_round_events.toml.example`, and tests in `tests/test_plugin_discord_round_events.py`.
-- [ ] `P1-PLUG-MOD-007` Implement `plugins/discord_squad_created` (`@plugins-moderation`, `P1`)
+- [x] `P1-PLUG-MOD-007` Implement `plugins/discord_squad_created` (`@plugins-moderation`, `P1`)
   - Acceptance: squad creation alerts include team and creator metadata.
+  - Acceptance note (2026-02-14): Added `plugins/discord_squad_created/plugin.py` to publish `squad_created` events to Discord with team metadata (`team_id`, `team_name`) and creator metadata (`creator.name`, optional Steam/EOS IDs), added config template `config/plugins/discord_squad_created.toml.example`, and added coverage in `tests/test_plugin_discord_squad_created.py` for dispatch, disabled channel behavior, creator-id toggling, and handler registration.
 - [ ] `P1-PLUG-MOD-008` Implement `plugins/discord_fob_hab_damage` (`@plugins-moderation`, `P1`)
   - Acceptance: deployable damage events are summarized with thresholds.
 - [ ] `P1-PLUG-MOD-009` Implement `plugins/discord_rcon_console` (`@plugins-moderation`, `P1`)

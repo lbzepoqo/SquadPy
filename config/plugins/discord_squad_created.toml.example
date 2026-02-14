@@ -1,0 +1,8 @@
+enabled = false
+
+[settings]
+# Discord channel ID where squad creation messages are posted
+channel_id = 0
+
+# Include creator Steam/EOS IDs in message output
+include_creator_ids = true
