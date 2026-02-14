@@ -1,0 +1,6 @@
+enabled = false
+
+[settings]
+# Rejoin enforcement is intended primarily for seeding windows.
+max_players_for_rejoin = 80
+max_attempts = 3

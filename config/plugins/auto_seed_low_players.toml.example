@@ -1,0 +1,16 @@
+enabled = false
+
+[settings]
+seed_player_threshold = 50
+announce_transitions = true
+announce_reminders = true
+reminder_interval_seconds = 300
+low_population_message = "Low population mode active ({players}/{threshold})."
+recovered_message = "Population recovered ({players}/{threshold})."
+
+# Optional actions when entering low-population mode.
+warn_unassigned_on_enter = false
+unassigned_warning_message = "Please join a squad while seeding."
+set_fog_on_transition = false
+seed_fog_mode = "1"
+live_fog_mode = "0"

@@ -1,0 +1,14 @@
+enabled = false
+
+[settings]
+min_players = 20
+max_team_difference = 1
+max_moves_per_cycle = 2
+cycle_cooldown_seconds = 60
+allow_leaders = false
+announce_moves = true
+announce_message = "Team randomizer moved {count} player(s) ({team1}/{team2})."
+random_seed = 1337
+
+# List of player IDs that should never be auto-moved.
+exempt_steam_ids = []
