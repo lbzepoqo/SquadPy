@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, delete, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from squadpy.database import Base
-from squadpy.plugin import Plugin
+from squadpy.plugin import Plugin, periodic
 from plugins.db_log.migrations import apply_sqlite_migrations
 
 
@@ -120,6 +120,14 @@ class DbLog(Plugin):
     name = "DB Log"
     description = "Creates DBLog-compatible core persistence schema"
     requires = ["db"]
+    _DEFAULT_PRUNE_INTERVAL_SECONDS = 3600.0
+    _DEFAULT_RETENTION_DAYS = {
+        "matches": 30,
+        "sessions": 30,
+        "events": 30,
+        "admin_actions": 90,
+        "chat_messages": 30,
+    }
 
     async def on_enable(self):
         if self.db is None:
@@ -133,4 +141,187 @@ class DbLog(Plugin):
                     self.logger.info("Applied db_log migrations: %s", applied)
 
         await self.db.create_tables()
+        self._prune_enabled = self._parse_bool(
+            self.config.get("prune_enabled", True),
+            True,
+        )
+        self._prune_interval_seconds = self._non_negative_float(
+            self.config.get("prune_interval_seconds", self._DEFAULT_PRUNE_INTERVAL_SECONDS),
+            self._DEFAULT_PRUNE_INTERVAL_SECONDS,
+        )
+        self._retention_days = {
+            "matches": self._retention_days_for("retention_matches_days"),
+            "sessions": self._retention_days_for("retention_sessions_days"),
+            "events": self._retention_days_for("retention_events_days"),
+            "admin_actions": self._retention_days_for("retention_admin_actions_days"),
+            "chat_messages": self._retention_days_for("retention_chat_messages_days"),
+        }
+        self._next_prune_at = self._utcnow()
         self.logger.info("DB log core schema ensured")
+
+    @periodic(seconds=60)
+    async def run_prune_jobs(self):
+        if not self._prune_enabled:
+            return
+
+        now = self._utcnow()
+        if now < self._next_prune_at:
+            return
+
+        deleted = await self._prune_rows(now)
+        self._next_prune_at = now + timedelta(seconds=self._prune_interval_seconds)
+        total_deleted = sum(deleted.values())
+        if total_deleted <= 0:
+            return
+
+        details = ", ".join(
+            f"{table_name}={count}"
+            for table_name, count in deleted.items()
+            if count > 0
+        )
+        self.logger.info("DB log prune removed %s rows (%s)", total_deleted, details)
+
+    async def _prune_rows(self, now: datetime) -> dict[str, int]:
+        if self.db is None:
+            raise RuntimeError("Database manager is not available")
+
+        deleted_rows = {
+            "matches": 0,
+            "sessions": 0,
+            "events": 0,
+            "admin_actions": 0,
+            "chat_messages": 0,
+        }
+
+        async with self.db.session() as session:
+            deleted_rows["sessions"] = await self._delete_older_than(
+                session,
+                model=DbLogSession,
+                timestamp_column=DbLogSession.joined_at,
+                retention_days=self._retention_days["sessions"],
+                now=now,
+            )
+            deleted_rows["events"] = await self._delete_older_than(
+                session,
+                model=DbLogEvent,
+                timestamp_column=DbLogEvent.occurred_at,
+                retention_days=self._retention_days["events"],
+                now=now,
+            )
+            deleted_rows["admin_actions"] = await self._delete_older_than(
+                session,
+                model=DbLogAdminAction,
+                timestamp_column=DbLogAdminAction.created_at,
+                retention_days=self._retention_days["admin_actions"],
+                now=now,
+            )
+            deleted_rows["chat_messages"] = await self._delete_older_than(
+                session,
+                model=DbLogChatMessage,
+                timestamp_column=DbLogChatMessage.created_at,
+                retention_days=self._retention_days["chat_messages"],
+                now=now,
+            )
+
+            retention_matches = self._retention_days["matches"]
+            if retention_matches > 0:
+                matches_cutoff = now - timedelta(days=retention_matches)
+                stale_match_ids = list(
+                    (
+                        await session.scalars(
+                            select(DbLogMatch.id).where(DbLogMatch.started_at < matches_cutoff)
+                        )
+                    ).all()
+                )
+                if stale_match_ids:
+                    referenced_match_ids = set(
+                        (
+                            await session.scalars(
+                                select(DbLogSession.match_id).where(
+                                    DbLogSession.match_id.is_not(None),
+                                    DbLogSession.match_id.in_(stale_match_ids),
+                                )
+                            )
+                        ).all()
+                    )
+                    referenced_match_ids.update(
+                        (
+                            await session.scalars(
+                                select(DbLogEvent.match_id).where(
+                                    DbLogEvent.match_id.is_not(None),
+                                    DbLogEvent.match_id.in_(stale_match_ids),
+                                )
+                            )
+                        ).all()
+                    )
+                    prunable_match_ids = [
+                        match_id
+                        for match_id in stale_match_ids
+                        if match_id not in referenced_match_ids
+                    ]
+                    if prunable_match_ids:
+                        result = await session.execute(
+                            delete(DbLogMatch).where(DbLogMatch.id.in_(prunable_match_ids))
+                        )
+                        deleted_rows["matches"] = self._normalized_rowcount(result.rowcount)
+
+            await session.commit()
+
+        return deleted_rows
+
+    async def _delete_older_than(
+        self,
+        session,
+        *,
+        model,
+        timestamp_column,
+        retention_days: int,
+        now: datetime,
+    ) -> int:
+        if retention_days <= 0:
+            return 0
+
+        cutoff = now - timedelta(days=retention_days)
+        result = await session.execute(
+            delete(model).where(timestamp_column < cutoff)
+        )
+        return self._normalized_rowcount(result.rowcount)
+
+    def _retention_days_for(self, config_key: str) -> int:
+        default_days = self._DEFAULT_RETENTION_DAYS[config_key.removeprefix("retention_").removesuffix("_days")]
+        try:
+            parsed = int(self.config.get(config_key, default_days))
+        except (TypeError, ValueError):
+            return default_days
+        return parsed if parsed >= 0 else default_days
+
+    def _utcnow(self) -> datetime:
+        return datetime.now(timezone.utc).replace(tzinfo=None)
+
+    @staticmethod
+    def _normalized_rowcount(rowcount: int | None) -> int:
+        if rowcount is None:
+            return 0
+        return max(0, int(rowcount))
+
+    @staticmethod
+    def _non_negative_float(value, default: float) -> float:
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            return default
+        return parsed if parsed >= 0 else default
+
+    @staticmethod
+    def _parse_bool(value, default: bool) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"1", "true", "yes", "on"}:
+                return True
+            if normalized in {"0", "false", "no", "off"}:
+                return False
+        return default

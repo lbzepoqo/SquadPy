@@ -1,4 +1,14 @@
 enabled = false
 
 [settings]
-# Reserved for future db_log settings.
+# Retention pruning job
+prune_enabled = true
+prune_interval_seconds = 3600
+
+# Retention windows (days)
+# Set to 0 to disable pruning for a table.
+retention_matches_days = 30
+retention_sessions_days = 30
+retention_events_days = 30
+retention_admin_actions_days = 90
+retention_chat_messages_days = 30

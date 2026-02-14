@@ -253,8 +253,9 @@ Status legend:
 - [x] `P0-DATA-002` Add versioned migrations for db log (`@data-platform`, `P0`)
   - Acceptance: forward migration and clean bootstrap tests pass.
   - Acceptance note (2026-02-14): Added versioned sqlite migration runner at `plugins/db_log/migrations.py` with schema version tracking (`db_log_schema_migrations`), ordered migrations, and target-version support; integrated migration application into `plugins/db_log/plugin.py` and added forward/bootstrap coverage in `tests/test_plugin_db_log_migrations.py`.
-- [ ] `P1-DATA-003` Add retention and pruning jobs (`@data-platform`, `P1`)
+- [x] `P1-DATA-003` Add retention and pruning jobs (`@data-platform`, `P1`)
   - Acceptance: pruning policy tests validate retention windows.
+  - Acceptance note (2026-02-14): Added db_log retention/pruning scheduling in `plugins/db_log/plugin.py` with per-table retention windows (`matches`, `sessions`, `events`, `admin_actions`, `chat_messages`), configurable prune interval/toggle, and periodic prune execution; updated `config/plugins/db_log.toml.example` with retention/prune settings and added targeted policy coverage in `tests/test_plugin_db_log.py` validating retention-window cutoffs, disabled-window behavior, and prune disable toggle.
 - [ ] `P1-DATA-004` Add materialized views/query helpers for analytics (`@data-platform`, `P1`)
   - Acceptance: dashboard query smoke tests pass.
 
