@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import re
+from datetime import datetime, timezone
 from typing import Callable
 
 from squadpy.log_parser.id_parser import parse_online_ids
@@ -158,6 +159,8 @@ class RconClient:
         self._reconnect_event: asyncio.Event = asyncio.Event()
         self._reconnect_event.set()
         self._reader_task: asyncio.Task | None = None
+        self._privileged_audit_records: list[dict[str, str]] = []
+        self._max_privileged_audit_records = 1000
 
         self.on_chat: Callable[[str], None] | None = None
 
@@ -242,6 +245,79 @@ class RconClient:
             self._pending_requests.pop(request_id, None)
             self._response_buffers.pop(request_id, None)
             raise RconError(f"Command timed out: {command}")
+
+    async def execute_privileged(
+        self,
+        command: str,
+        *,
+        actor: str = "unknown",
+        origin: str = "runtime",
+        policy: Callable[[str], bool] | None = None,
+    ) -> str:
+        """Execute a privileged passthrough command under explicit policy control."""
+        normalized_command = command.strip()
+        if not normalized_command:
+            raise ValueError("command must be a non-empty string")
+
+        effective_policy = policy or (lambda _command: False)
+        if not effective_policy(normalized_command):
+            self._audit_privileged(
+                actor=actor or "unknown",
+                origin=origin,
+                target=normalized_command,
+                outcome="rejected",
+                detail="unauthorized",
+            )
+            raise PermissionError("Unauthorized privileged command")
+
+        try:
+            response = await self.execute(normalized_command)
+        except Exception as exc:
+            self._audit_privileged(
+                actor=actor or "unknown",
+                origin=origin,
+                target=normalized_command,
+                outcome="error",
+                detail=str(exc),
+            )
+            raise
+
+        self._audit_privileged(
+            actor=actor or "unknown",
+            origin=origin,
+            target=normalized_command,
+            outcome="success",
+        )
+        return response
+
+    def recent_privileged_audit_records(self) -> list[dict[str, str]]:
+        """Return a copy of privileged passthrough audit records."""
+        return list(self._privileged_audit_records)
+
+    def _audit_privileged(
+        self,
+        *,
+        actor: str,
+        origin: str,
+        target: str,
+        outcome: str,
+        detail: str = "",
+    ) -> None:
+        record = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "actor": actor,
+            "origin": origin,
+            "target": target,
+            "outcome": outcome,
+        }
+        if detail:
+            record["detail"] = detail
+
+        self._privileged_audit_records.append(record)
+        if len(self._privileged_audit_records) > self._max_privileged_audit_records:
+            self._privileged_audit_records = self._privileged_audit_records[
+                -self._max_privileged_audit_records :
+            ]
 
     async def _read_loop(self) -> None:
         assert self._reader is not None

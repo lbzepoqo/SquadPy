@@ -327,6 +327,44 @@ class TestRconClientConvenience:
             await client.end_match()
         client.execute.assert_not_called()
 
+    async def test_execute_privileged_rejects_unauthorized_and_audits(self, client):
+        with pytest.raises(PermissionError, match="Unauthorized privileged command"):
+            await client.execute_privileged(
+                "AdminKick 123 BadBehavior",
+                actor="tester",
+                origin="unit",
+                policy=lambda _command: False,
+            )
+
+        client.execute.assert_not_called()
+        records = client.recent_privileged_audit_records()
+        assert records
+        assert records[-1]["actor"] == "tester"
+        assert records[-1]["origin"] == "unit"
+        assert records[-1]["target"] == "AdminKick 123 BadBehavior"
+        assert records[-1]["outcome"] == "rejected"
+        assert records[-1]["detail"] == "unauthorized"
+
+    async def test_execute_privileged_dispatches_authorized_and_audits(self, client):
+        client.execute.return_value = "OK"
+        response = await client.execute_privileged(
+            "ShowCurrentMap",
+            actor="tester",
+            origin="unit",
+            policy=lambda command: command.startswith("ShowCurrentMap"),
+        )
+
+        client.execute.assert_awaited_once_with("ShowCurrentMap")
+        assert response == "OK"
+
+        records = client.recent_privileged_audit_records()
+        assert records
+        assert records[-1]["actor"] == "tester"
+        assert records[-1]["origin"] == "unit"
+        assert records[-1]["target"] == "ShowCurrentMap"
+        assert records[-1]["outcome"] == "success"
+        assert "detail" not in records[-1]
+
     async def test_set_fog_of_war_calls_execute_with_valid_mode(self, client):
         client.execute.return_value = ""
         await client.set_fog_of_war(1)

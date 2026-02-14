@@ -92,8 +92,9 @@ Status legend:
 - [x] `P1-RCON-008` Add `end_match` helper (`@core-runtime`, `P1`)
   - Acceptance: command helper and safety guard tests.
   - Acceptance note (2026-02-14): Added `RconClient.end_match(...)` in `squadpy/rcon/client.py` with explicit confirmation guard (`confirm=True`) before dispatching `AdminEndMatch`, plus unit tests in `tests/test_rcon_helpers.py` and contract tests in `tests/contracts/core_runtime/test_rcon_end_match_contract.py` for dispatch and guard behavior.
-- [ ] `P1-RCON-009` Add privileged passthrough wrapper with policy checks (`@core-runtime`, `P1`)
+- [x] `P1-RCON-009` Add privileged passthrough wrapper with policy checks (`@core-runtime`, `P1`)
   - Acceptance: unauthorized commands are rejected and audited.
+  - Acceptance note (2026-02-14): Added `RconClient.execute_privileged(...)` in `squadpy/rcon/client.py` with explicit policy callback checks, unauthorized-command rejection (`PermissionError`), and in-client privileged audit records via `recent_privileged_audit_records()`, with unit coverage in `tests/test_rcon_helpers.py` and contract coverage in `tests/contracts/core_runtime/test_rcon_privileged_passthrough_contract.py`.
 
 ### 1.2 Event types and parser parity
 
