@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import inspect
 import json
 import math
 from collections import deque
@@ -29,6 +30,7 @@ class ServerStatus(Plugin):
         channel_id = self._channel_id()
         if channel_id:
             self.logger.debug("ServerStatus enabled: channel_id=%s", channel_id)
+            self._message = await self._find_existing_status_message(channel_id)
             embed = self._build_embed(
                 player_count=0,
                 squad_count=0,
@@ -39,9 +41,27 @@ class ServerStatus(Plugin):
                 tick_rate=self._tick_rate,
                 graph_url="",
             )
-            self._message = await self.discord.send(channel_id, embed=embed)
+            if self._message:
+                try:
+                    self._message = await self.discord.edit_message(self._message, embed=embed)
+                    self.logger.debug(
+                        "ServerStatus existing embed reused: channel_id=%s message_id=%s",
+                        channel_id,
+                        getattr(self._message, "id", "unknown"),
+                    )
+                except Exception:
+                    self.logger.warning("ServerStatus existing embed edit failed; posting new one")
+                    self._message = None
+
+            if self._message is None:
+                self._message = await self.discord.send(channel_id, embed=embed)
+                self.logger.debug(
+                    "ServerStatus initial embed posted: channel_id=%s message_id=%s",
+                    channel_id,
+                    getattr(self._message, "id", "unknown"),
+                )
             self.logger.debug(
-                "ServerStatus initial embed posted: channel_id=%s message_id=%s",
+                "ServerStatus startup embed ready: channel_id=%s message_id=%s",
                 channel_id,
                 getattr(self._message, "id", "unknown"),
             )
@@ -283,6 +303,50 @@ class ServerStatus(Plugin):
             return 48
         return points
 
+    async def _find_existing_status_message(self, channel_id: int):
+        get_channel = getattr(self.discord, "get_channel", None)
+        if not callable(get_channel):
+            return None
+
+        try:
+            channel = await self._maybe_await(get_channel(channel_id))
+        except Exception:
+            return None
+        if channel is None:
+            return None
+
+        history_fn = getattr(channel, "history", None)
+        if not callable(history_fn):
+            return None
+
+        try:
+            history_iter = await self._maybe_await(history_fn(limit=30))
+            if not hasattr(history_iter, "__aiter__"):
+                return None
+            async for message in history_iter:
+                if self._is_server_status_embed(message):
+                    return message
+        except Exception:
+            self.logger.debug("ServerStatus history scan failed", exc_info=True)
+            return None
+        return None
+
+    def _is_server_status_embed(self, message) -> bool:
+        embeds = list(getattr(message, "embeds", []) or [])
+        if not embeds:
+            return False
+
+        bot_user = getattr(self.discord.bot, "user", None)
+        author = getattr(message, "author", None)
+        if bot_user is not None and author is not None:
+            if getattr(author, "id", None) != getattr(bot_user, "id", None):
+                return False
+
+        for embed in embeds:
+            if getattr(embed, "title", None) == "Server Status":
+                return True
+        return False
+
     def _channel_id(self) -> int:
         return self._positive_int(self.config.get("channel_id", 0), 0)
 
@@ -296,3 +360,9 @@ class ServerStatus(Plugin):
         except (TypeError, ValueError):
             return default
         return parsed if parsed > 0 else default
+
+    @staticmethod
+    async def _maybe_await(value):
+        if inspect.isawaitable(value):
+            return await value
+        return value

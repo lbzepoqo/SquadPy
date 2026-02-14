@@ -7,6 +7,7 @@ from importlib.abc import Loader
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
+import discord
 import pytest
 
 from squadpy.events.types import ServerTickRate, NewGame
@@ -33,6 +34,11 @@ def _make_player(squad_id: int = 1) -> RconPlayer:
     )
 
 
+async def _history_from(messages):
+    for message in messages:
+        yield message
+
+
 class TestServerStatus:
     @pytest.fixture
     async def plugin(self):
@@ -55,6 +61,35 @@ class TestServerStatus:
         """on_enable sends initial embed."""
         plugin.discord.send.assert_awaited_once()
         assert plugin._message is not None
+
+    async def test_reuses_existing_status_embed_on_startup(self):
+        cls = _load_plugin_class()
+        mock_rcon = AsyncMock()
+        mock_rcon.list_players.return_value = []
+        mock_rcon.show_current_map.return_value = None
+        mock_rcon.show_next_map.return_value = None
+
+        mock_discord = AsyncMock()
+        mock_message = AsyncMock()
+        mock_message.id = 1001
+        mock_message.author = MagicMock(id=42)
+        mock_message.embeds = [discord.Embed(title="Server Status")]
+        mock_discord.bot.user = MagicMock(id=42)
+        mock_discord.get_channel.return_value = MagicMock(
+            history=MagicMock(return_value=_history_from([mock_message]))
+        )
+        mock_discord.edit_message.return_value = mock_message
+
+        instance = cls(
+            rcon=mock_rcon,
+            discord=mock_discord,
+            config={"channel_id": 12345},
+        )
+        await instance.on_enable()
+
+        mock_discord.send.assert_not_awaited()
+        assert mock_discord.edit_message.await_count >= 1
+        assert instance._message is mock_message
 
     async def test_update_edits_existing_message(self, plugin):
         """Periodic update edits existing message."""
