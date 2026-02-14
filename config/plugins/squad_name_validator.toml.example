@@ -8,10 +8,15 @@ max_length = 24
 ignore_case = true
 
 # Block specific names/terms and regex patterns
-blocked_exact_names = ["squad", "new squad"]
+# Keep defaults permissive; add entries only if your server policy requires it.
+blocked_exact_names = []
 blocked_terms = []
-invalid_patterns = ["^squad\\s*\\d+$"]
+invalid_patterns = []
 required_pattern = ""
+
+# Example stricter options (uncomment only if desired):
+# blocked_exact_names = ["new squad"]
+# invalid_patterns = ["^squad\\s*\\d+$"]
 
 # Enforcement mode: warn | warn_then_kick | kick
 enforcement_action = "warn_then_kick"
