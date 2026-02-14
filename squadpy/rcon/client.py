@@ -426,6 +426,12 @@ class RconClient:
 
         return await self.execute(f"AdminForceTeamChangeById {parsed_player_id}")
 
+    async def end_match(self, *, confirm: bool = False) -> str:
+        """End the active match immediately; requires explicit confirmation."""
+        if not confirm:
+            raise ValueError("end_match requires confirm=True")
+        return await self.execute("AdminEndMatch")
+
     async def set_fog_of_war(self, mode: int | bool | str) -> str:
         """Enable or disable fog of war using layer setting mode [0|1]."""
         if isinstance(mode, bool):

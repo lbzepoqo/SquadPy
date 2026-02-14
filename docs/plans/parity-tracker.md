@@ -89,8 +89,9 @@ Status legend:
 - [x] `P1-RCON-007` Add explicit `set_team(player_id, team)` helper (`@core-runtime`, `P1`)
   - Acceptance: team enum validation and command test coverage.
   - Acceptance note (2026-02-14): Added `RconClient.set_team(...)` in `squadpy/rcon/client.py` with explicit team enum validation (`1`, `2`, `team1`, `team2`) and deterministic target-team behavior, plus unit tests in `tests/test_rcon_helpers.py` and contract tests in `tests/contracts/core_runtime/test_rcon_set_team_contract.py` for command-template dispatch and enum rejection.
-- [ ] `P1-RCON-008` Add `end_match` helper (`@core-runtime`, `P1`)
+- [x] `P1-RCON-008` Add `end_match` helper (`@core-runtime`, `P1`)
   - Acceptance: command helper and safety guard tests.
+  - Acceptance note (2026-02-14): Added `RconClient.end_match(...)` in `squadpy/rcon/client.py` with explicit confirmation guard (`confirm=True`) before dispatching `AdminEndMatch`, plus unit tests in `tests/test_rcon_helpers.py` and contract tests in `tests/contracts/core_runtime/test_rcon_end_match_contract.py` for dispatch and guard behavior.
 - [ ] `P1-RCON-009` Add privileged passthrough wrapper with policy checks (`@core-runtime`, `P1`)
   - Acceptance: unauthorized commands are rejected and audited.
 

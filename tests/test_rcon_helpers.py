@@ -316,6 +316,17 @@ class TestRconClientConvenience:
         client.execute.assert_not_called()
         assert response == "Player is already on requested team"
 
+    async def test_end_match_calls_execute_when_confirmed(self, client):
+        client.execute.return_value = "OK"
+        response = await client.end_match(confirm=True)
+        client.execute.assert_awaited_once_with("AdminEndMatch")
+        assert response == "OK"
+
+    async def test_end_match_requires_confirmation_guard(self, client):
+        with pytest.raises(ValueError, match="confirm=True"):
+            await client.end_match()
+        client.execute.assert_not_called()
+
     async def test_set_fog_of_war_calls_execute_with_valid_mode(self, client):
         client.execute.return_value = ""
         await client.set_fog_of_war(1)
