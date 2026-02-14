@@ -214,8 +214,9 @@ Status legend:
 - [x] `P1-SEED-008` Implement `plugins/squad_name_validator` (`@plugins-seeding`, `P1`)
   - Acceptance: invalid names trigger warnings/actions per config.
   - Acceptance note (2026-02-14): Added `plugins/squad_name_validator/plugin.py` with configurable squad-name policy checks (length bounds, blocked exact names/terms, invalid regex patterns, optional required pattern) and configurable enforcement actions (`warn`, `warn_then_kick`, `kick`) plus exemptions for player and squad IDs; added config template `config/plugins/squad_name_validator.toml.example` and coverage in `tests/test_plugin_squad_name_validator.py` for warning escalation, alternate action modes, exemptions, immediate validation on squad creation, valid-name recovery, and new-game reset behavior.
-- [ ] `P1-SEED-009` Implement `plugins/intervalled_broadcasts` (`@plugins-seeding`, `P1`)
+- [x] `P1-SEED-009` Implement `plugins/intervalled_broadcasts` (`@plugins-seeding`, `P1`)
   - Acceptance: schedule and dedupe behavior covered by tests.
+  - Acceptance note (2026-02-14): Added `plugins/intervalled_broadcasts/plugin.py` with interval-based broadcast scheduling, sequential/random message rotation, optional consecutive-message dedupe, optional population gating, and optional new-game reset behavior; added config template `config/plugins/intervalled_broadcasts.toml.example` and coverage in `tests/test_plugin_intervalled_broadcasts.py` for schedule timing, dedupe on/off behavior, min-player gating, reset handling, and handler/task registration.
 - [ ] `P1-SEED-010` Implement `plugins/fog_of_war` (`@plugins-seeding`, `P1`)
   - Acceptance: fog mode changes are safe, audited, and reversible.
 - [ ] `P1-SEED-011` Implement `plugins/heli_crash_broadcast` (`@plugins-seeding`, `P1`)

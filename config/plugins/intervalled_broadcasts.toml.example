@@ -1,0 +1,21 @@
+enabled = false
+
+[settings]
+# Broadcast content pool
+messages = [
+  "Use !switch for a team change request.",
+  "Keep comms clear and concise for squad leads.",
+]
+
+# Broadcast cadence
+interval_seconds = 300
+broadcast_on_start = false
+reset_on_new_game = false
+
+# Message selection mode: sequential | random
+mode = "sequential"
+dedupe_consecutive = true
+random_seed = 1337
+
+# Optional population gate (0 disables)
+min_players = 0
