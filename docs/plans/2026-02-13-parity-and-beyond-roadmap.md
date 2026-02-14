@@ -4,6 +4,32 @@ Date: 2026-02-13
 Owner: SquadPy core maintainers
 Status: Draft for execution
 
+## 0) Current Progress Snapshot (From Parity Tracker)
+
+As of 2026-02-14, from `docs/plans/parity-tracker.md`:
+
+- Total tracked checklist items: `90`
+- Done: `15`
+- In progress: `1`
+- Blocked: `0`
+- Not started: `74`
+- `P0` completion: `15/45` (33%)
+- `P1` completion: `0/28`
+- `P2` completion: `0/8`
+- Release gates completion: `0/9` (`GATE-*` and `GATE-B-*`)
+
+Area breakdown (done/total):
+
+- Program setup (`P0-PROG`): `7/8`
+- RCON surface (`P0-RCON`): `5/5`
+- Event parity (`P0-EVT`): `3/7`
+- Runtime reliability (`P0-RT`): `0/2`
+- Moderation plugins (`P0-PLUG` + `P1-PLUG`): `0/12`
+- Seeding plugins (`P0-SEED` + `P1-SEED`): `0/12`
+- Data/API/Connectors (`P0/P1-DATA`, `P0/P1-API`, `P0/P1-CONN`): `0/14`
+- Migration tooling (`P0/P1-MIG`): `0/5`
+- Beyond features (`P2-BEYOND`): `0/8`
+
 ## 1) Goal and Success Criteria
 
 Build SquadPy to:

@@ -1,0 +1,1 @@
+[2026.02.02-02.40.56:981][517]LogSquad: ADMIN COMMAND: Remote admin has kicked player  Rellmi. Reason was "Spamming in command chat." from RCON

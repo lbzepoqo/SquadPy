@@ -8,7 +8,8 @@ from squadpy.events.emitter import EventBus
 from squadpy.events.types import (
     BaseEvent, PlayerConnected, JoinSucceeded, PlayerDamaged,
     PlayerWounded, PlayerDied, PlayerPossess, PlayerUnpossess,
-    NewGame, RoundEnded, ServerTickRate, AdminBroadcast, PlayerWarned, DeployableDamaged,
+    NewGame, RoundEnded, ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked,
+    PlayerBanned, DeployableDamaged,
 )
 from squadpy.log_parser.parser import LogParser
 from squadpy.log_parser.reader import LogReader
@@ -111,6 +112,32 @@ class TestLogParser:
         assert events[0].player.name == "Rellmi"
         assert events[0].source == "RCON"
 
+    async def test_emits_player_kicked(self):
+        lines = [
+            '[2026.02.02-02.40.56:981][517]LogSquad: ADMIN COMMAND: Remote admin has kicked player  Rellmi. Reason was "Spamming in command chat." from RCON',
+        ]
+        events = await self._run_parser(lines)
+        assert len(events) == 1
+        assert isinstance(events[0], PlayerKicked)
+        assert events[0].admin == "Remote admin"
+        assert events[0].player.name == "Rellmi"
+        assert events[0].source == "RCON"
+
+    async def test_emits_player_banned(self):
+        lines = [
+            '[2026.02.14-09.53.12:293][914]LogOnlineGame: Display: Banning player: ObsidianHorse47 ; Reason = Kupal na admin',
+            '[2026.02.14-09.53.12:294][914]LogOnlineGame: Display: Kicking player:  ObsidianHorse47 ; Reason = Banned from the server for 1 Day(s). Admin Reason: Kupal na admin.',
+            '[2026.02.14-09.53.12:294][914]LogSquad: ADMIN COMMAND: N/A Banned player 46. [Online IDs= EOS: 00029e5d00e947bbaed1b364814dd427 steam: 76561198061567555]  ObsidianHorse47 for interval -171852224 from RCON',
+        ]
+        events = await self._run_parser(lines)
+        assert len(events) == 1
+        assert isinstance(events[0], PlayerBanned)
+        assert events[0].admin == "N/A"
+        assert events[0].player.name == "ObsidianHorse47"
+        assert events[0].duration == "1 Day(s)"
+        assert events[0].reason == "Kupal na admin"
+        assert events[0].source == "RCON"
+
     async def test_round_ended_uses_cached_winner_and_loser(self):
         lines = [
             '[2026.02.06-20.45.07:818][740]LogSquadGameEvents: Display: Team 1, Irregular Battle Group ( Middle Eastern Insurgents ) has won the match with 2 Tickets on layer Sumari Bala Seed v1 (level Sumari Bala)!',
@@ -149,7 +176,8 @@ class TestLogParser:
             "player_connected", "join_succeeded", "player_disconnected",
             "player_damaged", "player_wounded", "player_died", "player_revived",
             "player_possess", "player_unpossess", "new_game", "round_ended",
-            "server_tick_rate", "admin_broadcast", "player_warned", "deployable_damaged",
+            "server_tick_rate", "admin_broadcast", "player_warned", "player_kicked",
+            "player_banned", "deployable_damaged",
         ]
         for name in event_names:
             bus.subscribe(name, capture)

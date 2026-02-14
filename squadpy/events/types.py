@@ -153,6 +153,25 @@ class PlayerWarned(BaseEvent):
 
 
 @dataclass
+class PlayerKicked(BaseEvent):
+    event_name: str = "player_kicked"
+    admin: str = ""
+    player: PlayerID = field(default_factory=PlayerID)
+    reason: str = ""
+    source: str = ""
+
+
+@dataclass
+class PlayerBanned(BaseEvent):
+    event_name: str = "player_banned"
+    admin: str = ""
+    player: PlayerID = field(default_factory=PlayerID)
+    duration: str = ""
+    reason: str = ""
+    source: str = ""
+
+
+@dataclass
 class DeployableDamaged(BaseEvent):
     event_name: str = "deployable_damaged"
     deployable: str = ""

@@ -25,6 +25,8 @@ from squadpy.events.types import (
     ServerTickRate,
     AdminBroadcast,
     PlayerWarned,
+    PlayerKicked,
+    PlayerBanned,
     DeployableDamaged,
 )
 from squadpy.log_parser.event_store import EventStore
@@ -454,6 +456,126 @@ def _on_player_warned(m: re.Match, chain_id: int, time: str, store: EventStore) 
     )
 
 
+# Admin Kicked: group 3 = admin/source actor, group 4 = kicked player name,
+# group 5 = kick reason/message, group 6 = command source (for example RCON)
+_PLAYER_KICKED_RE = re.compile(
+    _PREFIX
+    + r'LogSquad: ADMIN COMMAND: (.+?) has kicked player\s+(.+?)\. (?:Reason was|Message was) "(.+)" from (.+)'
+)
+
+
+def _on_player_kicked(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerKicked:
+    return PlayerKicked(
+        admin=m.group(3).strip(),
+        player=PlayerID(name=m.group(4).strip()),
+        reason=m.group(5),
+        source=m.group(6).strip(),
+    )
+
+
+# Ban prelude (online game): group 3 = player name, group 4 = reason
+_PLAYER_BAN_REQUEST_RE = re.compile(
+    _PREFIX
+    + r"LogOnlineGame: Display: Banning player:\s*(.+?)\s*;\s*Reason = (.+)"
+)
+
+
+def _on_player_ban_request(m: re.Match, chain_id: int, time: str, store: EventStore) -> None:
+    context = store.pending_bans.get(chain_id, {})
+    context["player_name"] = m.group(3).strip()
+    context["reason"] = m.group(4).strip()
+    store.pending_bans[chain_id] = context
+    return None
+
+
+# Ban prelude (kick line): group 3 = player name, group 4 = duration days, group 5 = reason
+_PLAYER_BAN_KICK_RE = re.compile(
+    _PREFIX
+    + r"LogOnlineGame: Display: Kicking player:\s*(.+?)\s*;\s*Reason = Banned from the server for ([0-9]+) Day\(s\)\. Admin Reason: (.+?)(?:\.)?$"
+)
+
+
+def _on_player_ban_kick(m: re.Match, chain_id: int, time: str, store: EventStore) -> None:
+    context = store.pending_bans.get(chain_id, {})
+    context["player_name"] = m.group(3).strip()
+    context["duration"] = f"{m.group(4).strip()} Day(s)"
+    context["reason"] = m.group(5).strip()
+    store.pending_bans[chain_id] = context
+    return None
+
+
+# Admin Banned detailed line:
+# group 3 = admin/source actor, group 4 = target player slot index,
+# group 5 = target EOS ID, group 6 = target Steam ID,
+# group 7 = target player name, group 8 = interval token,
+# group 9 = source detail (for example RCON or player X ...).
+_PLAYER_BANNED_ADMIN_RE = re.compile(
+    _PREFIX
+    + r"LogSquad: ADMIN COMMAND:\s+(.+?)\s+Banned player\s+([0-9]+)\.\s+\[Online IDs=\s+EOS:\s+([0-9A-Fa-f]+)\s+steam:\s+([0-9]+)\]\s+(.+?)\s+for interval\s+(-?[0-9]+)\s+from\s+(.+)"
+)
+
+
+def _normalize_ban_admin(raw: str) -> str:
+    admin = raw.strip()
+    if admin.upper() == "N/A":
+        return "N/A"
+    # In-game bans append the actor EOS ID in brackets; keep only the visible name.
+    admin = re.sub(r"\s*\[EOSID\s+[0-9A-Fa-f]+\]\s*$", "", admin).strip()
+    return admin
+
+
+def _normalize_ban_source(raw: str) -> str:
+    source = raw.strip()
+    if source.upper() == "RCON":
+        return "RCON"
+    if source.lower().startswith("player "):
+        return "IN_GAME"
+    return source
+
+
+def _on_player_banned_admin(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerBanned:
+    context = store.pending_bans.pop(chain_id, {})
+    duration = str(context.get("duration", "")).strip()
+    reason = str(context.get("reason", "")).strip()
+    if not duration:
+        duration = m.group(8).strip()
+    return PlayerBanned(
+        admin=_normalize_ban_admin(m.group(3)),
+        player=PlayerID(
+            eos_id=m.group(5).strip(),
+            steam_id=m.group(6).strip(),
+            name=m.group(7).strip(),
+        ),
+        duration=duration,
+        reason=reason,
+        source=_normalize_ban_source(m.group(9)),
+    )
+
+
+# Legacy Admin Banned line retained for compatibility with older fixtures:
+# group 3 = admin/source actor, group 4 = banned player name,
+# group 5 = optional ban duration/length, group 6 = ban reason/message,
+# group 7 = command source (for example RCON)
+_PLAYER_BANNED_LEGACY_RE = re.compile(
+    _PREFIX
+    + r'LogSquad: ADMIN COMMAND: (.+?) has banned player\s+(.+?)\. '
+    + r'(?:(?:Ban (?:length|duration) was|for)\s+"?([^".]+)"?\.\s+)?'
+    + r'(?:Reason was|Message was)\s+"(.+)"\s+from\s+(.+)'
+)
+
+
+def _on_player_banned_legacy(
+    m: re.Match, chain_id: int, time: str, store: EventStore
+) -> PlayerBanned:
+    return PlayerBanned(
+        admin=m.group(3).strip(),
+        player=PlayerID(name=m.group(4).strip()),
+        duration=(m.group(5) or "").strip(),
+        reason=m.group(6),
+        source=m.group(7).strip(),
+    )
+
+
 # Deployable Damaged: group 3 = damage source type, group 4 = deployable name,
 # group 5 = damage amount, group 6 = damage type, group 7 = direct hit (0 or 1)
 _DEPLOYABLE_DAMAGED_RE = re.compile(
@@ -492,5 +614,10 @@ def get_rules() -> list[Rule]:
         Rule(_SERVER_TICK_RATE_RE, _on_server_tick_rate),
         Rule(_ADMIN_BROADCAST_RE, _on_admin_broadcast),
         Rule(_PLAYER_WARNED_RE, _on_player_warned),
+        Rule(_PLAYER_KICKED_RE, _on_player_kicked),
+        Rule(_PLAYER_BAN_REQUEST_RE, _on_player_ban_request),
+        Rule(_PLAYER_BAN_KICK_RE, _on_player_ban_kick),
+        Rule(_PLAYER_BANNED_ADMIN_RE, _on_player_banned_admin),
+        Rule(_PLAYER_BANNED_LEGACY_RE, _on_player_banned_legacy),
         Rule(_DEPLOYABLE_DAMAGED_RE, _on_deployable_damaged),
     ]

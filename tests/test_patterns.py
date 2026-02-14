@@ -6,7 +6,7 @@ from squadpy.events.types import (
     PlayerConnected, JoinSucceeded, PlayerDisconnected,
     PlayerDamaged, PlayerWounded, PlayerDied, PlayerRevived,
     PlayerPossess, PlayerUnpossess, NewGame, RoundEnded,
-    ServerTickRate, AdminBroadcast, PlayerWarned, DeployableDamaged,
+    ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked, PlayerBanned, DeployableDamaged,
 )
 
 
@@ -320,6 +320,64 @@ class TestPlayerWarned:
         assert event.admin == "Remote admin"
         assert event.player.name == "Rellmi"
         assert event.reason == "Type !commands to know the server commands."
+        assert event.source == "RCON"
+
+
+class TestPlayerKicked:
+    def test_kicked(self):
+        line = '[2026.02.02-02.40.56:981][517]LogSquad: ADMIN COMMAND: Remote admin has kicked player  Rellmi. Reason was "Spamming in command chat." from RCON'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerKicked)
+        assert event.admin == "Remote admin"
+        assert event.player.name == "Rellmi"
+        assert event.reason == "Spamming in command chat."
+        assert event.source == "RCON"
+
+
+class TestPlayerBanned:
+    def test_banned_from_ingame_command_with_correlated_reason(self):
+        store = EventStore()
+        match_line(
+            '[2026.02.14-09.48.09:451][919]LogOnlineGame: Display: Banning player: ObsidianHorse47 ; Reason = Kupal admin',
+            store,
+        )
+        match_line(
+            '[2026.02.14-09.48.09:451][919]LogOnlineGame: Display: Kicking player:  ObsidianHorse47 ; Reason = Banned from the server for 0 Day(s). Admin Reason: Kupal admin.',
+            store,
+        )
+        event = match_line(
+            '[2026.02.14-09.48.09:451][919]LogSquad: ADMIN COMMAND:  ObsidianHorse47 [EOSID 00029e5d00e947bbaed1b364814dd427] Banned player 77. [Online IDs= EOS: 00029e5d00e947bbaed1b364814dd427 steam: 76561198061567555]  ObsidianHorse47 for interval -612331984 from player 77. [Online IDs= EOS: 00029e5d00e947bbaed1b364814dd427 steam: 76561198061567555]  ObsidianHorse47',
+            store,
+        )
+        assert isinstance(event, PlayerBanned)
+        assert event.admin == "ObsidianHorse47"
+        assert event.player.eos_id == "00029e5d00e947bbaed1b364814dd427"
+        assert event.player.steam_id == "76561198061567555"
+        assert event.player.name == "ObsidianHorse47"
+        assert event.duration == "0 Day(s)"
+        assert event.reason == "Kupal admin"
+        assert event.source == "IN_GAME"
+
+    def test_banned_from_rcon_with_correlated_reason(self):
+        store = EventStore()
+        match_line(
+            '[2026.02.14-09.53.12:293][914]LogOnlineGame: Display: Banning player: ObsidianHorse47 ; Reason = Kupal na admin',
+            store,
+        )
+        match_line(
+            '[2026.02.14-09.53.12:294][914]LogOnlineGame: Display: Kicking player:  ObsidianHorse47 ; Reason = Banned from the server for 1 Day(s). Admin Reason: Kupal na admin.',
+            store,
+        )
+        event = match_line(
+            '[2026.02.14-09.53.12:294][914]LogSquad: ADMIN COMMAND: N/A Banned player 46. [Online IDs= EOS: 00029e5d00e947bbaed1b364814dd427 steam: 76561198061567555]  ObsidianHorse47 for interval -171852224 from RCON',
+            store,
+        )
+        assert isinstance(event, PlayerBanned)
+        assert event.admin == "N/A"
+        assert event.player.name == "ObsidianHorse47"
+        assert event.duration == "1 Day(s)"
+        assert event.reason == "Kupal na admin"
         assert event.source == "RCON"
 
 

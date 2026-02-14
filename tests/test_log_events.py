@@ -17,6 +17,8 @@ from squadpy.events.types import (
     ServerTickRate,
     AdminBroadcast,
     PlayerWarned,
+    PlayerKicked,
+    PlayerBanned,
     DeployableDamaged,
 )
 
@@ -90,4 +92,44 @@ class TestPlayerWarned:
         assert e.admin == "Remote admin"
         assert e.player.name == "Rellmi"
         assert e.reason == "Welcome to the server."
+        assert e.source == "RCON"
+
+
+class TestPlayerKicked:
+    def test_event_name(self):
+        e = PlayerKicked()
+        assert e.event_name == "player_kicked"
+
+    def test_fields(self):
+        pid = PlayerID(name="Rellmi")
+        e = PlayerKicked(
+            admin="Remote admin",
+            player=pid,
+            reason="Spamming in command chat.",
+            source="RCON",
+        )
+        assert e.admin == "Remote admin"
+        assert e.player.name == "Rellmi"
+        assert e.reason == "Spamming in command chat."
+        assert e.source == "RCON"
+
+
+class TestPlayerBanned:
+    def test_event_name(self):
+        e = PlayerBanned()
+        assert e.event_name == "player_banned"
+
+    def test_fields(self):
+        pid = PlayerID(name="Rellmi")
+        e = PlayerBanned(
+            admin="Remote admin",
+            player=pid,
+            duration="1d",
+            reason="Cheating",
+            source="RCON",
+        )
+        assert e.admin == "Remote admin"
+        assert e.player.name == "Rellmi"
+        assert e.duration == "1d"
+        assert e.reason == "Cheating"
         assert e.source == "RCON"

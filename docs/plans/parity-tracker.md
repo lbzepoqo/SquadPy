@@ -29,6 +29,12 @@ Status legend:
 - `@migration`: config translators and migration tooling
 - `@qa-release`: CI gates, soak tests, release readiness
 
+## Current Sprint Focus (2026-02-14)
+
+- Active in-progress IDs: `P0-EVT-004`.
+- Rationale: complete admin/moderation lifecycle event foundations before plugin parity work.
+- Next queued IDs: `P0-EVT-005`, `P0-EVT-007`, `P0-EVT-006`.
+
 ## 0) Phase 0 - Program Setup and Acceptance Harness
 
 - [x] `P0-PROG-001` Create `tests/contracts/` structure and test markers (`@core-runtime`, `P0`)
@@ -90,11 +96,13 @@ Status legend:
 - [x] `P0-EVT-001` Add `PlayerWarned` event (`@parser`, `P0`)
   - Acceptance: event dataclass + parser contract fixture.
   - Acceptance note (2026-02-14): Added `PlayerWarned` dataclass in `squadpy/events/types.py`, log parser rule/handler in `squadpy/log_parser/patterns.py`, and parser contract fixture/test at `tests/contracts/fixtures/parser/player_warned_line.txt` + `tests/contracts/parser/test_player_warned_contract.py`.
-- [ ] `P0-EVT-002` Add `PlayerKicked` event (`@parser`, `P0`)
+- [x] `P0-EVT-002` Add `PlayerKicked` event (`@parser`, `P0`)
   - Acceptance: event dataclass + parser contract fixture.
-- [ ] `P0-EVT-003` Add `PlayerBanned` event (`@parser`, `P0`)
+  - Acceptance note (2026-02-14): Added `PlayerKicked` dataclass in `squadpy/events/types.py`, log parser rule/handler in `squadpy/log_parser/patterns.py`, and parser contract fixture/test at `tests/contracts/fixtures/parser/player_kicked_line.txt` + `tests/contracts/parser/test_player_kicked_contract.py`.
+- [x] `P0-EVT-003` Add `PlayerBanned` event (`@parser`, `P0`)
   - Acceptance: event dataclass + parser contract fixture.
-- [ ] `P0-EVT-004` Add `AdminCamPossess` event (`@parser`, `P0`)
+  - Acceptance note (2026-02-14): Added `PlayerBanned` dataclass in `squadpy/events/types.py`, parser correlation for real ban logs (`LogOnlineGame` ban/kick reason lines + `LogSquad` admin ban command line) in `squadpy/log_parser/patterns.py`, and contract fixture/test at `tests/contracts/fixtures/parser/player_banned_line.txt` + `tests/contracts/parser/test_player_banned_contract.py`.
+- [~] `P0-EVT-004` Add `AdminCamPossess` event (`@parser`, `P0`)
   - Acceptance: parser extracts actor identity and target context.
 - [ ] `P0-EVT-005` Add `AdminCamUnpossess` event (`@parser`, `P0`)
   - Acceptance: parser contract verifies open/close pairing data.
