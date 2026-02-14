@@ -11,7 +11,8 @@ from squadpy.events.types import (
     PlayerWounded, PlayerDied, PlayerPossess, PlayerUnpossess,
     NewGame, RoundEnded, ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked,
     PlayerBanned, AdminCamPossess, AdminCamUnpossess, Teamkill, SquadCreated,
-    PlayerSwitchedTeam, NextLayerSet, DeployableDamaged,
+    PlayerSwitchedTeam, NextLayerSet, SeedingThresholdUp, SeedingThresholdDown,
+    DeployableDamaged,
 )
 from squadpy.log_parser.parser import LogParser
 from squadpy.log_parser.reader import LogReader
@@ -113,6 +114,23 @@ class TestLogParser:
         assert isinstance(events[0], NextLayerSet)
         assert events[0].layer == "BlackCoast_RAAS_v1 AFU+Mechanized TLF+Mechanized"
         assert events[0].source == "RCON"
+
+    async def test_emits_seeding_threshold_transition_events(self):
+        lines = [
+            "[2026.02.02-02.40.14:835][575]LogSquad: ADMIN COMMAND: Set SeedTargetPlayerCount to 15 from RCON",
+            "[2026.02.02-02.58.59:380][429]LogSquad: ADMIN COMMAND: Set SeedTargetPlayerCount to 20 from RCON",
+            "[2026.02.02-03.12.59:411][798]LogSquad: ADMIN COMMAND: Set SeedTargetPlayerCount to 15 from RCON",
+        ]
+        events = await self._run_parser(lines)
+        ups = [event for event in events if isinstance(event, SeedingThresholdUp)]
+        downs = [event for event in events if isinstance(event, SeedingThresholdDown)]
+
+        assert len(ups) == 1
+        assert len(downs) == 1
+        assert ups[0].old_threshold == 15
+        assert ups[0].new_threshold == 20
+        assert downs[0].old_threshold == 20
+        assert downs[0].new_threshold == 15
 
     async def test_emits_player_warned(self):
         lines = [
@@ -354,7 +372,8 @@ class TestLogParser:
             "server_tick_rate", "admin_broadcast", "player_warned", "player_kicked",
             "player_banned", "admin_cam_possess", "admin_cam_unpossess",
             "squad_created", "teamkill", "player_switched_team",
-            "next_layer_set", "deployable_damaged",
+            "next_layer_set", "seeding_threshold_up",
+            "seeding_threshold_down", "deployable_damaged",
         ]
         for name in event_names:
             bus.subscribe(name, capture)

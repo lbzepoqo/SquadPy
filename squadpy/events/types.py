@@ -112,6 +112,24 @@ class NextLayerSet(BaseEvent):
 
 
 @dataclass
+class SeedingThresholdUp(BaseEvent):
+    event_name: str = "seeding_threshold_up"
+    old_threshold: int = 0
+    new_threshold: int = 0
+    source: str = ""
+    source_detail: str = ""
+
+
+@dataclass
+class SeedingThresholdDown(BaseEvent):
+    event_name: str = "seeding_threshold_down"
+    old_threshold: int = 0
+    new_threshold: int = 0
+    source: str = ""
+    source_detail: str = ""
+
+
+@dataclass
 class PlayerRevived(BaseEvent):
     event_name: str = "player_revived"
     reviver: PlayerID = field(default_factory=PlayerID)

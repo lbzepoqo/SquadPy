@@ -7,6 +7,7 @@ from squadpy.events.types import (
     PlayerDamaged, PlayerWounded, PlayerDied, PlayerRevived,
     Teamkill, SquadCreated, PlayerSwitchedTeam,
     NextLayerSet,
+    SeedingThresholdUp, SeedingThresholdDown,
     PlayerPossess, PlayerUnpossess, NewGame, RoundEnded,
     ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked, PlayerBanned,
     AdminCamPossess, AdminCamUnpossess, DeployableDamaged,
@@ -540,6 +541,35 @@ class TestNextLayerSet:
         assert event.layer == "Sumari_Seed_v1 MEI IMF"
         assert event.source == "IN_GAME"
         assert event.source_detail.startswith("player 6.")
+
+
+class TestSeedingThresholdTransitions:
+    def test_emits_seeding_threshold_up_on_increase(self):
+        store = EventStore()
+        line_1 = "[2026.02.02-02.40.14:835][575]LogSquad: ADMIN COMMAND: Set SeedTargetPlayerCount to 15 from RCON"
+        line_2 = "[2026.02.02-02.58.59:380][429]LogSquad: ADMIN COMMAND: Set SeedTargetPlayerCount to 20 from RCON"
+
+        first_event = match_line(line_1, store)
+        second_event = match_line(line_2, store)
+
+        assert first_event is None
+        assert isinstance(second_event, SeedingThresholdUp)
+        assert second_event.old_threshold == 15
+        assert second_event.new_threshold == 20
+        assert second_event.source == "RCON"
+
+    def test_emits_seeding_threshold_down_on_decrease(self):
+        store = EventStore()
+        line_1 = "[2026.02.02-02.40.14:835][575]LogSquad: ADMIN COMMAND: Set SeedTargetPlayerCount to 20 from RCON"
+        line_2 = "[2026.02.02-02.58.59:380][429]LogSquad: ADMIN COMMAND: Set SeedTargetPlayerCount to 15 from RCON"
+
+        match_line(line_1, store)
+        event = match_line(line_2, store)
+
+        assert isinstance(event, SeedingThresholdDown)
+        assert event.old_threshold == 20
+        assert event.new_threshold == 15
+        assert event.source == "RCON"
 
 
 class TestPlayerWarned:

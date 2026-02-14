@@ -12,6 +12,7 @@ class SeedingMode(Plugin):
 
     async def on_enable(self):
         self._mode: str | None = None
+        self._dynamic_threshold: int | None = None
 
     @property
     def mode(self) -> str | None:
@@ -46,13 +47,32 @@ class SeedingMode(Plugin):
     async def handle_new_game(self, event):
         if bool(self.config.get("reset_on_new_game", True)):
             self._mode = None
+            self._dynamic_threshold = None
+
+    @on_event("seeding_threshold_up")
+    async def handle_seeding_threshold_up(self, event):
+        self._set_dynamic_threshold(getattr(event, "new_threshold", None))
+
+    @on_event("seeding_threshold_down")
+    async def handle_seeding_threshold_down(self, event):
+        self._set_dynamic_threshold(getattr(event, "new_threshold", None))
 
     def _seed_player_threshold(self) -> int:
+        if self._dynamic_threshold is not None and self._dynamic_threshold > 0:
+            return self._dynamic_threshold
         try:
             threshold = int(self.config.get("seed_player_threshold", 50))
         except (TypeError, ValueError):
             return 50
         return threshold if threshold > 0 else 50
+
+    def _set_dynamic_threshold(self, value) -> None:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return
+        if parsed > 0:
+            self._dynamic_threshold = parsed
 
     def _announce_initial_mode(self) -> bool:
         return bool(self.config.get("announce_initial_mode", False))

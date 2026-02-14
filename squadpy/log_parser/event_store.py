@@ -33,6 +33,7 @@ class EventStore:
         self.active_admin_cam_sessions: dict[str, Any] = {}
         self.round_winner: dict[str, Any] | None = None
         self.round_loser: dict[str, Any] | None = None
+        self.seed_target_player_count: int | None = None
 
     def clear(self) -> None:
         """Reset all state. Called on NEW_GAME."""
@@ -48,6 +49,7 @@ class EventStore:
         self.active_admin_cam_sessions.clear()
         self.round_winner = None
         self.round_loser = None
+        self.seed_target_player_count = None
 
     def drain_pending_events(self) -> list[Any]:
         """Return and clear any queued secondary events."""

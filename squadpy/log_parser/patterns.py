@@ -21,6 +21,8 @@ from squadpy.events.types import (
     SquadCreated,
     PlayerSwitchedTeam,
     NextLayerSet,
+    SeedingThresholdUp,
+    SeedingThresholdDown,
     PlayerRevived,
     PlayerPossess,
     PlayerUnpossess,
@@ -826,6 +828,39 @@ def _on_next_layer_set(m: re.Match, chain_id: int, time: str, store: EventStore)
     )
 
 
+# Seeding threshold transition:
+# group 3 = target player threshold, group 4 = command source detail
+_SEED_TARGET_PLAYER_COUNT_RE = re.compile(
+    _PREFIX + r"LogSquad: ADMIN COMMAND: Set SeedTargetPlayerCount to ([0-9]+) from (.+)"
+)
+
+
+def _on_seed_target_player_count(
+    m: re.Match, chain_id: int, time: str, store: EventStore
+) -> SeedingThresholdUp | SeedingThresholdDown | None:
+    new_threshold = int(m.group(3))
+    source_detail = m.group(4).strip()
+    source = _normalize_admin_command_source(source_detail)
+    old_threshold = store.seed_target_player_count
+    store.seed_target_player_count = new_threshold
+
+    if old_threshold is None or old_threshold == new_threshold:
+        return None
+    if new_threshold > old_threshold:
+        return SeedingThresholdUp(
+            old_threshold=old_threshold,
+            new_threshold=new_threshold,
+            source=source,
+            source_detail=source_detail,
+        )
+    return SeedingThresholdDown(
+        old_threshold=old_threshold,
+        new_threshold=new_threshold,
+        source=source,
+        source_detail=source_detail,
+    )
+
+
 # Admin Warned: group 3 = admin/source actor, group 4 = warned player name,
 # group 5 = warn message, group 6 = command source (for example RCON)
 _PLAYER_WARNED_RE = re.compile(
@@ -1000,6 +1035,7 @@ def get_rules() -> list[Rule]:
         Rule(_SERVER_TICK_RATE_RE, _on_server_tick_rate),
         Rule(_ADMIN_BROADCAST_RE, _on_admin_broadcast),
         Rule(_NEXT_LAYER_SET_RE, _on_next_layer_set),
+        Rule(_SEED_TARGET_PLAYER_COUNT_RE, _on_seed_target_player_count),
         Rule(_PLAYER_WARNED_RE, _on_player_warned),
         Rule(_PLAYER_KICKED_RE, _on_player_kicked),
         Rule(_PLAYER_BAN_REQUEST_RE, _on_player_ban_request),

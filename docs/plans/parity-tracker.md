@@ -125,8 +125,9 @@ Status legend:
 - [x] `P1-EVT-009` Add `NextLayerSet` event (`@parser`, `P1`)
   - Acceptance: layer mutation is emitted as structured event.
   - Acceptance note (2026-02-14): Added `NextLayerSet` dataclass in `squadpy/events/types.py`, parser rule/handler in `squadpy/log_parser/patterns.py` for `ADMIN COMMAND: Set next layer to ...` lines with normalized source metadata (`RCON` vs `IN_GAME`), plus unit/integration coverage in `tests/test_patterns.py` and `tests/test_log_parser.py` and parser contract fixture/test at `tests/contracts/fixtures/parser/next_layer_set_lines.txt` + `tests/contracts/parser/test_next_layer_set_contract.py`.
-- [ ] `P1-EVT-010` Add seeding threshold transition events (`@parser`, `P1`)
+- [x] `P1-EVT-010` Add seeding threshold transition events (`@parser`, `P1`)
   - Acceptance: threshold up/down events tested in plugin integration.
+  - Acceptance note (2026-02-14): Added `SeedingThresholdUp`/`SeedingThresholdDown` dataclasses in `squadpy/events/types.py`, parser transition detection in `squadpy/log_parser/patterns.py` for `Set SeedTargetPlayerCount` command deltas, and parser state support in `squadpy/log_parser/event_store.py`; integrated `plugins/seeding_mode/plugin.py` handlers for both events with runtime threshold updates and coverage in `tests/test_plugin_seeding_mode.py`, plus parser tests/contracts at `tests/test_patterns.py`, `tests/test_log_parser.py`, and `tests/contracts/parser/test_seeding_threshold_transition_contract.py`.
 - [ ] `P1-EVT-011` Add admin command event normalization (`@parser`, `P1`)
   - Acceptance: command-origin metadata emitted consistently.
 

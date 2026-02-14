@@ -124,11 +124,35 @@ class TestSeedingMode:
         assert plugin.mode == "live"
         plugin.rcon.broadcast.assert_awaited_once_with("Live (60/50)")
 
+    async def test_seeding_threshold_down_event_updates_runtime_threshold(self, plugin):
+        """Threshold-down event updates runtime threshold used for mode evaluation."""
+        await plugin.handle_seeding_threshold_down(MagicMock(new_threshold=30))
+        plugin.config["announce_initial_mode"] = True
+        plugin.rcon.list_players.return_value = _players(40)
+
+        await plugin.evaluate_mode()
+
+        assert plugin.mode == "live"
+        plugin.rcon.broadcast.assert_awaited_once_with("Live (40/30)")
+
+    async def test_seeding_threshold_up_event_updates_runtime_threshold(self, plugin):
+        """Threshold-up event updates runtime threshold used for mode evaluation."""
+        await plugin.handle_seeding_threshold_up(MagicMock(new_threshold=60))
+        plugin.config["announce_initial_mode"] = True
+        plugin.rcon.list_players.return_value = _players(40)
+
+        await plugin.evaluate_mode()
+
+        assert plugin.mode == "seed"
+        plugin.rcon.broadcast.assert_awaited_once_with("Seed (40/60)")
+
     async def test_new_game_resets_mode(self, plugin):
         """New game resets mode by default."""
         plugin._mode = "live"
+        plugin._dynamic_threshold = 30
         await plugin.handle_new_game(MagicMock())
         assert plugin.mode is None
+        assert plugin._dynamic_threshold is None
 
     async def test_plugin_attributes_and_handlers(self):
         cls = _load_plugin_class()
@@ -137,6 +161,8 @@ class TestSeedingMode:
         handlers = cls.get_event_handlers()
         events = [ev for ev, _ in handlers]
         assert "new_game" in events
+        assert "seeding_threshold_up" in events
+        assert "seeding_threshold_down" in events
         tasks = cls.get_periodic_tasks()
         names = [name for name, _ in tasks]
         assert "evaluate_mode" in names
