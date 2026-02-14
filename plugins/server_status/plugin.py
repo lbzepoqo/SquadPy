@@ -256,7 +256,11 @@ class ServerStatus(Plugin):
                     "y": {
                         "type": "linear",
                         "position": "left",
-                        "beginAtZero": True,
+                        "min": 0,
+                        "max": 100,
+                        "ticks": {
+                            "stepSize": 10,
+                        },
                     },
                 },
             },

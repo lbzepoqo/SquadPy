@@ -115,6 +115,9 @@ class TestServerStatus:
         decoded = urllib.parse.unquote(embed.image.url)
         assert "Players" in decoded
         assert "Last 60 min" in decoded
+        assert '"min":0' in decoded
+        assert '"max":100' in decoded
+        assert '"stepSize":10' in decoded
 
     async def test_message_deleted_posts_new(self, plugin):
         """If edit fails, a new message is posted."""
