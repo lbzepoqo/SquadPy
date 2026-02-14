@@ -1,6 +1,8 @@
 """Tests for ServerStatus plugin."""
 
+import datetime
 import importlib.util
+import urllib.parse
 from importlib.abc import Loader
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -63,6 +65,21 @@ class TestServerStatus:
         await plugin.update_status()
         plugin.discord.edit_message.assert_awaited()
 
+        embed = plugin.discord.edit_message.call_args[1]["embed"]
+        fields = {field.name: field.value for field in embed.fields}
+        assert fields["Map"] == "Tallil"
+        assert fields["Layer"] == "Tallil_Seed"
+        assert fields["Factions"] == "US RU"
+        assert fields["Players"] == "2"
+        assert fields["Squads"] == "1"
+        assert fields["Tick Rate"] == "0.0"
+        assert fields["Next Map"] == "Not set (voting)"
+        assert embed.image.url.startswith("https://quickchart.io/chart")
+        decoded = urllib.parse.unquote(embed.image.url)
+        assert "Players" in decoded
+        assert "Tick Rate" in decoded
+        assert "Last 60 min" in decoded
+
     async def test_message_deleted_posts_new(self, plugin):
         """If edit fails, a new message is posted."""
         plugin.discord.edit_message.side_effect = Exception("not found")
@@ -110,3 +127,56 @@ class TestServerStatus:
         instance.discord.send.assert_not_awaited()
         await instance.update_status()
         instance.discord.edit_message.assert_not_awaited()
+
+    async def test_graph_window_prunes_old_samples(self, plugin):
+        """Trend samples older than graph_window_minutes are pruned."""
+        plugin.config["graph_window_minutes"] = 10
+        plugin.rcon.list_players.return_value = [_make_player()]
+        plugin.rcon.show_current_map.return_value = MapInfo("Tallil", "Tallil_Seed", "US RU")
+        plugin.rcon.show_next_map.return_value = None
+
+        base = plugin._now()
+        times = [
+            base - datetime.timedelta(minutes=30),
+            base - datetime.timedelta(minutes=9),
+            base,
+        ]
+        last_time = base
+
+        def _next_time():
+            nonlocal last_time
+            if times:
+                last_time = times.pop(0)
+            return last_time
+
+        plugin._now = _next_time
+
+        await plugin.update_status()
+        await plugin.update_status()
+        await plugin.update_status()
+
+        assert len(plugin._trend_samples) == 2
+        assert plugin._trend_samples[0][1] == 1
+
+    async def test_graph_can_be_disabled(self):
+        cls = _load_plugin_class()
+        mock_rcon = AsyncMock()
+        mock_discord = AsyncMock()
+        mock_message = AsyncMock()
+        mock_discord.send.return_value = mock_message
+        mock_discord.edit_message.return_value = mock_message
+
+        instance = cls(
+            rcon=mock_rcon,
+            discord=mock_discord,
+            config={"channel_id": 12345, "graph_enabled": False},
+        )
+        await instance.on_enable()
+
+        instance.rcon.list_players.return_value = [_make_player()]
+        instance.rcon.show_current_map.return_value = MapInfo("Tallil", "Tallil_Seed", "US RU")
+        instance.rcon.show_next_map.return_value = None
+        await instance.update_status()
+
+        embed = instance.discord.edit_message.call_args[1]["embed"]
+        assert embed.image.url is None

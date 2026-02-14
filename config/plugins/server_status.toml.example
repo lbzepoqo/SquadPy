@@ -2,4 +2,9 @@ enabled = true
 
 [settings]
 channel_id = 0
-update_interval = 60
+
+# Graph trend settings (Players + Tick Rate)
+graph_enabled = true
+graph_window_minutes = 60
+graph_width = 900
+graph_height = 340

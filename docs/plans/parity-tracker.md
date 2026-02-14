@@ -184,8 +184,9 @@ Status legend:
 - [x] `P0-PLUG-UPG-002` Upgrade `admin_request` ticket lifecycle depth (`@plugins-moderation`, `P0`)
   - Acceptance: claim, relay, close, and timeout behaviors are tested.
   - Acceptance note (2026-02-14): Expanded `plugins/admin_request/plugin.py` with ticket close button handling, thread `!close` command flow, periodic timeout expiry (`ticket_timeout_minutes`), and configurable relay/timeout messaging; updated config template at `config/plugins/admin_request.toml.example` and added lifecycle tests in `tests/test_plugin_admin_request.py` for claim, relay, close, and timeout behavior.
-- [ ] `P1-PLUG-UPG-003` Upgrade `server_status` to richer parity fields (`@plugins-moderation`, `P1`)
+- [x] `P1-PLUG-UPG-003` Upgrade `server_status` to richer parity fields (`@plugins-moderation`, `P1`)
   - Acceptance: map/layer/factions/tick/player/squad values validated.
+  - Acceptance note (2026-02-14): Upgraded `plugins/server_status/plugin.py` to validate and render richer parity fields in the status embed (`Map`, `Layer`, `Factions`, `Players`, `Squads`, `Tick Rate`, `Next Map`) and added a 60-minute rolling trend graph image (Players + Tick Rate) using configurable graph settings; updated example config at `config/plugins/server_status.toml.example` and expanded validation coverage in `tests/test_plugin_server_status.py` for field values, graph rendering, graph disable toggle, and trend window pruning.
 
 ## 3) Phase 3 - Seeding, Team Balance, Match Control
 
@@ -304,7 +305,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | TK warn | Yes | Done | `P0-PLUG-UPG-001` |
 | Admin request workflow | Yes | Done | `P0-PLUG-UPG-002` |
 | Discord chat bridge | Yes | Done | Existing |
-| Server status embed | Yes | Partial | `P1-PLUG-UPG-003` |
+| Server status embed | Yes | Done | `P1-PLUG-UPG-003` |
 | Chat commands | Yes | Done | `P0-PLUG-MOD-001` |
 | Discord admin broadcast | Yes | Done | `P0-PLUG-MOD-002` |
 | Discord admin cam logs | Yes | Done | `P0-PLUG-MOD-003` |
