@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from squadpy.database import Base
 from squadpy.plugin import Plugin, periodic
+from plugins.db_log.analytics import DbLogAnalyticsQueryHelper
 from plugins.db_log.migrations import apply_sqlite_migrations
 
 
@@ -156,8 +157,30 @@ class DbLog(Plugin):
             "admin_actions": self._retention_days_for("retention_admin_actions_days"),
             "chat_messages": self._retention_days_for("retention_chat_messages_days"),
         }
+        self._analytics_helper = DbLogAnalyticsQueryHelper(
+            self.db.session,
+            default_window_days=self._positive_int(
+                self.config.get("analytics_default_window_days", 7),
+                7,
+            ),
+            default_limit=self._positive_int(
+                self.config.get("analytics_default_limit", 90),
+                90,
+            ),
+        )
         self._next_prune_at = self._utcnow()
         self.logger.info("DB log core schema ensured")
+
+    async def dashboard_snapshot(
+        self,
+        *,
+        window_days: int | None = None,
+        limit: int | None = None,
+    ) -> dict[str, list[dict]]:
+        return await self._analytics_helper.dashboard_snapshot(
+            window_days=window_days,
+            limit=limit,
+        )
 
     @periodic(seconds=60)
     async def run_prune_jobs(self):
@@ -311,6 +334,14 @@ class DbLog(Plugin):
         except (TypeError, ValueError):
             return default
         return parsed if parsed >= 0 else default
+
+    @staticmethod
+    def _positive_int(value, default: int) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return default
+        return parsed if parsed > 0 else default
 
     @staticmethod
     def _parse_bool(value, default: bool) -> bool:

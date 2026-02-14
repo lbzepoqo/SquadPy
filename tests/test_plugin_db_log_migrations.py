@@ -17,7 +17,7 @@ class TestDbLogMigrations:
         assert sqlite_schema_version(db_path) == 0
         applied = apply_sqlite_migrations(db_path)
 
-        assert applied == [1, 2]
+        assert applied == [1, 2, 3]
         assert sqlite_schema_version(db_path) == LATEST_DB_LOG_SCHEMA_VERSION
 
         conn = sqlite3.connect(db_path)
@@ -34,6 +34,12 @@ class TestDbLogMigrations:
                     "SELECT name FROM sqlite_master WHERE type='index'",
                 ).fetchall()
                 if row[0] and not str(row[0]).startswith("sqlite_autoindex")
+            }
+            views = {
+                row[0]
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='view'",
+                ).fetchall()
             }
         finally:
             conn.close()
@@ -67,9 +73,16 @@ class TestDbLogMigrations:
             "ix_db_log_chat_messages_channel",
             "ix_db_log_chat_messages_player_id",
         }
+        expected_views = {
+            "db_log_mv_population_daily",
+            "db_log_mv_event_volume_daily",
+            "db_log_mv_moderation_daily",
+            "db_log_mv_chat_volume_daily",
+        }
 
         assert expected_tables.issubset(tables)
         assert expected_indexes.issubset(indexes)
+        assert expected_views.issubset(views)
 
     def test_forward_migration_from_v1_to_latest(self, tmp_path):
         """Applying migrations incrementally upgrades from older version."""
@@ -80,7 +93,7 @@ class TestDbLogMigrations:
         assert sqlite_schema_version(db_path) == 1
 
         applied_v2 = apply_sqlite_migrations(db_path)
-        assert applied_v2 == [2]
+        assert applied_v2 == [2, 3]
         assert sqlite_schema_version(db_path) == LATEST_DB_LOG_SCHEMA_VERSION
 
         applied_again = apply_sqlite_migrations(db_path)

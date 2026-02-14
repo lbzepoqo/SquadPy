@@ -14,7 +14,7 @@ class SqliteMigration:
     statements: tuple[str, ...]
 
 
-LATEST_DB_LOG_SCHEMA_VERSION = 2
+LATEST_DB_LOG_SCHEMA_VERSION = 3
 
 
 SQLITE_MIGRATIONS: tuple[SqliteMigration, ...] = (
@@ -125,6 +125,49 @@ SQLITE_MIGRATIONS: tuple[SqliteMigration, ...] = (
             "CREATE INDEX IF NOT EXISTS ix_db_log_admin_actions_admin_steam_id ON db_log_admin_actions (admin_steam_id);",
             "CREATE INDEX IF NOT EXISTS ix_db_log_admin_actions_target_steam_id ON db_log_admin_actions (target_steam_id);",
             "CREATE INDEX IF NOT EXISTS ix_db_log_chat_messages_player_id ON db_log_chat_messages (player_id);",
+        ),
+    ),
+    SqliteMigration(
+        version=3,
+        name="add_analytics_views",
+        statements=(
+            """
+            CREATE VIEW IF NOT EXISTS db_log_mv_population_daily AS
+            SELECT
+                DATE(joined_at) AS bucket_day,
+                COUNT(*) AS sessions_started,
+                COUNT(DISTINCT player_id) AS unique_players,
+                COUNT(DISTINCT match_id) AS matches_seen
+            FROM db_log_sessions
+            GROUP BY DATE(joined_at);
+            """,
+            """
+            CREATE VIEW IF NOT EXISTS db_log_mv_event_volume_daily AS
+            SELECT
+                DATE(occurred_at) AS bucket_day,
+                event_name AS event_name,
+                COUNT(*) AS event_count
+            FROM db_log_events
+            GROUP BY DATE(occurred_at), event_name;
+            """,
+            """
+            CREATE VIEW IF NOT EXISTS db_log_mv_moderation_daily AS
+            SELECT
+                DATE(created_at) AS bucket_day,
+                action AS action,
+                COUNT(*) AS action_count
+            FROM db_log_admin_actions
+            GROUP BY DATE(created_at), action;
+            """,
+            """
+            CREATE VIEW IF NOT EXISTS db_log_mv_chat_volume_daily AS
+            SELECT
+                DATE(created_at) AS bucket_day,
+                channel AS channel,
+                COUNT(*) AS message_count
+            FROM db_log_chat_messages
+            GROUP BY DATE(created_at), channel;
+            """,
         ),
     ),
 )

@@ -256,8 +256,9 @@ Status legend:
 - [x] `P1-DATA-003` Add retention and pruning jobs (`@data-platform`, `P1`)
   - Acceptance: pruning policy tests validate retention windows.
   - Acceptance note (2026-02-14): Added db_log retention/pruning scheduling in `plugins/db_log/plugin.py` with per-table retention windows (`matches`, `sessions`, `events`, `admin_actions`, `chat_messages`), configurable prune interval/toggle, and periodic prune execution; updated `config/plugins/db_log.toml.example` with retention/prune settings and added targeted policy coverage in `tests/test_plugin_db_log.py` validating retention-window cutoffs, disabled-window behavior, and prune disable toggle.
-- [ ] `P1-DATA-004` Add materialized views/query helpers for analytics (`@data-platform`, `P1`)
+- [x] `P1-DATA-004` Add materialized views/query helpers for analytics (`@data-platform`, `P1`)
   - Acceptance: dashboard query smoke tests pass.
+  - Acceptance note (2026-02-14): Added sqlite analytics-view migration `v3` in `plugins/db_log/migrations.py` (`db_log_mv_population_daily`, `db_log_mv_event_volume_daily`, `db_log_mv_moderation_daily`, `db_log_mv_chat_volume_daily`), implemented dashboard query helpers in `plugins/db_log/analytics.py`, and exposed plugin-level snapshot access via `DbLog.dashboard_snapshot()` in `plugins/db_log/plugin.py`; added smoke coverage in `tests/test_plugin_db_log_analytics.py` plus migration/view assertions in `tests/test_plugin_db_log_migrations.py`.
 
 ### 4.2 API and remote control
 

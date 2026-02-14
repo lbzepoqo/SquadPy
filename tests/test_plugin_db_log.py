@@ -206,3 +206,25 @@ class TestDbLog:
         await plugin.run_prune_jobs()
 
         plugin._prune_rows.assert_not_awaited()
+
+    async def test_dashboard_snapshot_delegates_to_analytics_helper(self):
+        cls = _load_plugin_class()
+        mock_db = SimpleNamespace(
+            driver="sqlite",
+            sqlite_path=":memory:",
+            create_tables=AsyncMock(),
+            session=lambda: None,
+        )
+        plugin = cls(db=mock_db, config={})
+        await plugin.on_enable()
+
+        expected = {"population_daily": [], "event_volume_daily": [], "moderation_daily": [], "chat_volume_daily": []}
+        plugin._analytics_helper.dashboard_snapshot = AsyncMock(return_value=expected)
+
+        result = await plugin.dashboard_snapshot(window_days=14, limit=120)
+
+        assert result == expected
+        plugin._analytics_helper.dashboard_snapshot.assert_awaited_once_with(
+            window_days=14,
+            limit=120,
+        )

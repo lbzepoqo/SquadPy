@@ -12,3 +12,7 @@ retention_sessions_days = 30
 retention_events_days = 30
 retention_admin_actions_days = 90
 retention_chat_messages_days = 30
+
+# Dashboard analytics helper defaults
+analytics_default_window_days = 7
+analytics_default_limit = 90
