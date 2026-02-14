@@ -6,5 +6,6 @@ channel_id = 0
 # Graph trend settings (Players + Tick Rate)
 graph_enabled = true
 graph_window_minutes = 60
+graph_max_points = 24
 graph_width = 900
 graph_height = 340

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 from collections import deque
 from urllib.parse import quote
 
@@ -155,9 +156,10 @@ class ServerStatus(Plugin):
         if not self._graph_enabled() or not self._trend_samples:
             return ""
 
-        labels = [stamp.strftime("%H:%M") for stamp, _, _ in self._trend_samples]
-        player_series = [player_count for _, player_count, _ in self._trend_samples]
-        tick_rate_series = [round(tick_rate, 2) for _, _, tick_rate in self._trend_samples]
+        samples = self._sampled_trend_points()
+        labels = [stamp.strftime("%H:%M") for stamp, _, _ in samples]
+        player_series = [player_count for _, player_count, _ in samples]
+        tick_rate_series = [round(tick_rate, 2) for _, _, tick_rate in samples]
 
         chart_config = {
             "type": "line",
@@ -168,8 +170,6 @@ class ServerStatus(Plugin):
                         "label": "Players",
                         "data": player_series,
                         "borderColor": "#10b981",
-                        "backgroundColor": "rgba(16,185,129,0.18)",
-                        "fill": True,
                         "tension": 0.2,
                         "pointRadius": 1,
                         "yAxisID": "y_players",
@@ -178,8 +178,6 @@ class ServerStatus(Plugin):
                         "label": "Tick Rate",
                         "data": tick_rate_series,
                         "borderColor": "#60a5fa",
-                        "backgroundColor": "rgba(96,165,250,0.08)",
-                        "fill": False,
                         "tension": 0.2,
                         "pointRadius": 1,
                         "yAxisID": "y_tick",
@@ -200,15 +198,12 @@ class ServerStatus(Plugin):
                         "type": "linear",
                         "position": "left",
                         "beginAtZero": True,
-                        "title": {"display": True, "text": "Players"},
                     },
                     "y_tick": {
                         "type": "linear",
                         "position": "right",
                         "beginAtZero": True,
-                        "suggestedMax": 80,
                         "grid": {"drawOnChartArea": False},
-                        "title": {"display": True, "text": "Tick Rate"},
                     },
                 },
             },
@@ -221,6 +216,18 @@ class ServerStatus(Plugin):
             f"?width={width}&height={height}&devicePixelRatio=2&format=png&c={encoded}"
         )
 
+    def _sampled_trend_points(self) -> list[tuple[datetime.datetime, int, float]]:
+        samples = list(self._trend_samples)
+        max_points = self._max_graph_points()
+        if len(samples) <= max_points:
+            return samples
+
+        step = math.ceil(len(samples) / max_points)
+        sampled = samples[::step]
+        if sampled[-1] != samples[-1]:
+            sampled.append(samples[-1])
+        return sampled
+
     def _graph_enabled(self) -> bool:
         return bool(self.config.get("graph_enabled", True))
 
@@ -231,6 +238,14 @@ class ServerStatus(Plugin):
         if window > 240:
             return 240
         return window
+
+    def _max_graph_points(self) -> int:
+        points = self._positive_int(self.config.get("graph_max_points", 24), 24)
+        if points < 8:
+            return 8
+        if points > 48:
+            return 48
+        return points
 
     def _channel_id(self) -> int:
         return self._positive_int(self.config.get("channel_id", 0), 0)

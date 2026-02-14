@@ -158,6 +158,37 @@ class TestServerStatus:
         assert len(plugin._trend_samples) == 2
         assert plugin._trend_samples[0][1] == 1
 
+    async def test_graph_url_stays_within_embed_limit(self, plugin):
+        """Graph URL remains under Discord embed URL limits via downsampling."""
+        plugin.config["graph_window_minutes"] = 240
+        plugin.config["graph_max_points"] = 24
+        plugin.rcon.list_players.return_value = [_make_player()]
+        plugin.rcon.show_current_map.return_value = MapInfo("Tallil", "Tallil_Seed", "US RU")
+        plugin.rcon.show_next_map.return_value = None
+
+        base = plugin._now()
+        times = [
+            base - datetime.timedelta(minutes=239 - i)
+            for i in range(240)
+        ]
+        last_time = base
+
+        def _next_time():
+            nonlocal last_time
+            if times:
+                last_time = times.pop(0)
+            return last_time
+
+        plugin._now = _next_time
+
+        for _ in range(240):
+            await plugin.update_status()
+
+        embed = plugin.discord.edit_message.call_args[1]["embed"]
+        assert embed.image.url is not None
+        assert len(embed.image.url) <= 2000
+        assert len(plugin._sampled_trend_points()) <= 25
+
     async def test_graph_can_be_disabled(self):
         cls = _load_plugin_class()
         mock_rcon = AsyncMock()
