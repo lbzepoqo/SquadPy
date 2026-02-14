@@ -269,6 +269,21 @@ class TestRconClientConvenience:
             await client.force_team_change("abc")
         client.execute.assert_not_called()
 
+    async def test_set_fog_of_war_calls_execute_with_valid_mode(self, client):
+        client.execute.return_value = ""
+        await client.set_fog_of_war(1)
+        client.execute.assert_awaited_once_with("AdminSetFogOfWar 1")
+
+    async def test_set_fog_of_war_accepts_bool(self, client):
+        client.execute.return_value = ""
+        await client.set_fog_of_war(False)
+        client.execute.assert_awaited_once_with("AdminSetFogOfWar 0")
+
+    async def test_set_fog_of_war_rejects_invalid_mode(self, client):
+        with pytest.raises(ValueError, match="mode must be 0 or 1"):
+            await client.set_fog_of_war(2)
+        client.execute.assert_not_called()
+
     async def test_show_current_map_calls_execute(self, client):
         client.execute.return_value = "Current level is Test, layer is Test_v1, factions A B"
         result = await client.show_current_map()

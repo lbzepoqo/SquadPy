@@ -367,6 +367,22 @@ class RconClient:
 
         return await self.execute(f"AdminForceTeamChangeById {parsed_player_id}")
 
+    async def set_fog_of_war(self, mode: int | bool | str) -> str:
+        """Enable or disable fog of war using layer setting mode [0|1]."""
+        if isinstance(mode, bool):
+            parsed_mode = 1 if mode else 0
+        elif isinstance(mode, int):
+            parsed_mode = mode
+        elif isinstance(mode, str) and mode.strip() in {"0", "1"}:
+            parsed_mode = int(mode.strip())
+        else:
+            raise ValueError("mode must be 0 or 1")
+
+        if parsed_mode not in {0, 1}:
+            raise ValueError("mode must be 0 or 1")
+
+        return await self.execute(f"AdminSetFogOfWar {parsed_mode}")
+
     async def show_current_map(self) -> MapInfo | None:
         """Get current map info."""
         response = await self.execute("ShowCurrentMap")

@@ -62,6 +62,7 @@ Request fixture may be:
 | `ban(player_id, duration, reason)` | `ban` | `AdminBan "{player_id}" "{duration}" {reason}` | passthrough `str` |
 | `switch_team(player_id)` | `switch_team` | `AdminForceTeamChange {player_id}` | passthrough `str` |
 | `force_team_change(player_id)` | `force_team_change` | `AdminForceTeamChangeById {player_id}` | passthrough `str` (with positive-integer ID validation) |
+| `set_fog_of_war(mode)` | `set_fog_of_war` | `AdminSetFogOfWar {mode}` | passthrough `str` (mode validation: `0|1`) |
 | `show_current_map()` | `show_current_map` | `ShowCurrentMap` | parse to `MapInfo \| None` |
 | `show_next_map()` | `show_next_map` | `ShowNextMap` | parse to `MapInfo \| None`; returns `None` when response contains `not defined` |
 
@@ -71,7 +72,6 @@ These command IDs already exist in fixtures and are reserved for upcoming helper
 
 | Tracker ID | Contract ID | Planned Helper |
 |---|---|---|
-| `P0-RCON-004` | `set_fog_of_war` | `set_fog_of_war(mode)` |
 | `P0-RCON-005` | `set_next_layer` | `set_next_layer(layer)` |
 | `P1-RCON-006` | `demote_commander` | `demote_commander(player_id)` |
 | `P1-RCON-007` | `set_team` | `set_team(player_id, team)` via composition (no direct `AdminSetTeam` command in `ListCommands`) |

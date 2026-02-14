@@ -70,8 +70,9 @@ Status legend:
 - [x] `P0-RCON-003` Add force team change helper (`@core-runtime`, `P0`)
   - Acceptance: command is exposed and tested with valid/invalid ids.
   - Acceptance note (2026-02-14): Added `RconClient.force_team_change(...)` in `squadpy/rcon/client.py` using `AdminForceTeamChangeById`, unit tests in `tests/test_rcon_helpers.py` for valid and invalid ids, and contract tests in `tests/contracts/core_runtime/test_rcon_force_team_change_contract.py` for command template + invalid-id response passthrough.
-- [ ] `P0-RCON-004` Add `set_fog_of_war(mode)` helper (`@core-runtime`, `P0`)
+- [x] `P0-RCON-004` Add `set_fog_of_war(mode)` helper (`@core-runtime`, `P0`)
   - Acceptance: mode validation and command dispatch tests pass.
+  - Acceptance note (2026-02-14): Added `RconClient.set_fog_of_war(...)` in `squadpy/rcon/client.py` with `0|1` mode validation, unit tests in `tests/test_rcon_helpers.py`, and contract test `tests/contracts/core_runtime/test_rcon_set_fog_of_war_contract.py` for exact command-template + response passthrough.
 - [ ] `P0-RCON-005` Add `set_next_layer(layer)` helper (`@core-runtime`, `P0`)
   - Acceptance: contract test confirms layer string safety and command dispatch.
 - [ ] `P1-RCON-006` Add `demote_commander(player_id)` helper (`@core-runtime`, `P1`)
