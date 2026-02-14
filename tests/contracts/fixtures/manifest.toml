@@ -28,8 +28,8 @@ notes = "Server run with SAT mod enabled for parser coverage."
 [[packs]]
 id = "log-sat-hlp-mods"
 kind = "log"
-source = "tests/fixtures/samples/logs/SquadGame (Using SAT and HLP Mod).log"
-sha256 = "36be6c0c147a46a924f42850e5ce8e7888cfd6e271ed0f57e1b856a57ec71e97"
-line_count = 809261
-size_bytes = 135344128
-notes = "Server run with SAT and HLP mods enabled for parity edge cases."
+source = "tests/fixtures/samples/logs/SquadGame (With Ban logs, Using SAT and HLP Mod)).log"
+sha256 = "56b18e5b9e888fedcc8c8abcccbb8b99153ae1e54957272b770065858da47164"
+line_count = 302427
+size_bytes = 55848960
+notes = "Server run with SAT and HLP mods plus ban log coverage for parity edge cases."
