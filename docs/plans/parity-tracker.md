@@ -32,8 +32,8 @@ Status legend:
 ## Current Sprint Focus (2026-02-14)
 
 - Active in-progress IDs: none.
-- Rationale: completed second seeding wave plus DBLog foundation and migration scaffolding (`P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`) after finishing the moderation+seeding kickoff wave.
-- Next queued IDs: `P0-API-001`, `P0-API-002`, `P0-API-003`.
+- Rationale: completed second seeding wave, DBLog foundation/migrations, and authenticated websocket control baseline (`P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`, `P0-API-001`) after finishing the moderation+seeding kickoff wave.
+- Next queued IDs: `P0-API-002`, `P0-API-003`, `P1-DATA-003`.
 
 ## 0) Phase 0 - Program Setup and Acceptance Harness
 
@@ -224,8 +224,9 @@ Status legend:
 
 ### 4.2 API and remote control
 
-- [ ] `P0-API-001` Add authenticated websocket control service (`@api-security`, `P0`)
+- [x] `P0-API-001` Add authenticated websocket control service (`@api-security`, `P0`)
   - Acceptance: command dispatch + auth rejection contracts pass.
+  - Acceptance note (2026-02-14): Added websocket control service at `squadpy/api/websocket_control.py` with token auth, default-deny action routing, and `rcon.execute` dispatch support; wired optional API config/startup into `squadpy/config.py` + `squadpy/server.py` and added contract coverage in `tests/contracts/api_security/test_websocket_control_contract.py` for authorized dispatch and unauthorized rejection.
 - [ ] `P0-API-002` Add authenticated REST control endpoints (`@api-security`, `P0`)
   - Acceptance: health, status, and command endpoints tested.
 - [ ] `P0-API-003` Add audit logging for all privileged actions (`@api-security`, `P0`)
@@ -308,7 +309,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | Squad name validator | Yes | Missing | `P1-SEED-008` |
 | Fog of war automation | Yes | Missing | `P1-SEED-010` |
 | DB event logging plugin | Yes | Done | `P0-DATA-001` |
-| Websocket API plugin/service | Yes | Missing | `P0-API-001` |
+| Websocket API plugin/service | Yes | Done | `P0-API-001` |
 
 ## 8) Release Gates
 
@@ -331,9 +332,9 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 
 Week of: 2026-02-14
 
-- Completed IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`, `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`
+- Completed IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`, `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`, `P0-API-001`
 - In-progress IDs: none
 - Blocked IDs: none
-- New risks: upcoming API control services introduce auth and audit surface area that needs strict default-deny behavior from first implementation.
-- Mitigations applied: moved queue focus to `P0-API-*` after completing DBLog schema+migration base, preserving migration tests as a guardrail for future DB schema evolution.
-- Next week top 5 IDs: `P0-API-001`, `P0-API-002`, `P0-API-003`, `P1-DATA-003`, `P1-DATA-004`
+- New risks: REST control and privileged action auditing still need strict endpoint-level authorization consistency after websocket baseline.
+- Mitigations applied: shipped token-gated websocket service with contract tests and default-deny action routing, and queued REST/audit follow-up immediately (`P0-API-002`, `P0-API-003`).
+- Next week top 5 IDs: `P0-API-002`, `P0-API-003`, `P1-DATA-003`, `P1-DATA-004`, `P1-API-004`

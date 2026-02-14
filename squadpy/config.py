@@ -81,10 +81,39 @@ class DiscordConfig(BaseModel):
         return self
 
 
+class ApiConfig(BaseModel):
+    enabled: bool = False
+    host: str = "127.0.0.1"
+    port: int = 8090
+    websocket_path: str = "/ws/control"
+    auth_token: str = ""
+
+    @field_validator("port")
+    @classmethod
+    def validate_port(cls, v: int) -> int:
+        if not 1 <= v <= 65535:
+            raise ValueError(f"Port must be 1-65535, got {v}")
+        return v
+
+    @field_validator("websocket_path")
+    @classmethod
+    def validate_websocket_path(cls, v: str) -> str:
+        if not v.startswith("/"):
+            raise ValueError("websocket_path must start with '/'")
+        return v
+
+    @model_validator(mode="after")
+    def validate_enabled_fields(self) -> "ApiConfig":
+        if self.enabled and not self.auth_token:
+            raise ValueError("API auth_token is required when enabled")
+        return self
+
+
 class ServerConfig(BaseModel):
     rcon: RconConfig
     log: LogConfig = LogConfig()
     discord: DiscordConfig = DiscordConfig()
+    api: ApiConfig = ApiConfig()
 
 
 class LoggingConfig(BaseModel):

@@ -4,7 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from squadpy.config import DiscordConfig, LogConfig, LoggingConfig, ServerConfig, load_config
+from squadpy.config import (
+    ApiConfig,
+    DiscordConfig,
+    LogConfig,
+    LoggingConfig,
+    ServerConfig,
+    load_config,
+)
 
 
 class TestServerConfig:
@@ -148,3 +155,46 @@ class TestServerConfigWithDiscord:
         })
         assert config.discord.enabled is True
         assert config.discord.token == "tok"
+
+
+class TestApiConfig:
+    def test_defaults(self):
+        config = ApiConfig()
+        assert config.enabled is False
+        assert config.host == "127.0.0.1"
+        assert config.port == 8090
+        assert config.websocket_path == "/ws/control"
+        assert config.auth_token == ""
+
+    def test_enabled_requires_auth_token(self):
+        with pytest.raises(Exception):
+            ApiConfig(enabled=True, auth_token="")
+
+    def test_invalid_port_raises(self):
+        with pytest.raises(Exception):
+            ApiConfig(port=70000)
+
+    def test_invalid_websocket_path_raises(self):
+        with pytest.raises(Exception):
+            ApiConfig(websocket_path="ws/control")
+
+
+class TestServerConfigWithApi:
+    def test_api_is_optional(self):
+        config = ServerConfig.model_validate({"rcon": {"host": "127.0.0.1", "password": "pass"}})
+        assert config.api.enabled is False
+
+    def test_api_section_parsed(self):
+        config = ServerConfig.model_validate({
+            "rcon": {"host": "127.0.0.1", "password": "pass"},
+            "api": {
+                "enabled": True,
+                "host": "127.0.0.1",
+                "port": 18090,
+                "websocket_path": "/ws/control",
+                "auth_token": "secret_token",
+            },
+        })
+        assert config.api.enabled is True
+        assert config.api.port == 18090
+        assert config.api.auth_token == "secret_token"

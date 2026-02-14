@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.0",
     "discord.py>=2.3",
+    "aiohttp>=3.9",
     "asyncssh>=2.14",
     "sqlalchemy[asyncio]>=2.0",
     "aiosqlite>=0.20",
@@ -27,6 +28,7 @@ testpaths = ["tests"]
 markers = [
     "contract: parity contract tests",
     "core_runtime: parity owner marker for @core-runtime tasks",
+    "api_security: parity owner marker for @api-security tasks",
     "parser: parity owner marker for @parser tasks",
     "p0: parity priority marker for P0 parity tasks",
 ]

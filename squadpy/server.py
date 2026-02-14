@@ -7,6 +7,7 @@ import signal
 from pathlib import Path
 
 from squadpy.config import ServerConfig, LoggingConfig, DatabaseConfig
+from squadpy.api import WebsocketControlService
 from squadpy.database import DatabaseManager
 from squadpy.events.emitter import EventBus
 from squadpy.events.types import ChatMessage
@@ -64,6 +65,7 @@ class SquadPyServer:
         self._shutdown_event = asyncio.Event()
         self._discord: DiscordConnector | None = None
         self._db: DatabaseManager | None = None
+        self._api: WebsocketControlService | None = None
 
     @property
     def version(self) -> str:
@@ -151,6 +153,30 @@ class SquadPyServer:
             self._db = None
             return False, str(e)
 
+    async def _start_api(self) -> tuple[bool, str]:
+        if not self._server_config.api.enabled:
+            return False, "not configured"
+
+        try:
+            self._api = WebsocketControlService(
+                token=self._server_config.api.auth_token,
+                host=self._server_config.api.host,
+                port=self._server_config.api.port,
+                path=self._server_config.api.websocket_path,
+                server=self,
+            )
+            await self._api.start()
+            detail = (
+                f"websocket "
+                f"(ws://{self._server_config.api.host}:{self._server_config.api.port}"
+                f"{self._server_config.api.websocket_path})"
+            )
+            return True, detail
+        except Exception as e:
+            logger.error("API service failed: %s", e)
+            self._api = None
+            return False, str(e)
+
     def _build_services(self, rcon, log_parser) -> dict:
         return {
             "rcon": rcon,
@@ -182,6 +208,7 @@ class SquadPyServer:
         log_ok, log_detail = await self._start_log_reader()
         discord_ok, discord_detail = await self._connect_discord()
         db_ok, db_detail = await self._connect_database()
+        api_ok, api_detail = await self._start_api()
 
         if self._db:
             try:
@@ -209,7 +236,18 @@ class SquadPyServer:
             except Exception as e:
                 logger.error("Failed to sync Discord commands: %s", e)
 
-        self._print_summary(rcon_ok, rcon_detail, log_ok, log_detail, discord_ok, discord_detail, db_ok, db_detail)
+        self._print_summary(
+            rcon_ok,
+            rcon_detail,
+            log_ok,
+            log_detail,
+            discord_ok,
+            discord_detail,
+            db_ok,
+            db_detail,
+            api_ok,
+            api_detail,
+        )
 
         self._setup_signals()
         await self._shutdown_event.wait()
@@ -274,7 +312,7 @@ class SquadPyServer:
         )
         asyncio.get_event_loop().create_task(self._event_bus.emit(event))
 
-    def _print_summary(self, rcon_ok: bool, rcon_detail: str, log_ok: bool = False, log_detail: str = "", discord_ok: bool = False, discord_detail: str = "", db_ok: bool = False, db_detail: str = "") -> None:
+    def _print_summary(self, rcon_ok: bool, rcon_detail: str, log_ok: bool = False, log_detail: str = "", discord_ok: bool = False, discord_detail: str = "", db_ok: bool = False, db_detail: str = "", api_ok: bool = False, api_detail: str = "") -> None:
         lines = [
             "",
             f"  SquadPy v{self.version}",
@@ -284,6 +322,7 @@ class SquadPyServer:
             format_service_line("Log Reader", log_ok, log_detail),
             format_service_line("Discord", discord_ok, discord_detail),
             format_service_line("Database", db_ok, db_detail),
+            format_service_line("API", api_ok, api_detail),
             "",
         ]
 
@@ -318,6 +357,9 @@ class SquadPyServer:
 
         if self._discord:
             await self._discord.close()
+
+        if self._api:
+            await self._api.stop()
 
         if self._db:
             await self._db.shutdown()
