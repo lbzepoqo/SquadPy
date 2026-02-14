@@ -324,18 +324,18 @@ Exit criteria:
 
 Deliverables:
 
-- Migration utility from SquadJS/SquadTS configs.
+- Report-first migration analyzers for SquadJS/SquadTS configs.
 - Compatibility documentation and recipe pack.
 
 Implementation tasks:
 
-- Build `scripts/migrate_from_squadjs.py` and `scripts/migrate_from_squadts.py`.
-- Add config schema translators and validation reports.
+- Build `scripts/migrate_from_squadjs.py` and `scripts/migrate_from_squadts.py` in dry-run/report-first mode.
+- Add mapping inventories with safe/review/unsupported categories plus validation reports.
 - Publish migration playbooks in `docs/`.
 
 Exit criteria:
 
-- Pilot community can migrate with no critical blockers.
+- Pilot community can migrate with no critical blockers using report-guided workflows.
 
 ## Phase 6 (Weeks 21-24): Surpass Features
 

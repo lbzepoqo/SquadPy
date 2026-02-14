@@ -295,12 +295,12 @@ Status legend:
 
 ## 5) Phase 5 - Migration and Compatibility
 
-- [ ] `P0-MIG-001` Build `scripts/migrate_from_squadjs.py` (`@migration`, `P0`)
-  - Acceptance: sample SquadJS config migrates with report output.
-- [ ] `P0-MIG-002` Build `scripts/migrate_from_squadts.py` (`@migration`, `P0`)
-  - Acceptance: sample SquadTS config migrates with report output.
-- [ ] `P0-MIG-003` Build config linter/fixer for migrated TOML (`@migration`, `P0`)
-  - Acceptance: linter emits actionable fixups and severity levels.
+- [ ] `P0-MIG-001` Build report-first `scripts/migrate_from_squadjs.py` analyzer (`@migration`, `P0`)
+  - Acceptance: sample SquadJS config generates migration inventory/report output in default dry-run mode (no writes).
+- [ ] `P0-MIG-002` Build report-first `scripts/migrate_from_squadts.py` analyzer (`@migration`, `P0`)
+  - Acceptance: sample SquadTS config generates migration inventory/report output in default dry-run mode (no writes).
+- [ ] `P0-MIG-003` Build migrated TOML linter/report tool (`@migration`, `P0`)
+  - Acceptance: linter emits actionable fixups, severity levels, and explicit safe/review/unsupported mapping categories.
 - [ ] `P1-MIG-004` Publish migration cookbook (`@migration`, `P1`)
   - Acceptance: docs include end-to-end cutover steps and rollback.
 - [ ] `P1-MIG-005` Build plugin behavior mapping matrix (`@migration`, `P1`)
@@ -368,7 +368,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 - [ ] `GATE-002` Contract suite green in CI for 14 consecutive days.
 - [ ] `GATE-003` Integration suite green in CI for 14 consecutive days.
 - [ ] `GATE-004` Soak test pass for 30 days, no Sev-1 incidents.
-- [ ] `GATE-005` Migration scripts validated on at least 3 real community configs.
+- [ ] `GATE-005` Migration analyzers/scripts validated on at least 3 real community configs.
 - [ ] `GATE-006` Operator sign-off from pilot servers.
 
 ### Beyond release gates
