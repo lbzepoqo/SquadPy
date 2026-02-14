@@ -110,6 +110,7 @@ class TestServerStatus:
         assert fields["Tick Rate"] == "0.0"
         assert fields["Next Map"] == "Not set (voting)"
         assert embed.image.url.startswith("https://quickchart.io/chart")
+        assert "version=4" in embed.image.url
         assert "{" not in embed.image.url
         assert '"' not in embed.image.url
         decoded = urllib.parse.unquote(embed.image.url)

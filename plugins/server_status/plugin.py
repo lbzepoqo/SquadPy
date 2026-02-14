@@ -273,7 +273,7 @@ class ServerStatus(Plugin):
         height = self._positive_int(self.config.get("graph_height", 340), 340)
         return (
             "https://quickchart.io/chart"
-            f"?width={width}&height={height}&devicePixelRatio=2&format=png&c={encoded}"
+            f"?version=4&width={width}&height={height}&devicePixelRatio=2&format=png&c={encoded}"
         )
 
     def _sampled_trend_points(self) -> list[tuple[datetime.datetime, int, float]]:
