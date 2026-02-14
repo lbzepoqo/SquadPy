@@ -172,8 +172,9 @@ Status legend:
 - [x] `P1-PLUG-MOD-008` Implement `plugins/discord_fob_hab_damage` (`@plugins-moderation`, `P1`)
   - Acceptance: deployable damage events are summarized with thresholds.
   - Acceptance note (2026-02-14): Added `plugins/discord_fob_hab_damage/plugin.py` to aggregate `deployable_damaged` events by FOB/HAB deployable classification and emit Discord summaries only when cumulative damage crosses configured thresholds, with optional damage metadata and new-round reset support; added config template `config/plugins/discord_fob_hab_damage.toml.example` and coverage in `tests/test_plugin_discord_fob_hab_damage.py` for threshold crossings, multi-threshold progression, reset behavior, non-FOB/HAB filtering, and handler registration.
-- [ ] `P1-PLUG-MOD-009` Implement `plugins/discord_rcon_console` (`@plugins-moderation`, `P1`)
+- [x] `P1-PLUG-MOD-009` Implement `plugins/discord_rcon_console` (`@plugins-moderation`, `P1`)
   - Acceptance: privileged console command execution is audited and gated.
+  - Acceptance note (2026-02-14): Added `plugins/discord_rcon_console/plugin.py` with gated `/rcon` slash-command execution using role checks and configurable command allow-list policy wired through `RconClient.execute_privileged(...)`, plus optional Discord audit-channel posting for success/rejection/error outcomes and bounded response previews; added config template `config/plugins/discord_rcon_console.toml.example` and coverage in `tests/test_plugin_discord_rcon_console.py` for role gating, policy rejection, success dispatch, error handling, optional audit behavior, and slash-command registration.
 
 ### 2.2 Upgrade existing plugins to parity depth
 
@@ -312,7 +313,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | Discord round events | Yes | Done | `P0-PLUG-MOD-006` |
 | Discord squad created | Yes | Done | `P1-PLUG-MOD-007` |
 | Discord FOB/HAB damage | Yes | Done | `P1-PLUG-MOD-008` |
-| Discord RCON console | Yes | Missing | `P1-PLUG-MOD-009` |
+| Discord RCON console | Yes | Done | `P1-PLUG-MOD-009` |
 | Seeding mode | Yes | Done | `P0-SEED-001` |
 | Auto seed low players | Yes | Done | `P0-SEED-002` |
 | Auto rejoin team | Yes | Done | `P0-SEED-003` |

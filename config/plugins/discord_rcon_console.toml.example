@@ -1,0 +1,33 @@
+enabled = false
+
+[settings]
+# Role required to use /rcon (0 disables role gate)
+admin_role_id = 0
+
+# Optional channel for command audit logs (0 disables audit posting)
+audit_channel_id = 0
+
+# If true, bypass command allow-list checks (still role-gated)
+allow_all_commands = false
+
+# Allowed command heads when allow_all_commands = false
+allowed_command_prefixes = [
+  "ShowCurrentMap",
+  "ShowNextMap",
+  "ListPlayers",
+  "ListSquads",
+  "AdminBroadcast",
+  "AdminWarn",
+  "AdminKick",
+  "AdminBan",
+  "AdminForceTeamChange",
+  "AdminDemoteCommander",
+  "AdminSetFogOfWar",
+  "AdminSetNextLayer",
+]
+
+# Include command response text in ephemeral Discord replies
+include_response = true
+
+# Maximum response text length included in replies
+max_response_chars = 500
