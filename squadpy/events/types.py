@@ -104,6 +104,14 @@ class PlayerSwitchedTeam(BaseEvent):
 
 
 @dataclass
+class NextLayerSet(BaseEvent):
+    event_name: str = "next_layer_set"
+    layer: str = ""
+    source: str = ""
+    source_detail: str = ""
+
+
+@dataclass
 class PlayerRevived(BaseEvent):
     event_name: str = "player_revived"
     reviver: PlayerID = field(default_factory=PlayerID)

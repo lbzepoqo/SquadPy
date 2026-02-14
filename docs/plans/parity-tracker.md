@@ -122,8 +122,9 @@ Status legend:
 - [x] `P1-EVT-008` Add `PlayerSwitchedTeam` event (`@parser`, `P1`)
   - Acceptance: parser and event contracts pass.
   - Acceptance note (2026-02-14): Added `PlayerSwitchedTeam` dataclass in `squadpy/events/types.py`, parser transition emission in `squadpy/log_parser/patterns.py` when a cached player team assignment changes, unit coverage in `tests/test_patterns.py` and `tests/test_log_parser.py`, plus parser contract fixture/test at `tests/contracts/fixtures/parser/player_switched_team_lines.txt` and `tests/contracts/parser/test_player_switched_team_contract.py`.
-- [ ] `P1-EVT-009` Add `NextLayerSet` event (`@parser`, `P1`)
+- [x] `P1-EVT-009` Add `NextLayerSet` event (`@parser`, `P1`)
   - Acceptance: layer mutation is emitted as structured event.
+  - Acceptance note (2026-02-14): Added `NextLayerSet` dataclass in `squadpy/events/types.py`, parser rule/handler in `squadpy/log_parser/patterns.py` for `ADMIN COMMAND: Set next layer to ...` lines with normalized source metadata (`RCON` vs `IN_GAME`), plus unit/integration coverage in `tests/test_patterns.py` and `tests/test_log_parser.py` and parser contract fixture/test at `tests/contracts/fixtures/parser/next_layer_set_lines.txt` + `tests/contracts/parser/test_next_layer_set_contract.py`.
 - [ ] `P1-EVT-010` Add seeding threshold transition events (`@parser`, `P1`)
   - Acceptance: threshold up/down events tested in plugin integration.
 - [ ] `P1-EVT-011` Add admin command event normalization (`@parser`, `P1`)

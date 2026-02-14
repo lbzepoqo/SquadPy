@@ -20,6 +20,7 @@ from squadpy.events.types import (
     Teamkill,
     SquadCreated,
     PlayerSwitchedTeam,
+    NextLayerSet,
     PlayerRevived,
     PlayerPossess,
     PlayerUnpossess,
@@ -120,6 +121,15 @@ def _team_id_for_display_name(team_name: str, store: EventStore) -> int | None:
         if normalized_lookup == normalized_known:
             return team_id
     return None
+
+
+def _normalize_admin_command_source(raw: str) -> str:
+    source = raw.strip()
+    if source.upper() == "RCON":
+        return "RCON"
+    if source.lower().startswith("player "):
+        return "IN_GAME"
+    return source
 
 
 def _find_player_by_name(name: str, store: EventStore) -> PlayerID:
@@ -800,6 +810,22 @@ def _on_admin_broadcast(m: re.Match, chain_id: int, time: str, store: EventStore
     return AdminBroadcast(message=m.group(3), from_player=m.group(4))
 
 
+# NextLayerSet: group 3 = layer selection string, group 4 = command source detail
+_NEXT_LAYER_SET_RE = re.compile(
+    _PREFIX + r"LogSquad: ADMIN COMMAND: Set next layer to (.+) from (.+)"
+)
+
+
+def _on_next_layer_set(m: re.Match, chain_id: int, time: str, store: EventStore) -> NextLayerSet:
+    layer = m.group(3).strip()
+    source_detail = m.group(4).strip()
+    return NextLayerSet(
+        layer=layer,
+        source=_normalize_admin_command_source(source_detail),
+        source_detail=source_detail,
+    )
+
+
 # Admin Warned: group 3 = admin/source actor, group 4 = warned player name,
 # group 5 = warn message, group 6 = command source (for example RCON)
 _PLAYER_WARNED_RE = re.compile(
@@ -886,12 +912,7 @@ def _normalize_ban_admin(raw: str) -> str:
 
 
 def _normalize_ban_source(raw: str) -> str:
-    source = raw.strip()
-    if source.upper() == "RCON":
-        return "RCON"
-    if source.lower().startswith("player "):
-        return "IN_GAME"
-    return source
+    return _normalize_admin_command_source(raw)
 
 
 def _on_player_banned_admin(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerBanned:
@@ -978,6 +999,7 @@ def get_rules() -> list[Rule]:
         Rule(_NEW_GAME_RE, _on_new_game),
         Rule(_SERVER_TICK_RATE_RE, _on_server_tick_rate),
         Rule(_ADMIN_BROADCAST_RE, _on_admin_broadcast),
+        Rule(_NEXT_LAYER_SET_RE, _on_next_layer_set),
         Rule(_PLAYER_WARNED_RE, _on_player_warned),
         Rule(_PLAYER_KICKED_RE, _on_player_kicked),
         Rule(_PLAYER_BAN_REQUEST_RE, _on_player_ban_request),

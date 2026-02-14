@@ -6,6 +6,7 @@ from squadpy.events.types import (
     PlayerConnected, JoinSucceeded, PlayerDisconnected,
     PlayerDamaged, PlayerWounded, PlayerDied, PlayerRevived,
     Teamkill, SquadCreated, PlayerSwitchedTeam,
+    NextLayerSet,
     PlayerPossess, PlayerUnpossess, NewGame, RoundEnded,
     ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked, PlayerBanned,
     AdminCamPossess, AdminCamUnpossess, DeployableDamaged,
@@ -519,6 +520,26 @@ class TestAdminBroadcast:
         assert isinstance(event, AdminBroadcast)
         assert "Custom squad creation" in event.message
         assert event.from_player == "RCON"
+
+
+class TestNextLayerSet:
+    def test_next_layer_set_from_rcon(self):
+        line = "[2026.02.07-10.24.24:119][100]LogSquad: ADMIN COMMAND: Set next layer to BlackCoast_RAAS_v1 AFU+Mechanized TLF+Mechanized from RCON"
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, NextLayerSet)
+        assert event.layer == "BlackCoast_RAAS_v1 AFU+Mechanized TLF+Mechanized"
+        assert event.source == "RCON"
+        assert event.source_detail == "RCON"
+
+    def test_next_layer_set_from_ingame_player(self):
+        line = "[2026.02.06-18.57.01:681][ 48]LogSquad: ADMIN COMMAND: Set next layer to Sumari_Seed_v1 MEI IMF from player 6. [Online IDs= EOS: 0002da64425942219800515623ef26f8 steam: 76561198438981792] Uɴɴ.s.  CornierDuke"
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, NextLayerSet)
+        assert event.layer == "Sumari_Seed_v1 MEI IMF"
+        assert event.source == "IN_GAME"
+        assert event.source_detail.startswith("player 6.")
 
 
 class TestPlayerWarned:

@@ -11,7 +11,7 @@ from squadpy.events.types import (
     PlayerWounded, PlayerDied, PlayerPossess, PlayerUnpossess,
     NewGame, RoundEnded, ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked,
     PlayerBanned, AdminCamPossess, AdminCamUnpossess, Teamkill, SquadCreated,
-    PlayerSwitchedTeam, DeployableDamaged,
+    PlayerSwitchedTeam, NextLayerSet, DeployableDamaged,
 )
 from squadpy.log_parser.parser import LogParser
 from squadpy.log_parser.reader import LogReader
@@ -103,6 +103,16 @@ class TestLogParser:
         assert isinstance(events[1], DeployableDamaged)
         assert events[1].deployable == "BP_I_Sandbag_80"
         assert events[1].direct_hit is False
+
+    async def test_emits_next_layer_set(self):
+        lines = [
+            "[2026.02.07-10.24.24:119][100]LogSquad: ADMIN COMMAND: Set next layer to BlackCoast_RAAS_v1 AFU+Mechanized TLF+Mechanized from RCON",
+        ]
+        events = await self._run_parser(lines)
+        assert len(events) == 1
+        assert isinstance(events[0], NextLayerSet)
+        assert events[0].layer == "BlackCoast_RAAS_v1 AFU+Mechanized TLF+Mechanized"
+        assert events[0].source == "RCON"
 
     async def test_emits_player_warned(self):
         lines = [
@@ -343,7 +353,8 @@ class TestLogParser:
             "player_possess", "player_unpossess", "new_game", "round_ended",
             "server_tick_rate", "admin_broadcast", "player_warned", "player_kicked",
             "player_banned", "admin_cam_possess", "admin_cam_unpossess",
-            "squad_created", "teamkill", "player_switched_team", "deployable_damaged",
+            "squad_created", "teamkill", "player_switched_team",
+            "next_layer_set", "deployable_damaged",
         ]
         for name in event_names:
             bus.subscribe(name, capture)
