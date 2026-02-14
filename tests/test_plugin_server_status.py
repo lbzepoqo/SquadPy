@@ -77,7 +77,6 @@ class TestServerStatus:
         assert embed.image.url.startswith("https://quickchart.io/chart")
         decoded = urllib.parse.unquote(embed.image.url)
         assert "Players" in decoded
-        assert "Tick Rate" in decoded
         assert "Last 60 min" in decoded
 
     async def test_message_deleted_posts_new(self, plugin):

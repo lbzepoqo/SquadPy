@@ -206,7 +206,6 @@ class ServerStatus(Plugin):
         samples = self._sampled_trend_points()
         labels = [stamp.strftime("%H:%M") for stamp, _, _ in samples]
         player_series = [player_count for _, player_count, _ in samples]
-        tick_rate_series = [round(tick_rate, 2) for _, _, tick_rate in samples]
 
         chart_config = {
             "type": "line",
@@ -217,17 +216,10 @@ class ServerStatus(Plugin):
                         "label": "Players",
                         "data": player_series,
                         "borderColor": "#10b981",
+                        "backgroundColor": "rgba(16,185,129,0.18)",
+                        "fill": True,
                         "tension": 0.2,
                         "pointRadius": 1,
-                        "yAxisID": "y_players",
-                    },
-                    {
-                        "label": "Tick Rate",
-                        "data": tick_rate_series,
-                        "borderColor": "#60a5fa",
-                        "tension": 0.2,
-                        "pointRadius": 1,
-                        "yAxisID": "y_tick",
                     },
                 ],
             },
@@ -241,21 +233,18 @@ class ServerStatus(Plugin):
                     },
                 },
                 "scales": {
-                    "y_players": {
+                    "y": {
                         "type": "linear",
                         "position": "left",
                         "beginAtZero": True,
                     },
-                    "y_tick": {
-                        "type": "linear",
-                        "position": "right",
-                        "beginAtZero": True,
-                        "grid": {"drawOnChartArea": False},
-                    },
                 },
             },
         }
-        encoded = quote(json.dumps(chart_config, separators=(",", ":")), safe="")
+        encoded = quote(
+            json.dumps(chart_config, separators=(",", ":")),
+            safe=':,{}[]"',
+        )
         width = self._positive_int(self.config.get("graph_width", 900), 900)
         height = self._positive_int(self.config.get("graph_height", 340), 340)
         return (
