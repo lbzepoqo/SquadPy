@@ -34,3 +34,4 @@ def test_player_banned_contract_fixture_parses_expected_fields() -> None:
     assert event.duration == "1 Day(s)"
     assert event.reason == "Kupal na admin"
     assert event.source == "RCON"
+    assert event.source_detail == "RCON"

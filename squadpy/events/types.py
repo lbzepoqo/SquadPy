@@ -193,6 +193,8 @@ class AdminBroadcast(BaseEvent):
     event_name: str = "admin_broadcast"
     message: str = ""
     from_player: str = ""
+    source: str = ""
+    source_detail: str = ""
 
 
 @dataclass
@@ -202,6 +204,7 @@ class PlayerWarned(BaseEvent):
     player: PlayerID = field(default_factory=PlayerID)
     reason: str = ""
     source: str = ""
+    source_detail: str = ""
 
 
 @dataclass
@@ -211,6 +214,7 @@ class PlayerKicked(BaseEvent):
     player: PlayerID = field(default_factory=PlayerID)
     reason: str = ""
     source: str = ""
+    source_detail: str = ""
 
 
 @dataclass
@@ -221,6 +225,7 @@ class PlayerBanned(BaseEvent):
     duration: str = ""
     reason: str = ""
     source: str = ""
+    source_detail: str = ""
 
 
 @dataclass

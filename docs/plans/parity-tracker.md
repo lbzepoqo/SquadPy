@@ -128,8 +128,9 @@ Status legend:
 - [x] `P1-EVT-010` Add seeding threshold transition events (`@parser`, `P1`)
   - Acceptance: threshold up/down events tested in plugin integration.
   - Acceptance note (2026-02-14): Added `SeedingThresholdUp`/`SeedingThresholdDown` dataclasses in `squadpy/events/types.py`, parser transition detection in `squadpy/log_parser/patterns.py` for `Set SeedTargetPlayerCount` command deltas, and parser state support in `squadpy/log_parser/event_store.py`; integrated `plugins/seeding_mode/plugin.py` handlers for both events with runtime threshold updates and coverage in `tests/test_plugin_seeding_mode.py`, plus parser tests/contracts at `tests/test_patterns.py`, `tests/test_log_parser.py`, and `tests/contracts/parser/test_seeding_threshold_transition_contract.py`.
-- [ ] `P1-EVT-011` Add admin command event normalization (`@parser`, `P1`)
+- [x] `P1-EVT-011` Add admin command event normalization (`@parser`, `P1`)
   - Acceptance: command-origin metadata emitted consistently.
+  - Acceptance note (2026-02-14): Normalized admin-command origin metadata across parser events in `squadpy/log_parser/patterns.py` with consistent `source` (`RCON`/`IN_GAME`) plus raw `source_detail`; extended `AdminBroadcast`, `PlayerWarned`, `PlayerKicked`, and `PlayerBanned` models in `squadpy/events/types.py`; added normalization coverage in `tests/test_patterns.py`, `tests/test_log_parser.py`, parser contracts in `tests/contracts/parser/test_player_warned_contract.py`, `tests/contracts/parser/test_player_kicked_contract.py`, `tests/contracts/parser/test_player_banned_contract.py`, and cross-event normalization contract `tests/contracts/parser/test_admin_command_normalization_contract.py`.
 
 ### 1.3 Runtime reliability contracts
 

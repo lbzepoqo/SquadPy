@@ -1,0 +1,9 @@
+[2026.02.06-11.00.09:436][125]LogSquad: ADMIN COMMAND: Message broadcasted <Server restart in 5 minutes> from RCON
+[2026.02.02-02.40.44:503][466]LogSquad: ADMIN COMMAND: Remote admin has warned player  Rellmi. Message was "Stop." from player 6. [Online IDs= EOS: 0002da64425942219800515623ef26f8 steam: 76561198438981792] CornierDuke
+[2026.02.02-02.40.56:981][517]LogSquad: ADMIN COMMAND: Remote admin has kicked player  Rellmi. Reason was "Spamming in command chat." from player 6. [Online IDs= EOS: 0002da64425942219800515623ef26f8 steam: 76561198438981792] CornierDuke
+[2026.02.06-18.57.01:681][ 48]LogSquad: ADMIN COMMAND: Set next layer to Sumari_Seed_v1 MEI IMF from player 6. [Online IDs= EOS: 0002da64425942219800515623ef26f8 steam: 76561198438981792] Uɴɴ.s.  CornierDuke
+[2026.02.02-02.40.14:835][575]LogSquad: ADMIN COMMAND: Set SeedTargetPlayerCount to 15 from RCON
+[2026.02.02-02.58.59:380][429]LogSquad: ADMIN COMMAND: Set SeedTargetPlayerCount to 20 from player 6. [Online IDs= EOS: 0002da64425942219800515623ef26f8 steam: 76561198438981792] CornierDuke
+[2026.02.14-09.48.09:451][919]LogOnlineGame: Display: Banning player: ObsidianHorse47 ; Reason = Kupal admin
+[2026.02.14-09.48.09:451][919]LogOnlineGame: Display: Kicking player:  ObsidianHorse47 ; Reason = Banned from the server for 0 Day(s). Admin Reason: Kupal admin.
+[2026.02.14-09.48.09:451][919]LogSquad: ADMIN COMMAND:  ObsidianHorse47 [EOSID 00029e5d00e947bbaed1b364814dd427] Banned player 77. [Online IDs= EOS: 00029e5d00e947bbaed1b364814dd427 steam: 76561198061567555]  ObsidianHorse47 for interval -612331984 from player 77. [Online IDs= EOS: 00029e5d00e947bbaed1b364814dd427 steam: 76561198061567555]  ObsidianHorse47

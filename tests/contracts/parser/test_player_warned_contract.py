@@ -26,3 +26,4 @@ def test_player_warned_contract_fixture_parses_expected_fields() -> None:
     assert event.player.name == "Rellmi"
     assert event.reason == "Type !commands to know the server commands."
     assert event.source == "RCON"
+    assert event.source_detail == "RCON"

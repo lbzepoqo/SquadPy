@@ -134,6 +134,11 @@ def _normalize_admin_command_source(raw: str) -> str:
     return source
 
 
+def _admin_command_origin(raw: str) -> tuple[str, str]:
+    source_detail = raw.strip()
+    return _normalize_admin_command_source(source_detail), source_detail
+
+
 def _find_player_by_name(name: str, store: EventStore) -> PlayerID:
     """Best-effort lookup of EOS/Steam identity by in-log player name."""
     fallback_name = _clean_player_name(name) or name.strip()
@@ -809,7 +814,13 @@ _ADMIN_BROADCAST_RE = re.compile(
 
 
 def _on_admin_broadcast(m: re.Match, chain_id: int, time: str, store: EventStore) -> AdminBroadcast:
-    return AdminBroadcast(message=m.group(3), from_player=m.group(4))
+    source, source_detail = _admin_command_origin(m.group(4))
+    return AdminBroadcast(
+        message=m.group(3),
+        from_player=source_detail,
+        source=source,
+        source_detail=source_detail,
+    )
 
 
 # NextLayerSet: group 3 = layer selection string, group 4 = command source detail
@@ -820,10 +831,10 @@ _NEXT_LAYER_SET_RE = re.compile(
 
 def _on_next_layer_set(m: re.Match, chain_id: int, time: str, store: EventStore) -> NextLayerSet:
     layer = m.group(3).strip()
-    source_detail = m.group(4).strip()
+    source, source_detail = _admin_command_origin(m.group(4))
     return NextLayerSet(
         layer=layer,
-        source=_normalize_admin_command_source(source_detail),
+        source=source,
         source_detail=source_detail,
     )
 
@@ -839,8 +850,7 @@ def _on_seed_target_player_count(
     m: re.Match, chain_id: int, time: str, store: EventStore
 ) -> SeedingThresholdUp | SeedingThresholdDown | None:
     new_threshold = int(m.group(3))
-    source_detail = m.group(4).strip()
-    source = _normalize_admin_command_source(source_detail)
+    source, source_detail = _admin_command_origin(m.group(4))
     old_threshold = store.seed_target_player_count
     store.seed_target_player_count = new_threshold
 
@@ -870,11 +880,13 @@ _PLAYER_WARNED_RE = re.compile(
 
 
 def _on_player_warned(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerWarned:
+    source, source_detail = _admin_command_origin(m.group(6))
     return PlayerWarned(
         admin=m.group(3).strip(),
         player=PlayerID(name=m.group(4).strip()),
         reason=m.group(5),
-        source=m.group(6).strip(),
+        source=source,
+        source_detail=source_detail,
     )
 
 
@@ -887,11 +899,13 @@ _PLAYER_KICKED_RE = re.compile(
 
 
 def _on_player_kicked(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerKicked:
+    source, source_detail = _admin_command_origin(m.group(6))
     return PlayerKicked(
         admin=m.group(3).strip(),
         player=PlayerID(name=m.group(4).strip()),
         reason=m.group(5),
-        source=m.group(6).strip(),
+        source=source,
+        source_detail=source_detail,
     )
 
 
@@ -946,16 +960,13 @@ def _normalize_ban_admin(raw: str) -> str:
     return admin
 
 
-def _normalize_ban_source(raw: str) -> str:
-    return _normalize_admin_command_source(raw)
-
-
 def _on_player_banned_admin(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerBanned:
     context = store.pending_bans.pop(chain_id, {})
     duration = str(context.get("duration", "")).strip()
     reason = str(context.get("reason", "")).strip()
     if not duration:
         duration = m.group(8).strip()
+    source, source_detail = _admin_command_origin(m.group(9))
     return PlayerBanned(
         admin=_normalize_ban_admin(m.group(3)),
         player=PlayerID(
@@ -965,7 +976,8 @@ def _on_player_banned_admin(m: re.Match, chain_id: int, time: str, store: EventS
         ),
         duration=duration,
         reason=reason,
-        source=_normalize_ban_source(m.group(9)),
+        source=source,
+        source_detail=source_detail,
     )
 
 
@@ -984,12 +996,14 @@ _PLAYER_BANNED_LEGACY_RE = re.compile(
 def _on_player_banned_legacy(
     m: re.Match, chain_id: int, time: str, store: EventStore
 ) -> PlayerBanned:
+    source, source_detail = _admin_command_origin(m.group(7))
     return PlayerBanned(
         admin=m.group(3).strip(),
         player=PlayerID(name=m.group(4).strip()),
         duration=(m.group(5) or "").strip(),
         reason=m.group(6),
-        source=m.group(7).strip(),
+        source=source,
+        source_detail=source_detail,
     )
 
 

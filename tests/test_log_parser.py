@@ -102,6 +102,8 @@ class TestLogParser:
         assert len(events) == 2
         assert isinstance(events[0], AdminBroadcast)
         assert isinstance(events[1], DeployableDamaged)
+        assert events[0].source == "RCON"
+        assert events[0].source_detail == "RCON"
         assert events[1].deployable == "BP_I_Sandbag_80"
         assert events[1].direct_hit is False
 
@@ -142,6 +144,7 @@ class TestLogParser:
         assert events[0].admin == "Remote admin"
         assert events[0].player.name == "Rellmi"
         assert events[0].source == "RCON"
+        assert events[0].source_detail == "RCON"
 
     async def test_emits_player_kicked(self):
         lines = [
@@ -153,6 +156,7 @@ class TestLogParser:
         assert events[0].admin == "Remote admin"
         assert events[0].player.name == "Rellmi"
         assert events[0].source == "RCON"
+        assert events[0].source_detail == "RCON"
 
     async def test_emits_player_banned(self):
         lines = [
@@ -168,6 +172,7 @@ class TestLogParser:
         assert events[0].duration == "1 Day(s)"
         assert events[0].reason == "Kupal na admin"
         assert events[0].source == "RCON"
+        assert events[0].source_detail == "RCON"
 
     async def test_emits_admin_cam_possess(self):
         lines = [

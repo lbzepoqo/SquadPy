@@ -521,6 +521,8 @@ class TestAdminBroadcast:
         assert isinstance(event, AdminBroadcast)
         assert "Custom squad creation" in event.message
         assert event.from_player == "RCON"
+        assert event.source == "RCON"
+        assert event.source_detail == "RCON"
 
 
 class TestNextLayerSet:
@@ -582,6 +584,15 @@ class TestPlayerWarned:
         assert event.player.name == "Rellmi"
         assert event.reason == "Type !commands to know the server commands."
         assert event.source == "RCON"
+        assert event.source_detail == "RCON"
+
+    def test_warned_source_normalization_for_ingame(self):
+        line = '[2026.02.02-02.40.44:503][466]LogSquad: ADMIN COMMAND: Remote admin has warned player  Rellmi. Message was "Stop." from player 6. [Online IDs= EOS: 0002da64425942219800515623ef26f8 steam: 76561198438981792] CornierDuke'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerWarned)
+        assert event.source == "IN_GAME"
+        assert event.source_detail.startswith("player 6.")
 
 
 class TestPlayerKicked:
@@ -594,6 +605,15 @@ class TestPlayerKicked:
         assert event.player.name == "Rellmi"
         assert event.reason == "Spamming in command chat."
         assert event.source == "RCON"
+        assert event.source_detail == "RCON"
+
+    def test_kicked_source_normalization_for_ingame(self):
+        line = '[2026.02.02-02.40.56:981][517]LogSquad: ADMIN COMMAND: Remote admin has kicked player  Rellmi. Reason was "Spamming in command chat." from player 6. [Online IDs= EOS: 0002da64425942219800515623ef26f8 steam: 76561198438981792] CornierDuke'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerKicked)
+        assert event.source == "IN_GAME"
+        assert event.source_detail.startswith("player 6.")
 
 
 class TestPlayerBanned:
@@ -619,6 +639,7 @@ class TestPlayerBanned:
         assert event.duration == "0 Day(s)"
         assert event.reason == "Kupal admin"
         assert event.source == "IN_GAME"
+        assert event.source_detail.startswith("player 77.")
 
     def test_banned_from_rcon_with_correlated_reason(self):
         store = EventStore()
@@ -640,6 +661,7 @@ class TestPlayerBanned:
         assert event.duration == "1 Day(s)"
         assert event.reason == "Kupal na admin"
         assert event.source == "RCON"
+        assert event.source_detail == "RCON"
 
 
 class TestDeployableDamaged:
