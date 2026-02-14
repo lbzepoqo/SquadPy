@@ -30,3 +30,8 @@ password = "your_rcon_password"
 # rbac_enabled = false
 # rbac_default_role = "admin"
 # rbac_role_permissions = { admin = ["*"], moderator = ["control.health", "control.status"], observer = ["control.health"] }
+# webhook_signing_enabled = false
+# webhook_signing_secret = "replace_with_webhook_hmac_secret"
+# webhook_signature_header = "X-SquadPy-Signature"
+# webhook_timestamp_header = "X-SquadPy-Timestamp"
+# webhook_max_age_seconds = 300

@@ -168,6 +168,11 @@ class TestApiConfig:
         assert config.rbac_enabled is False
         assert config.rbac_default_role == "admin"
         assert config.rbac_role_permissions == {}
+        assert config.webhook_signing_enabled is False
+        assert config.webhook_signing_secret == ""
+        assert config.webhook_signature_header == "X-SquadPy-Signature"
+        assert config.webhook_timestamp_header == "X-SquadPy-Timestamp"
+        assert config.webhook_max_age_seconds == 300
 
     def test_enabled_requires_auth_token(self):
         with pytest.raises(Exception):
@@ -188,6 +193,20 @@ class TestApiConfig:
     def test_invalid_role_permissions_value_raises(self):
         with pytest.raises(Exception):
             ApiConfig.model_validate({"rbac_role_permissions": {"admin": "not-a-list"}})
+
+    def test_webhook_signing_enabled_requires_secret(self):
+        with pytest.raises(Exception):
+            ApiConfig(webhook_signing_enabled=True, webhook_signing_secret="")
+
+    def test_webhook_headers_must_not_be_empty(self):
+        with pytest.raises(Exception):
+            ApiConfig(webhook_signature_header=" ")
+        with pytest.raises(Exception):
+            ApiConfig(webhook_timestamp_header=" ")
+
+    def test_webhook_max_age_must_be_positive(self):
+        with pytest.raises(Exception):
+            ApiConfig(webhook_max_age_seconds=0)
 
 
 class TestServerConfigWithApi:
@@ -210,6 +229,11 @@ class TestServerConfigWithApi:
                     "moderator": ["control.health", "control.status"],
                     "admin": ["*"],
                 },
+                "webhook_signing_enabled": True,
+                "webhook_signing_secret": "webhook-secret",
+                "webhook_signature_header": "X-Hub-Signature-256",
+                "webhook_timestamp_header": "X-Hub-Timestamp",
+                "webhook_max_age_seconds": 120,
             },
         })
         assert config.api.enabled is True
@@ -218,3 +242,8 @@ class TestServerConfigWithApi:
         assert config.api.rbac_enabled is True
         assert config.api.rbac_default_role == "moderator"
         assert config.api.rbac_role_permissions["admin"] == ["*"]
+        assert config.api.webhook_signing_enabled is True
+        assert config.api.webhook_signing_secret == "webhook-secret"
+        assert config.api.webhook_signature_header == "X-Hub-Signature-256"
+        assert config.api.webhook_timestamp_header == "X-Hub-Timestamp"
+        assert config.api.webhook_max_age_seconds == 120

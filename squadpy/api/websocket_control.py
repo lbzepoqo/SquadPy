@@ -1,7 +1,10 @@
 """Authenticated websocket control service."""
 
+import hashlib
+import hmac
 import json
 import logging
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -44,6 +47,11 @@ class WebsocketControlService:
         rbac_enabled: bool = False,
         rbac_default_role: str = "admin",
         rbac_role_permissions: dict[str, list[str]] | None = None,
+        webhook_signing_enabled: bool = False,
+        webhook_signing_secret: str = "",
+        webhook_signature_header: str = "X-SquadPy-Signature",
+        webhook_timestamp_header: str = "X-SquadPy-Timestamp",
+        webhook_max_age_seconds: int = 300,
         server: Any = None,
         rcon: Any = None,
     ):
@@ -54,6 +62,11 @@ class WebsocketControlService:
         self._rbac_enabled = bool(rbac_enabled)
         self._rbac_default_role = self._normalize_role(rbac_default_role) or "admin"
         self._rbac_role_permissions = self._build_rbac_permissions(rbac_role_permissions)
+        self._webhook_signing_enabled = bool(webhook_signing_enabled)
+        self._webhook_signing_secret = str(webhook_signing_secret)
+        self._webhook_signature_header = str(webhook_signature_header)
+        self._webhook_timestamp_header = str(webhook_timestamp_header)
+        self._webhook_max_age_seconds = max(1, int(webhook_max_age_seconds))
         self._server = server
         self._rcon = rcon
         self._runner: web.AppRunner | None = None
@@ -264,6 +277,53 @@ class WebsocketControlService:
             role=role,
         )
 
+    async def process_webhook_command(
+        self,
+        payload: dict[str, Any],
+        *,
+        raw_body: str,
+        signature: str,
+        timestamp: str,
+        actor: str = "",
+        role: str = "",
+    ) -> dict[str, Any]:
+        request_id = str(payload.get("request_id", "")).strip()
+        if not self._webhook_signing_enabled:
+            return ControlResponse(
+                ok=False,
+                error="Webhook signing policy is disabled",
+                code="unavailable",
+                request_id=request_id,
+            ).as_dict()
+
+        valid, detail = self._validate_webhook_signature(
+            raw_body=raw_body,
+            signature=signature,
+            timestamp=timestamp,
+        )
+        if not valid:
+            self._audit(
+                actor=actor or "webhook_client",
+                origin="webhook",
+                target="webhook.command",
+                outcome="rejected",
+                detail=detail or "invalid_signature",
+            )
+            return ControlResponse(
+                ok=False,
+                error="Invalid signature",
+                code="invalid_signature",
+                request_id=request_id,
+            ).as_dict()
+
+        return await self.process_command(
+            payload,
+            token=self._token,
+            origin="webhook",
+            actor=actor or "webhook_client",
+            role=role,
+        )
+
     async def _handle_ws(self, request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
@@ -356,6 +416,41 @@ class WebsocketControlService:
         )
         return web.json_response(response, status=self._http_status(response))
 
+    async def _handle_webhook_command(self, request: web.Request) -> web.Response:
+        raw_body = await request.text()
+        try:
+            payload = json.loads(raw_body)
+        except json.JSONDecodeError:
+            response = ControlResponse(
+                ok=False,
+                error="Malformed JSON",
+                code="invalid_json",
+            ).as_dict()
+            return web.json_response(response, status=self._http_status(response))
+
+        if not isinstance(payload, dict):
+            response = ControlResponse(
+                ok=False,
+                error="Payload must be an object",
+                code="invalid_json",
+            ).as_dict()
+            return web.json_response(response, status=self._http_status(response))
+
+        signature = str(request.headers.get(self._webhook_signature_header, "")).strip()
+        timestamp = str(request.headers.get(self._webhook_timestamp_header, "")).strip()
+        actor = str(payload.get("actor", "")).strip() or "webhook_client"
+        role = str(payload.get("role", "")).strip() or self._request_role(request)
+
+        response = await self.process_webhook_command(
+            payload,
+            raw_body=raw_body,
+            signature=signature,
+            timestamp=timestamp,
+            actor=actor,
+            role=role,
+        )
+        return web.json_response(response, status=self._http_status(response))
+
     def _request_token(self, request: web.Request) -> str:
         header = request.headers.get("Authorization", "")
         if header.startswith("Bearer "):
@@ -394,6 +489,7 @@ class WebsocketControlService:
         app.router.add_get("/api/health", self._handle_health)
         app.router.add_get("/api/status", self._handle_status)
         app.router.add_post("/api/command", self._handle_command)
+        app.router.add_post("/api/webhook/command", self._handle_webhook_command)
         return app
 
     def _http_status(self, response: dict[str, Any]) -> int:
@@ -401,6 +497,8 @@ class WebsocketControlService:
             return 200
         code = str(response.get("code", ""))
         if code == "unauthorized":
+            return 401
+        if code == "invalid_signature":
             return 401
         if code == "forbidden":
             return 403
@@ -481,6 +579,48 @@ class WebsocketControlService:
     @staticmethod
     def _normalize_role(role: str) -> str:
         return str(role).strip().lower()
+
+    def _validate_webhook_signature(
+        self,
+        *,
+        raw_body: str,
+        signature: str,
+        timestamp: str,
+    ) -> tuple[bool, str]:
+        if not signature:
+            return False, "missing signature"
+        if not timestamp:
+            return False, "missing timestamp"
+        if not self._webhook_signing_secret:
+            return False, "missing signing secret"
+
+        try:
+            timestamp_value = int(timestamp)
+        except (TypeError, ValueError):
+            return False, "invalid timestamp"
+
+        now = self._epoch_seconds()
+        age = abs(now - timestamp_value)
+        if age > self._webhook_max_age_seconds:
+            return False, "stale timestamp"
+
+        payload = f"{timestamp}.{raw_body}".encode("utf-8")
+        expected = hmac.new(
+            self._webhook_signing_secret.encode("utf-8"),
+            payload,
+            hashlib.sha256,
+        ).hexdigest()
+        provided = signature.strip()
+        if provided.lower().startswith("sha256="):
+            provided = provided[7:].strip()
+
+        if not hmac.compare_digest(expected, provided):
+            return False, "invalid signature"
+        return True, ""
+
+    @staticmethod
+    def _epoch_seconds() -> int:
+        return int(time.time())
 
     def recent_audit_records(self) -> list[dict[str, Any]]:
         return list(self._audit_records)

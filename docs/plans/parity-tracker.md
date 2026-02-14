@@ -274,8 +274,9 @@ Status legend:
 - [x] `P1-API-004` Add role-based access control model (`@api-security`, `P1`)
   - Acceptance: RBAC integration tests pass for allowed/denied actions.
   - Acceptance note (2026-02-14): Extended `squadpy/api/websocket_control.py` with configurable RBAC policy (`rbac_enabled`, default role, per-role permissions, wildcard support) across websocket and REST control flows, including forbidden responses and privileged-action audit entries for role-denied attempts; wired RBAC config through `squadpy/config.py`, `config/server.toml.example`, and `squadpy/server.py`, and added targeted coverage in `tests/test_api_websocket_control.py`, `tests/test_api_rest_control.py`, `tests/test_api_audit.py`, `tests/test_server_api.py`, plus contract coverage in `tests/contracts/api_security/test_rbac_contract.py`.
-- [ ] `P1-API-005` Add signed webhook policy support (`@api-security`, `P1`)
+- [x] `P1-API-005` Add signed webhook policy support (`@api-security`, `P1`)
   - Acceptance: valid signatures accepted, invalid rejected.
+  - Acceptance note (2026-02-14): Added signed webhook command policy in `squadpy/api/websocket_control.py` with HMAC-SHA256 verification over `{timestamp}.{raw_body}`, configurable signature/timestamp headers and max-age window, and dedicated `/api/webhook/command` handling that rejects invalid/stale signatures before dispatch; wired webhook signing config through `squadpy/config.py`, `config/server.toml.example`, and `squadpy/server.py`, and added targeted coverage in `tests/test_api_webhook_signature.py`, `tests/test_api_audit.py`, `tests/test_config.py`, `tests/test_server_api.py` plus contract coverage in `tests/contracts/api_security/test_webhook_signature_contract.py`.
 
 ### 4.3 Connector parity
 

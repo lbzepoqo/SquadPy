@@ -60,6 +60,11 @@ class TestServerApiIntegration:
                 "moderator": ["control.health", "control.status"],
                 "admin": ["*"],
             },
+            webhook_signing_enabled=False,
+            webhook_signing_secret="",
+            webhook_signature_header="X-SquadPy-Signature",
+            webhook_timestamp_header="X-SquadPy-Timestamp",
+            webhook_max_age_seconds=300,
             server=server,
         )
         service.start.assert_awaited_once()

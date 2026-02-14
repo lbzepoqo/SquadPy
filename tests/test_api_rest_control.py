@@ -99,3 +99,4 @@ class TestRestControlEndpoints:
         assert "/api/health" in paths
         assert "/api/status" in paths
         assert "/api/command" in paths
+        assert "/api/webhook/command" in paths

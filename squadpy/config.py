@@ -90,6 +90,11 @@ class ApiConfig(BaseModel):
     rbac_enabled: bool = False
     rbac_default_role: str = "admin"
     rbac_role_permissions: dict[str, list[str]] = Field(default_factory=dict)
+    webhook_signing_enabled: bool = False
+    webhook_signing_secret: str = ""
+    webhook_signature_header: str = "X-SquadPy-Signature"
+    webhook_timestamp_header: str = "X-SquadPy-Timestamp"
+    webhook_max_age_seconds: int = 300
 
     @field_validator("port")
     @classmethod
@@ -109,6 +114,14 @@ class ApiConfig(BaseModel):
     def validate_enabled_fields(self) -> "ApiConfig":
         if self.enabled and not self.auth_token:
             raise ValueError("API auth_token is required when enabled")
+        if self.webhook_signing_enabled and not self.webhook_signing_secret:
+            raise ValueError("API webhook_signing_secret is required when webhook_signing_enabled is true")
+        if not self.webhook_signature_header.strip():
+            raise ValueError("API webhook_signature_header must not be empty")
+        if not self.webhook_timestamp_header.strip():
+            raise ValueError("API webhook_timestamp_header must not be empty")
+        if self.webhook_max_age_seconds <= 0:
+            raise ValueError("API webhook_max_age_seconds must be greater than 0")
         if not self.rbac_default_role.strip():
             raise ValueError("API rbac_default_role must not be empty")
         for role, permissions in self.rbac_role_permissions.items():

@@ -166,6 +166,11 @@ class SquadPyServer:
                 rbac_enabled=self._server_config.api.rbac_enabled,
                 rbac_default_role=self._server_config.api.rbac_default_role,
                 rbac_role_permissions=self._server_config.api.rbac_role_permissions,
+                webhook_signing_enabled=self._server_config.api.webhook_signing_enabled,
+                webhook_signing_secret=self._server_config.api.webhook_signing_secret,
+                webhook_signature_header=self._server_config.api.webhook_signature_header,
+                webhook_timestamp_header=self._server_config.api.webhook_timestamp_header,
+                webhook_max_age_seconds=self._server_config.api.webhook_max_age_seconds,
                 server=self,
             )
             await self._api.start()
