@@ -1,0 +1,11 @@
+enabled = false
+
+[settings]
+# Discord channel ID where round lifecycle messages are posted
+channel_id = 0
+
+# Include previous round winner context in round-start posts when present
+include_previous_winner = true
+
+# Include loser metadata in round-end posts
+include_loser = true

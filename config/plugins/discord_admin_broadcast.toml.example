@@ -1,0 +1,8 @@
+enabled = false
+
+[settings]
+# Role required to use /broadcast (0 disables role gate)
+admin_role_id = 0
+
+# Optional channel for broadcast audit logs (0 disables audit posting)
+audit_channel_id = 0

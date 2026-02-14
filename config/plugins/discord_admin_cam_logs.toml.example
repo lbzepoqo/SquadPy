@@ -1,0 +1,8 @@
+enabled = false
+
+[settings]
+# Discord channel ID for admin cam lifecycle logs
+channel_id = 0
+
+# Include parsed parser context key/value payload
+include_context = true

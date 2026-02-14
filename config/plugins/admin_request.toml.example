@@ -4,3 +4,18 @@ enabled = true
 channel_id = 0
 ping_role_id = 0
 command_prefix = "!admin"
+
+# Message sent to player when their request is opened
+submitted_warning_message = "Your admin request has been submitted"
+
+# Admin message content in thread that closes a ticket
+close_command = "!close"
+
+# How admin replies are relayed to players via in-game warn
+relay_format = "[Admin] {author}: {content}"
+
+# Ticket timeout in minutes (<=0 disables auto-timeout)
+ticket_timeout_minutes = 60
+
+# Message sent to player when ticket times out
+timeout_warning_message = "Your admin request timed out. Please submit a new one if you still need help."

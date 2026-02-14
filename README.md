@@ -94,6 +94,11 @@ Plugins subscribe to events and call back into services (RCON, Discord, Database
 | **ServerStatus** | rcon, discord | Live-updating Discord embed with server info |
 | **AdminRequest** | rcon, discord | `!admin` chat command creates Discord tickets with threads |
 | **DiscordChatBridge** | rcon, discord | Two-way game chat <-> Discord channel bridge |
+| **DiscordAdminBroadcast** | rcon, discord | Privileged `/broadcast` command to send server announcements |
+| **DiscordAdminCamLogs** | discord | Posts admin camera possess/unpossess lifecycle events to Discord |
+| **DiscordKillfeed** | discord | Posts structured player kill feed messages to Discord |
+| **DiscordTeamkill** | discord | Posts structured teamkill feed messages to Discord |
+| **DiscordRoundEvents** | discord | Posts round start/end summaries to Discord |
 | **PluginManager** | discord | `/status`, `/plugins`, `/reload` slash commands |
 
 Enable plugins by copying their example config:

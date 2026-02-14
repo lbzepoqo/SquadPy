@@ -32,8 +32,8 @@ Status legend:
 ## Current Sprint Focus (2026-02-14)
 
 - Active in-progress IDs: none.
-- Rationale: complete admin/moderation lifecycle event foundations before plugin parity work.
-- Next queued IDs: `P0-EVT-006`, `P0-RT-001`, `P0-RT-002`.
+- Rationale: completed first wave of Discord moderation parity plugins that directly reuse recent parser event additions.
+- Next queued IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`.
 
 ## 0) Phase 0 - Program Setup and Acceptance Harness
 
@@ -140,16 +140,21 @@ Status legend:
 
 - [ ] `P0-PLUG-MOD-001` Implement `plugins/chat_commands` (`@plugins-moderation`, `P0`)
   - Acceptance: role-based command permissions and cooldown tests pass.
-- [ ] `P0-PLUG-MOD-002` Implement `plugins/discord_admin_broadcast` (`@plugins-moderation`, `P0`)
+- [x] `P0-PLUG-MOD-002` Implement `plugins/discord_admin_broadcast` (`@plugins-moderation`, `P0`)
   - Acceptance: Discord-triggered broadcast reaches server and logs action.
-- [ ] `P0-PLUG-MOD-003` Implement `plugins/discord_admin_cam_logs` (`@plugins-moderation`, `P0`)
+  - Acceptance note (2026-02-14): Added `plugins/discord_admin_broadcast/plugin.py` with privileged `/broadcast` slash command, optional role gating, and optional audit-channel logging; added example config at `config/plugins/discord_admin_broadcast.toml.example` and coverage in `tests/test_plugin_discord_admin_broadcast.py`.
+- [x] `P0-PLUG-MOD-003` Implement `plugins/discord_admin_cam_logs` (`@plugins-moderation`, `P0`)
   - Acceptance: admin cam possess/unpossess events post to Discord.
-- [ ] `P0-PLUG-MOD-004` Implement `plugins/discord_killfeed` (`@plugins-moderation`, `P0`)
+  - Acceptance note (2026-02-14): Added `plugins/discord_admin_cam_logs/plugin.py` handling `admin_cam_possess`/`admin_cam_unpossess` events with configurable context inclusion; added example config at `config/plugins/discord_admin_cam_logs.toml.example` and coverage in `tests/test_plugin_discord_admin_cam_logs.py`.
+- [x] `P0-PLUG-MOD-004` Implement `plugins/discord_killfeed` (`@plugins-moderation`, `P0`)
   - Acceptance: kill events produce correct formatted feed entries.
-- [ ] `P0-PLUG-MOD-005` Implement `plugins/discord_teamkill` (`@plugins-moderation`, `P0`)
+  - Acceptance note (2026-02-14): Added `plugins/discord_killfeed/plugin.py` for `player_died` event relays with configurable weapon metadata, example config at `config/plugins/discord_killfeed.toml.example`, and tests in `tests/test_plugin_discord_killfeed.py`.
+- [x] `P0-PLUG-MOD-005` Implement `plugins/discord_teamkill` (`@plugins-moderation`, `P0`)
   - Acceptance: teamkill-only feed messages with attacker/victim details.
-- [ ] `P0-PLUG-MOD-006` Implement `plugins/discord_round_events` (`@plugins-moderation`, `P0`)
+  - Acceptance note (2026-02-14): Added `plugins/discord_teamkill/plugin.py` to post structured teamkill events with configurable weapon metadata, example config at `config/plugins/discord_teamkill.toml.example`, and tests in `tests/test_plugin_discord_teamkill.py`.
+- [x] `P0-PLUG-MOD-006` Implement `plugins/discord_round_events` (`@plugins-moderation`, `P0`)
   - Acceptance: round start/end/winner payloads are posted reliably.
+  - Acceptance note (2026-02-14): Added `plugins/discord_round_events/plugin.py` for `new_game` and `round_ended` lifecycle notifications with configurable winner/loser payload verbosity, example config at `config/plugins/discord_round_events.toml.example`, and tests in `tests/test_plugin_discord_round_events.py`.
 - [ ] `P1-PLUG-MOD-007` Implement `plugins/discord_squad_created` (`@plugins-moderation`, `P1`)
   - Acceptance: squad creation alerts include team and creator metadata.
 - [ ] `P1-PLUG-MOD-008` Implement `plugins/discord_fob_hab_damage` (`@plugins-moderation`, `P1`)
@@ -161,8 +166,9 @@ Status legend:
 
 - [ ] `P0-PLUG-UPG-001` Upgrade `tk_warn` config flexibility and edge cases (`@plugins-moderation`, `P0`)
   - Acceptance: parity behavior matrix tests pass.
-- [ ] `P0-PLUG-UPG-002` Upgrade `admin_request` ticket lifecycle depth (`@plugins-moderation`, `P0`)
+- [x] `P0-PLUG-UPG-002` Upgrade `admin_request` ticket lifecycle depth (`@plugins-moderation`, `P0`)
   - Acceptance: claim, relay, close, and timeout behaviors are tested.
+  - Acceptance note (2026-02-14): Expanded `plugins/admin_request/plugin.py` with ticket close button handling, thread `!close` command flow, periodic timeout expiry (`ticket_timeout_minutes`), and configurable relay/timeout messaging; updated config template at `config/plugins/admin_request.toml.example` and added lifecycle tests in `tests/test_plugin_admin_request.py` for claim, relay, close, and timeout behavior.
 - [ ] `P1-PLUG-UPG-003` Upgrade `server_status` to richer parity fields (`@plugins-moderation`, `P1`)
   - Acceptance: map/layer/factions/tick/player/squad values validated.
 
@@ -270,15 +276,15 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 |---|---|---|---|
 | Auto kick unassigned | Yes | Done | Existing |
 | TK warn | Yes | Partial | `P0-PLUG-UPG-001` |
-| Admin request workflow | Yes | Partial | `P0-PLUG-UPG-002` |
+| Admin request workflow | Yes | Done | `P0-PLUG-UPG-002` |
 | Discord chat bridge | Yes | Done | Existing |
 | Server status embed | Yes | Partial | `P1-PLUG-UPG-003` |
 | Chat commands | Yes | Missing | `P0-PLUG-MOD-001` |
-| Discord admin broadcast | Yes | Missing | `P0-PLUG-MOD-002` |
-| Discord admin cam logs | Yes | Missing | `P0-PLUG-MOD-003` |
-| Discord killfeed | Yes | Missing | `P0-PLUG-MOD-004` |
-| Discord teamkill feed | Yes | Missing | `P0-PLUG-MOD-005` |
-| Discord round events | Yes | Missing | `P0-PLUG-MOD-006` |
+| Discord admin broadcast | Yes | Done | `P0-PLUG-MOD-002` |
+| Discord admin cam logs | Yes | Done | `P0-PLUG-MOD-003` |
+| Discord killfeed | Yes | Done | `P0-PLUG-MOD-004` |
+| Discord teamkill feed | Yes | Done | `P0-PLUG-MOD-005` |
+| Discord round events | Yes | Done | `P0-PLUG-MOD-006` |
 | Discord squad created | Yes | Missing | `P1-PLUG-MOD-007` |
 | Discord FOB/HAB damage | Yes | Missing | `P1-PLUG-MOD-008` |
 | Discord RCON console | Yes | Missing | `P1-PLUG-MOD-009` |
