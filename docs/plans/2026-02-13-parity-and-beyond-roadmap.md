@@ -163,6 +163,19 @@ Parity connectors to add:
 - Limited runtime observability (metrics/tracing/health endpoint).
 - No dedicated multi-server orchestration model.
 
+## 4.6 Layer Catalog and Metadata Parity
+
+Current SquadPy gaps:
+
+- No first-class layer metadata catalog service.
+- Plugins that need layer/faction/vehicle intelligence currently require ad-hoc token lists or plugin-local parsing/fetching.
+
+Required parity additions:
+
+- First-class layer catalog service that can ingest SquadLayerList `layers.json`.
+- Normalized query API for layers, factions, and vehicle classes (including helicopter identifiers).
+- Shared usage across plugins (starting with `heli_crash_broadcast`) to avoid duplicate fetch/parser logic.
+
 ## 5) Execution Strategy
 
 Use a two-track program:
@@ -256,6 +269,37 @@ Implementation tasks:
 Exit criteria:
 
 - Server owners can replace common seeding/team-control setups fully with SquadPy.
+
+### Layer Catalog Subsystem Delivery (Phase 1/2/3)
+
+This subsystem is intentionally cross-cutting. It starts with seeding/plugin needs, then hardens into a platform service.
+
+Layer Phase 1 (implement now):
+
+- Deliverables:
+  - Add `squadpy/layers/` core module with normalized catalog model and query helpers.
+  - Add remote provider support for SquadLayerList `layers.json` with safe timeout/fallback behavior.
+  - Integrate `plugins/heli_crash_broadcast` to use catalog-derived helicopter metadata instead of plugin-local layer intelligence.
+- Exit criteria:
+  - Heli crash detection works from shared catalog metadata with deterministic fallback behavior and targeted tests.
+
+Layer Phase 2 (hardening):
+
+- Deliverables:
+  - Scheduled catalog sync with conditional HTTP fetch (ETag/Last-Modified), retry backoff, and jitter.
+  - Stale-data health signaling and operator-visible diagnostics.
+  - Persisted last-known-good catalog snapshot for startup resiliency.
+- Exit criteria:
+  - Service continues operating with known-good metadata during remote source outages and exposes stale-state health signals.
+
+Layer Phase 3 (platform exposure):
+
+- Deliverables:
+  - Shared query surfaces for other plugins and authenticated control APIs.
+  - Catalog-backed inputs for map rotation/voting and analytics pipelines.
+  - Operational documentation for source overrides and refresh policy.
+- Exit criteria:
+  - Layer metadata becomes a reusable SquadPy platform capability, not a single-plugin implementation detail.
 
 ## Phase 4 (Weeks 15-18): Data, APIs, and Integrations
 
