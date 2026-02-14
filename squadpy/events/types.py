@@ -86,6 +86,16 @@ class Teamkill(BaseEvent):
 
 
 @dataclass
+class SquadCreated(BaseEvent):
+    event_name: str = "squad_created"
+    team_id: int = 0
+    team_name: str = ""
+    squad_id: int = 0
+    squad_name: str = ""
+    creator: PlayerID = field(default_factory=PlayerID)
+
+
+@dataclass
 class PlayerRevived(BaseEvent):
     event_name: str = "player_revived"
     reviver: PlayerID = field(default_factory=PlayerID)

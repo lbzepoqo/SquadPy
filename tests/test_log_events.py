@@ -9,6 +9,7 @@ from squadpy.events.types import (
     PlayerWounded,
     PlayerDied,
     Teamkill,
+    SquadCreated,
     PlayerRevived,
     PlayerPossess,
     PlayerUnpossess,
@@ -205,3 +206,28 @@ class TestTeamkill:
         assert e.attacker.name == "Blackburn"
         assert e.victim.name == "PamanPanda"
         assert e.weapon == "BP_M134_Loach_Dual_C"
+
+
+class TestSquadCreated:
+    def test_event_name(self):
+        e = SquadCreated()
+        assert e.event_name == "squad_created"
+
+    def test_fields(self):
+        creator = PlayerID(
+            eos_id="00029e5d00e947bbaed1b364814dd427",
+            steam_id="76561198061567555",
+            name="ObsidianHorse47",
+        )
+        e = SquadCreated(
+            team_id=1,
+            team_name="United States Army",
+            squad_id=1,
+            squad_name="Squad 1",
+            creator=creator,
+        )
+        assert e.team_id == 1
+        assert e.team_name == "United States Army"
+        assert e.squad_id == 1
+        assert e.squad_name == "Squad 1"
+        assert e.creator.name == "ObsidianHorse47"

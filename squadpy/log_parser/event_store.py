@@ -10,6 +10,7 @@ class EventStore:
     - session: damage/wound correlation by player name
     - players: player info by EOS ID
     - player_teams_by_name: team assignment by in-log player name
+    - team_ids_by_name: team assignment by faction/team display name
     - join_requests: pending joins by chain ID (consumed by JoinSucceeded)
     - disconnected: recently disconnected EOS IDs
     - pending_events: secondary events queued by match handlers
@@ -23,6 +24,7 @@ class EventStore:
         self.session: dict[str, Any] = {}
         self.players: dict[str, Any] = {}
         self.player_teams_by_name: dict[str, int] = {}
+        self.team_ids_by_name: dict[str, int] = {}
         self.join_requests: dict[int, Any] = {}
         self.disconnected: dict[str, bool] = {}
         self.pending_events: list[Any] = []
@@ -37,6 +39,7 @@ class EventStore:
         self.session.clear()
         self.players.clear()
         self.player_teams_by_name.clear()
+        self.team_ids_by_name.clear()
         self.join_requests.clear()
         self.disconnected.clear()
         self.pending_events.clear()

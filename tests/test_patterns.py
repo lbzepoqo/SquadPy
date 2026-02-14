@@ -5,7 +5,7 @@ from squadpy.log_parser.patterns import match_line
 from squadpy.events.types import (
     PlayerConnected, JoinSucceeded, PlayerDisconnected,
     PlayerDamaged, PlayerWounded, PlayerDied, PlayerRevived,
-    Teamkill,
+    Teamkill, SquadCreated,
     PlayerPossess, PlayerUnpossess, NewGame, RoundEnded,
     ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked, PlayerBanned,
     AdminCamPossess, AdminCamUnpossess, DeployableDamaged,
@@ -62,6 +62,41 @@ class TestJoinSucceeded:
         line = '[2026.02.06-15.02.15:974][712]LogNet: Join succeeded: U\u0274\u0274. Gunrunner'
         match_line(line, store)
         assert 712 not in store.join_requests
+
+
+class TestSquadCreated:
+    def test_parses_squad_created_line(self):
+        line = "[2026.02.14-13.20.47:203][418]LogSquad: ObsidianHorse47 (Online IDs: EOS: 00029e5d00e947bbaed1b364814dd427) has created Squad 1 (Squad Name: ASDASDASD) on United States Army"
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, SquadCreated)
+        assert event.squad_id == 1
+        assert event.squad_name == "ASDASDASD"
+        assert event.team_name == "United States Army"
+        assert event.team_id == 0
+        assert event.creator.eos_id == "00029e5d00e947bbaed1b364814dd427"
+        assert event.creator.name == "ObsidianHorse47"
+
+    def test_resolves_team_id_from_cached_creator_team(self):
+        line = "[2026.02.14-13.20.47:203][418]LogSquad: ObsidianHorse47 (Online IDs: EOS: 00029e5d00e947bbaed1b364814dd427) has created Squad 1 (Squad Name: Squad 1) on United States Army"
+        store = EventStore()
+        store.players["00029e5d00e947bbaed1b364814dd427"] = {
+            "name": "ObsidianHorse47",
+            "steam_id": "76561198061567555",
+            "team_id": 1,
+        }
+        event = match_line(line, store)
+        assert isinstance(event, SquadCreated)
+        assert event.team_id == 1
+        assert store.player_teams_by_name["ObsidianHorse47"] == 1
+
+    def test_resolves_team_id_from_rcon_team_name_cache(self):
+        line = "[2026.02.14-13.20.47:203][418]LogSquad: ObsidianHorse47 (Online IDs: EOS: 00029e5d00e947bbaed1b364814dd427) has created Squad 1 (Squad Name: Squad 1) on United States Army"
+        store = EventStore()
+        store.team_ids_by_name["United States Army"] = 1
+        event = match_line(line, store)
+        assert isinstance(event, SquadCreated)
+        assert event.team_id == 1
 
 
 class TestPlayerDisconnected:

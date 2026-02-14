@@ -18,6 +18,7 @@ from squadpy.events.types import (
     PlayerWounded,
     PlayerDied,
     Teamkill,
+    SquadCreated,
     PlayerRevived,
     PlayerPossess,
     PlayerUnpossess,
@@ -99,6 +100,23 @@ def _team_for_name(name: str, store: EventStore) -> int | None:
 
     for known_name, team_id in store.player_teams_by_name.items():
         if _names_match(name_raw, known_name):
+            return team_id
+    return None
+
+
+def _team_id_for_display_name(team_name: str, store: EventStore) -> int | None:
+    """Resolve team ID from cached ListSquads team display names."""
+    lookup = team_name.strip()
+    if not lookup:
+        return None
+
+    if lookup in store.team_ids_by_name:
+        return store.team_ids_by_name[lookup]
+
+    normalized_lookup = re.sub(r"\s+", " ", lookup).strip().casefold()
+    for known_name, team_id in store.team_ids_by_name.items():
+        normalized_known = re.sub(r"\s+", " ", known_name).strip().casefold()
+        if normalized_lookup == normalized_known:
             return team_id
     return None
 
@@ -283,6 +301,54 @@ def _on_player_added_to_team(
         if record_name and _names_match(player_name, record_name):
             record["team_id"] = team_id
     return None
+
+
+# Squad creation:
+# group 3 = creator name, group 4 = creator online IDs, group 5 = squad id,
+# group 6 = squad name, group 7 = team display name
+_SQUAD_CREATED_RE = re.compile(
+    _PREFIX
+    + r"LogSquad:\s+(.+?)\s+\(Online IDs:\s*([^)]+)\)\s+has created Squad\s+([0-9]+)\s+\(Squad Name:\s*(.+?)\)\s+on\s+(.+)$"
+)
+
+
+def _on_squad_created(
+    m: re.Match, chain_id: int, time: str, store: EventStore
+) -> SquadCreated:
+    creator_name = m.group(3).strip()
+    creator_ids = parse_online_ids(m.group(4))
+    squad_id = int(m.group(5))
+    squad_name = m.group(6).strip()
+    team_name = m.group(7).strip()
+
+    creator = PlayerID(
+        eos_id=creator_ids["eos_id"],
+        steam_id=creator_ids["steam_id"],
+        name=creator_name,
+    )
+    _remember_player(creator, store)
+
+    team_id = _team_id_for_display_name(team_name, store)
+    if team_id is None and creator.eos_id:
+        raw_team_id = store.players.get(creator.eos_id, {}).get("team_id")
+        if isinstance(raw_team_id, int):
+            team_id = raw_team_id
+
+    if team_id is not None and creator_name:
+        store.player_teams_by_name[creator_name] = team_id
+        cleaned = _clean_player_name(creator_name)
+        if cleaned:
+            store.player_teams_by_name[cleaned] = team_id
+        if creator.eos_id:
+            store.players.setdefault(creator.eos_id, {})["team_id"] = team_id
+
+    return SquadCreated(
+        team_id=team_id or 0,
+        team_name=team_name,
+        squad_id=squad_id,
+        squad_name=squad_name,
+        creator=creator,
+    )
 
 
 # PlayerDisconnected (UChannel::Close): group 3 = IP, group 4 = controller,
@@ -884,6 +950,7 @@ def get_rules() -> list[Rule]:
         Rule(_PLAYER_CONNECTED_RE, _on_player_connected),
         Rule(_JOIN_SUCCEEDED_RE, _on_join_succeeded),
         Rule(_PLAYER_ADDED_TO_TEAM_RE, _on_player_added_to_team),
+        Rule(_SQUAD_CREATED_RE, _on_squad_created),
         Rule(_PLAYER_DISCONNECTED_RE, _on_player_disconnected),
         Rule(_PLAYER_DAMAGED_RE, _on_player_damaged),
         Rule(_PLAYER_WOUNDED_RE, _on_player_wounded),

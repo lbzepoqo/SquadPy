@@ -79,21 +79,12 @@ The following event names and field contracts map to `squadpy/events/types.py`.
 | `player_warned` | `admin`, `player`, `reason`, `source` | `player` is `PlayerID` |
 | `player_kicked` | `admin`, `player`, `reason`, `source` | `player` is `PlayerID` |
 | `player_banned` | `admin`, `player`, `duration`, `reason`, `source` | `player` is `PlayerID` |
+| `squad_created` | `team_id`, `team_name`, `squad_id`, `squad_name`, `creator` | `creator` is `PlayerID`; `team_id=0` when unresolved |
 | `teamkill` | `attacker`, `victim`, `weapon` | both `attacker` and `victim` are `PlayerID` |
 | `admin_cam_possess` | `admin`, `target`, `context` | `admin` is `PlayerID`; `context` includes pawn/full path |
 | `admin_cam_unpossess` | `admin`, `target`, `context` | `admin` is `PlayerID`; `context` includes open/close pairing |
 | `deployable_damaged` | `deployable`, `damage`, `damage_source`, `damage_type`, `direct_hit` | |
 | `chat_message` | `player_name`, `steam_id`, `eos_id`, `channel`, `message` | |
-
-## Parity P0 Event Extensions (Planned)
-
-These contracts are reserved for upcoming parity items and should be implemented with matching event names unless a tracker update changes them.
-
-| Tracker ID | Planned Event Name | Minimum Fields |
-|---|---|---|
-| `P0-EVT-006` | `squad_created` | `team_id`, `squad_id`, `squad_name`, `creator` |
-
-If field names must differ during implementation, update this document and tracker acceptance notes in the same change.
 
 ## Contract Test Expectations
 

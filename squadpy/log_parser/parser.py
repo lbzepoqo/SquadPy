@@ -57,13 +57,13 @@ class LogParser:
             await self.reader.stop()
 
     async def _poll_player_cache(self) -> None:
-        """Keep player identity/team cache warm from RCON ListPlayers."""
+        """Keep parser caches warm from RCON ListPlayers/ListSquads."""
         while True:
             await asyncio.sleep(self._player_cache_poll_seconds)
             await self._refresh_player_cache_once()
 
     async def _refresh_player_cache_once(self) -> None:
-        """Fetch ListPlayers once and merge into parser event-store state."""
+        """Fetch ListPlayers/ListSquads once and merge into parser state."""
         if self._rcon is None:
             return
 
@@ -80,3 +80,17 @@ class LogParser:
                 record["name"] = player.name
                 record["team_id"] = player.team_id
             self.event_store.player_teams_by_name[player.name] = player.team_id
+
+        if not hasattr(self._rcon, "list_squads"):
+            return
+
+        try:
+            squads = await self._rcon.list_squads()
+        except Exception:
+            logger.exception("Failed to refresh squad cache from RCON ListSquads")
+            return
+
+        for squad in squads:
+            team_name = squad.team_name.strip()
+            if team_name:
+                self.event_store.team_ids_by_name[team_name] = squad.team_id

@@ -10,11 +10,11 @@ from squadpy.events.types import (
     BaseEvent, PlayerConnected, JoinSucceeded, PlayerDamaged,
     PlayerWounded, PlayerDied, PlayerPossess, PlayerUnpossess,
     NewGame, RoundEnded, ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked,
-    PlayerBanned, AdminCamPossess, AdminCamUnpossess, Teamkill, DeployableDamaged,
+    PlayerBanned, AdminCamPossess, AdminCamUnpossess, Teamkill, SquadCreated, DeployableDamaged,
 )
 from squadpy.log_parser.parser import LogParser
 from squadpy.log_parser.reader import LogReader
-from squadpy.rcon.types import RconPlayer
+from squadpy.rcon.types import RconPlayer, RconSquad
 
 
 class MockLogReader(LogReader):
@@ -169,6 +169,45 @@ class TestLogParser:
         assert events[2].context["open_chain_id"] == 529
         assert events[2].context["close_chain_id"] == 912
 
+    async def test_emits_squad_created_with_team_id_from_rcon(self):
+        lines = [
+            "[2026.02.14-13.20.47:203][418]LogSquad: ObsidianHorse47 (Online IDs: EOS: 00029e5d00e947bbaed1b364814dd427) has created Squad 1 (Squad Name: ASDASDASD) on United States Army",
+        ]
+        players = [
+            RconPlayer(
+                id=1,
+                steam_id="76561198061567555",
+                eos_id="00029e5d00e947bbaed1b364814dd427",
+                name="ObsidianHorse47",
+                team_id=1,
+                squad_id=0,
+                is_leader=False,
+                role="Rifleman",
+            ),
+        ]
+        squads = [
+            RconSquad(
+                id=1,
+                name="ASDASDASD",
+                size=1,
+                locked=False,
+                creator_name="ObsidianHorse47",
+                creator_steam_id="76561198061567555",
+                creator_eos_id="00029e5d00e947bbaed1b364814dd427",
+                team_id=1,
+                team_name="United States Army",
+            )
+        ]
+        events = await self._run_parser(lines, rcon_players=players, rcon_squads=squads)
+        assert len(events) == 1
+        assert isinstance(events[0], SquadCreated)
+        assert events[0].team_id == 1
+        assert events[0].team_name == "United States Army"
+        assert events[0].squad_id == 1
+        assert events[0].squad_name == "ASDASDASD"
+        assert events[0].creator.eos_id == "00029e5d00e947bbaed1b364814dd427"
+        assert events[0].creator.name == "ObsidianHorse47"
+
     async def test_emits_teamkill(self):
         lines = [
             "[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 2",
@@ -275,6 +314,7 @@ class TestLogParser:
         self,
         lines: list[str],
         rcon_players: list[RconPlayer] | None = None,
+        rcon_squads: list[RconSquad] | None = None,
     ) -> list[BaseEvent]:
         """Helper: run parser with mock reader and capture all emitted events."""
         collected: list[BaseEvent] = []
@@ -290,7 +330,7 @@ class TestLogParser:
             "player_possess", "player_unpossess", "new_game", "round_ended",
             "server_tick_rate", "admin_broadcast", "player_warned", "player_kicked",
             "player_banned", "admin_cam_possess", "admin_cam_unpossess",
-            "teamkill", "deployable_damaged",
+            "squad_created", "teamkill", "deployable_damaged",
         ]
         for name in event_names:
             bus.subscribe(name, capture)
@@ -300,6 +340,7 @@ class TestLogParser:
         if rcon_players is not None:
             mock_rcon = AsyncMock()
             mock_rcon.list_players.return_value = rcon_players
+            mock_rcon.list_squads.return_value = rcon_squads or []
 
         parser = LogParser(
             reader=reader,

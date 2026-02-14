@@ -108,8 +108,9 @@ Status legend:
 - [x] `P0-EVT-005` Add `AdminCamUnpossess` event (`@parser`, `P0`)
   - Acceptance: parser contract verifies open/close pairing data.
   - Acceptance note (2026-02-14): Added `AdminCamUnpossess` dataclass in `squadpy/events/types.py`, parser correlation in `squadpy/log_parser/patterns.py` for bare `OnUnPossess` admin-cam exit lines paired against prior admin-cam possess sessions, and contract fixture/test at `tests/contracts/fixtures/parser/admin_cam_unpossess_lines.txt` + `tests/contracts/parser/test_admin_cam_unpossess_contract.py`.
-- [ ] `P0-EVT-006` Add `SquadCreated` event (`@parser`, `P0`)
+- [x] `P0-EVT-006` Add `SquadCreated` event (`@parser`, `P0`)
   - Acceptance: squad id/name/creator fields parsed reliably.
+  - Acceptance note (2026-02-14): Added `SquadCreated` dataclass in `squadpy/events/types.py`, parser rule/handler in `squadpy/log_parser/patterns.py` for `LogSquad ... has created Squad ...` lines, team-id resolution from RCON `ListPlayers` cache with `ListSquads` team-name cache fallback, and contract fixture/test at `tests/contracts/fixtures/parser/squad_created_line.txt` + `tests/contracts/parser/test_squad_created_contract.py`.
 - [x] `P0-EVT-007` Add explicit `Teamkill` event (`@parser`, `P0`)
   - Acceptance: teamkill detection path has dedicated contracts.
   - Acceptance note (2026-02-14): Added `Teamkill` dataclass in `squadpy/events/types.py`, parser correlation in `squadpy/log_parser/patterns.py` from native combat logs with RCON `ListPlayers` cache preference and team-assignment log fallback, plus `Die()` fallback detection for teamkills that skip `Wound()` while deduping normal `Wound() -> Die()` chains; contract fixture/test remains `tests/contracts/fixtures/parser/teamkill_lines.txt` + `tests/contracts/parser/test_teamkill_contract.py`.
