@@ -40,6 +40,9 @@
 
 ## Agent-Focused Workflow
 - Treat this file as the default instruction layer for coding agents.
+- Scrutinize requirements, acceptance criteria, and likely edge cases before implementing changes.
+- If scope or intent is unclear, ask clarifying questions first instead of guessing.
+- If a requirement or task does not make sense, be explicit and honest about the concern, then request clarification before proceeding.
 - Before editing, read relevant `README.md` sections, target modules, and matching tests.
 - Reuse existing repo patterns before introducing new abstractions.
 - Keep diffs minimal and report changed files plus validation commands in handoff notes.
