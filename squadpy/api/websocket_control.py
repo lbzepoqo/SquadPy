@@ -3,6 +3,7 @@
 import json
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 
 from aiohttp import WSMsgType, web
@@ -51,6 +52,8 @@ class WebsocketControlService:
         self._rcon = rcon
         self._runner: web.AppRunner | None = None
         self._site: web.TCPSite | None = None
+        self._audit_records: list[dict[str, Any]] = []
+        self._max_audit_records = 1000
 
     @property
     def host(self) -> str:
@@ -84,9 +87,18 @@ class WebsocketControlService:
         payload: dict[str, Any],
         *,
         token: str | None,
+        origin: str = "websocket",
+        actor: str = "",
     ) -> dict[str, Any]:
         request_id = str(payload.get("request_id", "")).strip()
         if not self._is_authorized(token):
+            self._audit(
+                actor=actor or "unknown",
+                origin=origin,
+                target=str(payload.get("action", "unknown")),
+                outcome="rejected",
+                detail="unauthorized",
+            )
             return ControlResponse(
                 ok=False,
                 error="Unauthorized",
@@ -98,6 +110,13 @@ class WebsocketControlService:
         if action == "rcon.execute":
             command = str(payload.get("command", "")).strip()
             if not command:
+                self._audit(
+                    actor=actor or "unknown",
+                    origin=origin,
+                    target="rcon.execute",
+                    outcome="rejected",
+                    detail="missing command",
+                )
                 return ControlResponse(
                     ok=False,
                     error="Missing command",
@@ -107,6 +126,13 @@ class WebsocketControlService:
 
             rcon = self._resolve_rcon()
             if rcon is None:
+                self._audit(
+                    actor=actor or "unknown",
+                    origin=origin,
+                    target="rcon.execute",
+                    outcome="error",
+                    detail="rcon unavailable",
+                )
                 return ControlResponse(
                     ok=False,
                     error="RCON unavailable",
@@ -115,12 +141,25 @@ class WebsocketControlService:
                 ).as_dict()
 
             response = await rcon.execute(command)
+            self._audit(
+                actor=actor or "unknown",
+                origin=origin,
+                target=command,
+                outcome="success",
+            )
             return ControlResponse(
                 ok=True,
                 result={"response": response},
                 request_id=request_id,
             ).as_dict()
 
+        self._audit(
+            actor=actor or "unknown",
+            origin=origin,
+            target=action or "unknown",
+            outcome="rejected",
+            detail="unknown action",
+        )
         return ControlResponse(
             ok=False,
             error=f"Unknown action: {action}",
@@ -165,6 +204,8 @@ class WebsocketControlService:
         payload: dict[str, Any],
         *,
         token: str | None,
+        origin: str = "rest",
+        actor: str = "",
     ) -> dict[str, Any]:
         request_id = str(payload.get("request_id", "")).strip()
         command = str(payload.get("command", "")).strip()
@@ -175,6 +216,8 @@ class WebsocketControlService:
                 "command": command,
             },
             token=token,
+            origin=origin,
+            actor=actor,
         )
 
     async def _handle_ws(self, request: web.Request) -> web.WebSocketResponse:
@@ -202,7 +245,16 @@ class WebsocketControlService:
                         ).as_dict()
                     else:
                         request_token = str(payload.get("token", "")).strip() or session_token
-                        response = await self.process_payload(payload, token=request_token)
+                        if "actor" in payload:
+                            actor = str(payload.get("actor", "")).strip()
+                        else:
+                            actor = str(payload.get("request_id", "")).strip()
+                        response = await self.process_payload(
+                            payload,
+                            token=request_token,
+                            origin="websocket",
+                            actor=actor or "websocket_client",
+                        )
 
                 await ws.send_json(response)
                 continue
@@ -244,7 +296,13 @@ class WebsocketControlService:
             return web.json_response(response, status=self._http_status(response))
 
         request_token = str(payload.get("token", "")).strip() or token
-        response = await self.process_command(payload, token=request_token)
+        actor = str(payload.get("actor", "")).strip() or "rest_client"
+        response = await self.process_command(
+            payload,
+            token=request_token,
+            origin="rest",
+            actor=actor,
+        )
         return web.json_response(response, status=self._http_status(response))
 
     def _request_token(self, request: web.Request) -> str:
@@ -288,3 +346,38 @@ class WebsocketControlService:
         if code == "unavailable":
             return 503
         return 500
+
+    def recent_audit_records(self) -> list[dict[str, Any]]:
+        return list(self._audit_records)
+
+    def _audit(
+        self,
+        *,
+        actor: str,
+        origin: str,
+        target: str,
+        outcome: str,
+        detail: str = "",
+    ) -> None:
+        record = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "actor": actor,
+            "origin": origin,
+            "target": target,
+            "outcome": outcome,
+        }
+        if detail:
+            record["detail"] = detail
+
+        self._audit_records.append(record)
+        if len(self._audit_records) > self._max_audit_records:
+            self._audit_records = self._audit_records[-self._max_audit_records :]
+
+        logger.info(
+            "control audit actor=%s origin=%s target=%s outcome=%s detail=%s",
+            actor,
+            origin,
+            target,
+            outcome,
+            detail,
+        )
