@@ -1,1 +1,1 @@
-AdminDemoteCommander "{player_id}"
+AdminDemoteCommander {player_id}

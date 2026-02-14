@@ -16,6 +16,7 @@ It is the source of truth for:
 
 Implementation source: `squadpy/rcon/client.py`
 Fixture source: `tests/contracts/fixtures/rcon/manifest.toml`
+Command catalog source: `tests/contracts/fixtures/rcon/commands/commands_with_details.txt`
 
 ## Versioning
 
@@ -58,8 +59,8 @@ Request fixture may be:
 | `broadcast(message)` | `broadcast` | `AdminBroadcast {message}` | passthrough `str` |
 | `warn(player_id, message)` | `warn` | `AdminWarn "{player_id}" {message}` | passthrough `str` |
 | `kick(player_id, reason)` | `kick` | `AdminKick "{player_id}" {reason}` | passthrough `str` |
-| `ban(player_id, duration, reason)` | `ban` | `AdminBan "{player_id}" {duration} {reason}` | passthrough `str` |
-| `switch_team(player_id)` | `switch_team` | `AdminSwitchTeam "{player_id}"` | passthrough `str` |
+| `ban(player_id, duration, reason)` | `ban` | `AdminBan "{player_id}" "{duration}" {reason}` | passthrough `str` |
+| `switch_team(player_id)` | `switch_team` | `AdminForceTeamChange {player_id}` | passthrough `str` |
 | `show_current_map()` | `show_current_map` | `ShowCurrentMap` | parse to `MapInfo \| None` |
 | `show_next_map()` | `show_next_map` | `ShowNextMap` | parse to `MapInfo \| None`; returns `None` when response contains `not defined` |
 
@@ -69,11 +70,11 @@ These command IDs already exist in fixtures and are reserved for upcoming helper
 
 | Tracker ID | Contract ID | Planned Helper |
 |---|---|---|
-| `P0-RCON-003` | `force_team_change` | force team change helper |
+| `P0-RCON-003` | `force_team_change` | force team change helper (by-id path uses `AdminForceTeamChangeById`) |
 | `P0-RCON-004` | `set_fog_of_war` | `set_fog_of_war(mode)` |
 | `P0-RCON-005` | `set_next_layer` | `set_next_layer(layer)` |
 | `P1-RCON-006` | `demote_commander` | `demote_commander(player_id)` |
-| `P1-RCON-007` | `set_team` | `set_team(player_id, team)` |
+| `P1-RCON-007` | `set_team` | `set_team(player_id, team)` via composition (no direct `AdminSetTeam` command in `ListCommands`) |
 | `P1-RCON-008` | `end_match` | `end_match()` |
 
 ## Contract Test Expectations
@@ -83,6 +84,7 @@ Command contract tests under `tests/contracts/` should validate:
 - exact request command generation for representative inputs
 - correct response handling path (passthrough or parsed result)
 - error-path behavior where explicitly defined by fixture response (for example invalid ID cases)
+- fixture command names are present in the command catalog (`ListCommands 1` output)
 
 Minimum acceptance for each new helper:
 
@@ -93,7 +95,7 @@ Minimum acceptance for each new helper:
 ## Example Contract Assertion
 
 ```python
-expected = 'AdminBan "76561198000000000" 24h Cheating'
+expected = 'AdminBan "76561198000000000" "24h" Cheating'
 client.execute.assert_awaited_once_with(expected)
 ```
 

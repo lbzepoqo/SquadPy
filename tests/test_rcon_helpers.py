@@ -249,14 +249,14 @@ class TestRconClientConvenience:
         client.execute.return_value = ""
         await client.ban("76561198000000000", "24h", "Cheating")
         client.execute.assert_awaited_once_with(
-            'AdminBan "76561198000000000" 24h Cheating'
+            'AdminBan "76561198000000000" "24h" Cheating'
         )
 
     async def test_switch_team_quotes_player_id(self, client):
         client.execute.return_value = ""
         await client.switch_team("76561198000000000")
         client.execute.assert_awaited_once_with(
-            'AdminSwitchTeam "76561198000000000"'
+            "AdminForceTeamChange 76561198000000000"
         )
 
     async def test_show_current_map_calls_execute(self, client):

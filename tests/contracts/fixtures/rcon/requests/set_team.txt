@@ -1,1 +1,1 @@
-AdminSetTeam "{player_id}" {team}
+AdminForceTeamChangeById {player_id}

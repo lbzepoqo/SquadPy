@@ -82,7 +82,7 @@ helper = "force_team_change"
 priority = "p0"
 request_fixture = "tests/contracts/fixtures/rcon/requests/force_team_change.txt"
 response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_failure_invalid_id.txt"
-notes = "Parity helper command fixture for forced team change invalid-id path."
+notes = "Parity helper command fixture for forced team change by-id invalid-id path."
 
 [[commands]]
 id = "set_fog_of_war"
@@ -114,7 +114,7 @@ helper = "set_team"
 priority = "p1"
 request_fixture = "tests/contracts/fixtures/rcon/requests/set_team.txt"
 response_fixture = "tests/contracts/fixtures/rcon/responses/admin_ack_ok.txt"
-notes = "Optional parity-depth helper for explicit team assignment."
+notes = "Optional parity-depth helper composed from force-team-change command paths."
 
 [[commands]]
 id = "end_match"

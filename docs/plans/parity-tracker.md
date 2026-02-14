@@ -62,9 +62,11 @@ Status legend:
 - [x] `P0-RCON-001` Add `ban(player_id, duration, reason)` helper (`@core-runtime`, `P0`)
   - Acceptance: contract test verifies exact command string and response handling.
   - Acceptance note (2026-02-14): Added `RconClient.ban(...)` in `squadpy/rcon/client.py`, unit helper coverage in `tests/test_rcon_helpers.py`, and contract test `tests/contracts/core_runtime/test_rcon_ban_contract.py` validating exact command template + response passthrough.
+  - Verification note (2026-02-14): Updated command template to match `ListCommands` details fixture (`AdminBan "<NameOrEOSId>" "<BanLength>" <BanReason>`).
 - [x] `P0-RCON-002` Add `switch_team(player_id)` helper (`@core-runtime`, `P0`)
   - Acceptance: helper present and covered by command contract test.
   - Acceptance note (2026-02-14): Added `RconClient.switch_team(...)` in `squadpy/rcon/client.py`, unit helper test in `tests/test_rcon_helpers.py`, and contract test `tests/contracts/core_runtime/test_rcon_switch_team_contract.py` for exact command-template and response passthrough validation.
+  - Verification note (2026-02-14): Corrected command to `AdminForceTeamChange <NameOrSteamId>` per `tests/contracts/fixtures/rcon/commands/commands_with_details.txt`.
 - [ ] `P0-RCON-003` Add force team change helper (`@core-runtime`, `P0`)
   - Acceptance: command is exposed and tested with valid/invalid ids.
 - [ ] `P0-RCON-004` Add `set_fog_of_war(mode)` helper (`@core-runtime`, `P0`)

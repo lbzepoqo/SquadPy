@@ -1,1 +1,1 @@
-AdminBan "{player_id}" {duration} {reason}
+AdminBan "{player_id}" "{duration}" {reason}

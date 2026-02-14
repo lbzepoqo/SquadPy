@@ -1,1 +1,1 @@
-AdminSwitchTeam "{player_id}"
+AdminForceTeamChange {player_id}
