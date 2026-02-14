@@ -8,8 +8,10 @@ class TestEventStore:
         store = EventStore()
         assert store.session == {}
         assert store.players == {}
+        assert store.player_teams_by_name == {}
         assert store.join_requests == {}
         assert store.disconnected == {}
+        assert store.pending_events == []
         assert store.round_winner is None
         assert store.round_loser is None
 
@@ -17,17 +19,32 @@ class TestEventStore:
         store = EventStore()
         store.session["test"] = {"data": 1}
         store.players["eos123"] = {"name": "Player"}
+        store.player_teams_by_name["Player"] = 1
         store.join_requests[42] = {"ip": "1.2.3.4"}
         store.disconnected["eos123"] = True
+        store.pending_events.append(object())
         store.round_winner = {"team": "1"}
         store.round_loser = {"team": "2"}
         store.clear()
         assert store.session == {}
         assert store.players == {}
+        assert store.player_teams_by_name == {}
         assert store.join_requests == {}
         assert store.disconnected == {}
+        assert store.pending_events == []
         assert store.round_winner is None
         assert store.round_loser is None
+
+    def test_drain_pending_events(self):
+        store = EventStore()
+        one = object()
+        two = object()
+        store.pending_events.extend([one, two])
+
+        drained = store.drain_pending_events()
+
+        assert drained == [one, two]
+        assert store.pending_events == []
 
     def test_session_stores_damage_correlation(self):
         store = EventStore()

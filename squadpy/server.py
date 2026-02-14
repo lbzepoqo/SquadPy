@@ -108,7 +108,11 @@ class SquadPyServer:
                 )
             else:
                 raise ValueError(f"Unsupported log mode: {self._server_config.log.mode}")
-            self._log_parser = LogParser(reader=reader, event_bus=self._event_bus)
+            self._log_parser = LogParser(
+                reader=reader,
+                event_bus=self._event_bus,
+                rcon_client=self._rcon,
+            )
             self._log_parser_task = asyncio.create_task(self._log_parser.run())
             return True, f"tailing ({self._server_config.log.mode})"
         except Exception as e:

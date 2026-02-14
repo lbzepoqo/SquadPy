@@ -8,6 +8,7 @@ from squadpy.events.types import (
     PlayerDamaged,
     PlayerWounded,
     PlayerDied,
+    Teamkill,
     PlayerRevived,
     PlayerPossess,
     PlayerUnpossess,
@@ -178,3 +179,29 @@ class TestAdminCamUnpossess:
         assert e.target == "Admin Camera"
         assert e.context["open_chain_id"] == 529
         assert e.context["close_chain_id"] == 912
+
+
+class TestTeamkill:
+    def test_event_name(self):
+        e = Teamkill()
+        assert e.event_name == "teamkill"
+
+    def test_fields(self):
+        attacker = PlayerID(
+            eos_id="00024bce20aa414282702cf909896053",
+            steam_id="76561198191272778",
+            name="Blackburn",
+        )
+        victim = PlayerID(
+            eos_id="000202cd1a3a4c739203a874221393d0",
+            steam_id="76561198161847878",
+            name="PamanPanda",
+        )
+        e = Teamkill(
+            attacker=attacker,
+            victim=victim,
+            weapon="BP_M134_Loach_Dual_C",
+        )
+        assert e.attacker.name == "Blackburn"
+        assert e.victim.name == "PamanPanda"
+        assert e.weapon == "BP_M134_Loach_Dual_C"

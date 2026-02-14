@@ -1,6 +1,7 @@
 """Integration tests for the LogParser — feeds lines, verifies events."""
 
 import asyncio
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -9,10 +10,11 @@ from squadpy.events.types import (
     BaseEvent, PlayerConnected, JoinSucceeded, PlayerDamaged,
     PlayerWounded, PlayerDied, PlayerPossess, PlayerUnpossess,
     NewGame, RoundEnded, ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked,
-    PlayerBanned, AdminCamPossess, AdminCamUnpossess, DeployableDamaged,
+    PlayerBanned, AdminCamPossess, AdminCamUnpossess, Teamkill, DeployableDamaged,
 )
 from squadpy.log_parser.parser import LogParser
 from squadpy.log_parser.reader import LogReader
+from squadpy.rcon.types import RconPlayer
 
 
 class MockLogReader(LogReader):
@@ -167,6 +169,54 @@ class TestLogParser:
         assert events[2].context["open_chain_id"] == 529
         assert events[2].context["close_chain_id"] == 912
 
+    async def test_emits_teamkill(self):
+        lines = [
+            "[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 2",
+            "[2026.02.14-01.09.56:371][244]LogSquad: Player  Blackburn has been added to Team 2",
+            "[2026.02.14-00.52.27:960][412]LogSquadTrace: [DedicatedServer]OnPossess(): PC=PamanPanda (Online IDs: EOS: 000202cd1a3a4c739203a874221393d0 steam: 76561198161847878) Pawn=BP_Soldier_VDV_SquadLeader_Desert_C_2147407760 FullPath=BP_Soldier_VDV_SquadLeader_Desert_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldier_VDV_SquadLeader_Desert_C_2147407760",
+            "[2026.02.14-01.11.39:377][810]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Blackburn (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778) Pawn=BP_Soldiers_WPMC_SL_05_C_2147379502 FullPath=BP_Soldiers_WPMC_SL_05_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldiers_WPMC_SL_05_C_2147379502",
+            "[2026.02.14-01.16.31:277][417]LogSquadTrace: [DedicatedServer]Wound(): Player:[INAF]  PamanPanda KillingDamage=150.000000 from BP_PlayerController_SATSeed_C_2147382416 (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778 | Controller ID: BP_PlayerController_SATSeed_C_2147382416) caused by BP_M134_Loach_Dual_C_2147377585",
+        ]
+        events = await self._run_parser(lines)
+        teamkills = [event for event in events if isinstance(event, Teamkill)]
+        assert len(teamkills) == 1
+        teamkill = teamkills[0]
+        assert teamkill.attacker.name == "Blackburn"
+        assert teamkill.victim.name == "PamanPanda"
+        assert teamkill.weapon == "BP_M134_Loach_Dual_C"
+
+    async def test_emits_teamkill_from_rcon_player_cache(self):
+        lines = [
+            "[2026.02.14-01.16.31:277][417]LogSquadTrace: [DedicatedServer]Wound(): Player:[INAF]  PamanPanda KillingDamage=150.000000 from BP_PlayerController_SATSeed_C_2147382416 (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778 | Controller ID: BP_PlayerController_SATSeed_C_2147382416) caused by BP_M134_Loach_Dual_C_2147377585",
+        ]
+        players = [
+            RconPlayer(
+                id=1,
+                steam_id="76561198191272778",
+                eos_id="00024bce20aa414282702cf909896053",
+                name="Blackburn",
+                team_id=2,
+                squad_id=1,
+                is_leader=False,
+                role="Rifleman",
+            ),
+            RconPlayer(
+                id=2,
+                steam_id="76561198161847878",
+                eos_id="000202cd1a3a4c739203a874221393d0",
+                name="PamanPanda",
+                team_id=2,
+                squad_id=1,
+                is_leader=False,
+                role="Rifleman",
+            ),
+        ]
+        events = await self._run_parser(lines, rcon_players=players)
+        teamkills = [event for event in events if isinstance(event, Teamkill)]
+        assert len(teamkills) == 1
+        assert teamkills[0].attacker.name == "Blackburn"
+        assert teamkills[0].victim.name == "PamanPanda"
+
     async def test_round_ended_uses_cached_winner_and_loser(self):
         lines = [
             '[2026.02.06-20.45.07:818][740]LogSquadGameEvents: Display: Team 1, Irregular Battle Group ( Middle Eastern Insurgents ) has won the match with 2 Tickets on layer Sumari Bala Seed v1 (level Sumari Bala)!',
@@ -192,7 +242,11 @@ class TestLogParser:
         assert events[0].winner is not None
         assert events[0].winner["winner"] == "Manticore Security Task Force"
 
-    async def _run_parser(self, lines: list[str]) -> list[BaseEvent]:
+    async def _run_parser(
+        self,
+        lines: list[str],
+        rcon_players: list[RconPlayer] | None = None,
+    ) -> list[BaseEvent]:
         """Helper: run parser with mock reader and capture all emitted events."""
         collected: list[BaseEvent] = []
         bus = EventBus()
@@ -207,12 +261,22 @@ class TestLogParser:
             "player_possess", "player_unpossess", "new_game", "round_ended",
             "server_tick_rate", "admin_broadcast", "player_warned", "player_kicked",
             "player_banned", "admin_cam_possess", "admin_cam_unpossess",
-            "deployable_damaged",
+            "teamkill", "deployable_damaged",
         ]
         for name in event_names:
             bus.subscribe(name, capture)
 
         reader = MockLogReader(lines)
-        parser = LogParser(reader=reader, event_bus=bus)
+        mock_rcon = None
+        if rcon_players is not None:
+            mock_rcon = AsyncMock()
+            mock_rcon.list_players.return_value = rcon_players
+
+        parser = LogParser(
+            reader=reader,
+            event_bus=bus,
+            rcon_client=mock_rcon,
+            player_cache_poll_seconds=3600.0,
+        )
         await parser.run()
         return collected

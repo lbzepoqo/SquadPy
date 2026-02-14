@@ -78,6 +78,14 @@ class PlayerDied(BaseEvent):
 
 
 @dataclass
+class Teamkill(BaseEvent):
+    event_name: str = "teamkill"
+    attacker: PlayerID = field(default_factory=PlayerID)
+    victim: PlayerID = field(default_factory=PlayerID)
+    weapon: str = ""
+
+
+@dataclass
 class PlayerRevived(BaseEvent):
     event_name: str = "player_revived"
     reviver: PlayerID = field(default_factory=PlayerID)

@@ -33,7 +33,7 @@ Status legend:
 
 - Active in-progress IDs: none.
 - Rationale: complete admin/moderation lifecycle event foundations before plugin parity work.
-- Next queued IDs: `P0-EVT-007`, `P0-EVT-006`, `P0-RT-001`.
+- Next queued IDs: `P0-EVT-006`, `P0-RT-001`, `P0-RT-002`.
 
 ## 0) Phase 0 - Program Setup and Acceptance Harness
 
@@ -110,8 +110,9 @@ Status legend:
   - Acceptance note (2026-02-14): Added `AdminCamUnpossess` dataclass in `squadpy/events/types.py`, parser correlation in `squadpy/log_parser/patterns.py` for bare `OnUnPossess` admin-cam exit lines paired against prior admin-cam possess sessions, and contract fixture/test at `tests/contracts/fixtures/parser/admin_cam_unpossess_lines.txt` + `tests/contracts/parser/test_admin_cam_unpossess_contract.py`.
 - [ ] `P0-EVT-006` Add `SquadCreated` event (`@parser`, `P0`)
   - Acceptance: squad id/name/creator fields parsed reliably.
-- [ ] `P0-EVT-007` Add explicit `Teamkill` event (`@parser`, `P0`)
+- [x] `P0-EVT-007` Add explicit `Teamkill` event (`@parser`, `P0`)
   - Acceptance: teamkill detection path has dedicated contracts.
+  - Acceptance note (2026-02-14): Added `Teamkill` dataclass in `squadpy/events/types.py`, parser correlation in `squadpy/log_parser/patterns.py` from native combat logs with RCON `ListPlayers` cache preference and team-assignment log fallback, and contract fixture/test at `tests/contracts/fixtures/parser/teamkill_lines.txt` + `tests/contracts/parser/test_teamkill_contract.py`.
 - [ ] `P1-EVT-008` Add `PlayerSwitchedTeam` event (`@parser`, `P1`)
   - Acceptance: parser and event contracts pass.
 - [ ] `P1-EVT-009` Add `NextLayerSet` event (`@parser`, `P1`)

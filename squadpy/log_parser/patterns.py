@@ -17,6 +17,7 @@ from squadpy.events.types import (
     PlayerDamaged,
     PlayerWounded,
     PlayerDied,
+    Teamkill,
     PlayerRevived,
     PlayerPossess,
     PlayerUnpossess,
@@ -53,6 +54,136 @@ def _parse_chain_id(raw: str) -> int:
     """Parse chain ID from log prefix, handling spaces."""
     stripped = raw.strip()
     return int(stripped) if stripped else 0
+
+
+def _clean_player_name(name: str) -> str:
+    """Normalize leading clan-tag style prefixes for fuzzy name matching."""
+    stripped = name.strip()
+    return re.sub(r"^(?:\[[^\]]+\]\s*)+", "", stripped).strip()
+
+
+def _names_match(left: str, right: str) -> bool:
+    """Compare player names with exact, normalized, and suffix fallbacks."""
+    left_raw = left.strip()
+    right_raw = right.strip()
+    if not left_raw or not right_raw:
+        return False
+    if left_raw == right_raw:
+        return True
+
+    left_clean = _clean_player_name(left_raw)
+    right_clean = _clean_player_name(right_raw)
+    if left_clean and right_clean and left_clean == right_clean:
+        return True
+
+    return (
+        left_raw.endswith(right_raw)
+        or right_raw.endswith(left_raw)
+        or (left_clean and right_clean and left_clean.endswith(right_clean))
+        or (left_clean and right_clean and right_clean.endswith(left_clean))
+    )
+
+
+def _team_for_name(name: str, store: EventStore) -> int | None:
+    """Resolve team assignment from cached player-team mappings."""
+    name_raw = name.strip()
+    if not name_raw:
+        return None
+
+    if name_raw in store.player_teams_by_name:
+        return store.player_teams_by_name[name_raw]
+
+    clean = _clean_player_name(name_raw)
+    if clean in store.player_teams_by_name:
+        return store.player_teams_by_name[clean]
+
+    for known_name, team_id in store.player_teams_by_name.items():
+        if _names_match(name_raw, known_name):
+            return team_id
+    return None
+
+
+def _find_player_by_name(name: str, store: EventStore) -> PlayerID:
+    """Best-effort lookup of EOS/Steam identity by in-log player name."""
+    fallback_name = _clean_player_name(name) or name.strip()
+    for eos_id, record in store.players.items():
+        record_name = str(record.get("name", "")).strip()
+        if not record_name:
+            continue
+        if _names_match(name, record_name):
+            return PlayerID(
+                eos_id=eos_id,
+                steam_id=str(record.get("steam_id", "")),
+                name=record_name,
+            )
+    return PlayerID(name=fallback_name)
+
+
+def _remember_player(player: PlayerID, store: EventStore) -> None:
+    """Persist player identity and backfill known team assignment."""
+    if not player.eos_id:
+        return
+
+    record = store.players.setdefault(player.eos_id, {})
+    if player.steam_id:
+        record["steam_id"] = player.steam_id
+    if player.controller:
+        record["controller"] = player.controller
+    if player.name:
+        record["name"] = player.name.strip()
+        team_id = _team_for_name(player.name, store)
+        if team_id is not None:
+            record["team_id"] = team_id
+
+
+def _queue_teamkill_if_detected(
+    store: EventStore,
+    attacker: PlayerID,
+    victim_name: str,
+    weapon: str,
+) -> None:
+    """Queue a Teamkill event when attacker/victim resolve to the same team."""
+    attacker_team: int | None = None
+    attacker_name = attacker.name.strip()
+    attacker_steam = attacker.steam_id
+
+    if attacker.eos_id:
+        record = store.players.get(attacker.eos_id, {})
+        if not attacker_name:
+            attacker_name = str(record.get("name", "")).strip()
+        if not attacker_steam:
+            attacker_steam = str(record.get("steam_id", "")).strip()
+        team_raw = record.get("team_id")
+        if isinstance(team_raw, int):
+            attacker_team = team_raw
+    if attacker_team is None and attacker_name:
+        attacker_team = _team_for_name(attacker_name, store)
+
+    victim = _find_player_by_name(victim_name, store)
+    victim_team = _team_for_name(victim.name or victim_name, store)
+
+    if attacker_team is None or victim_team is None:
+        return
+    if attacker_team != victim_team:
+        return
+
+    if attacker.eos_id and victim.eos_id and attacker.eos_id == victim.eos_id:
+        return
+    if attacker_name and victim.name and _names_match(attacker_name, victim.name):
+        return
+
+    store.pending_events.append(
+        Teamkill(
+            attacker=PlayerID(
+                eos_id=attacker.eos_id,
+                steam_id=attacker_steam,
+                name=attacker_name,
+                controller=attacker.controller,
+            ),
+            victim=victim,
+            weapon=weapon,
+        )
+    )
 
 
 def match_line(line: str, store: EventStore) -> BaseEvent | None:
@@ -102,6 +233,7 @@ def _on_player_connected(
     }
     if ids["eos_id"] in store.disconnected:
         del store.disconnected[ids["eos_id"]]
+    _remember_player(player, store)
     return PlayerConnected(
         player=player, ip=ip, chain_id=chain_id, controller_name=controller_name
     )
@@ -122,9 +254,35 @@ def _on_join_succeeded(
         name=player_suffix,
         controller=player_data.get("controller_name", ""),
     )
+    _remember_player(player, store)
     return JoinSucceeded(
         player=player, chain_id=chain_id, player_suffix=player_suffix
     )
+
+
+# Team assignment: group 3 = player name, group 4 = team id
+_PLAYER_ADDED_TO_TEAM_RE = re.compile(
+    _PREFIX + r"LogSquad: Player\s+(.+?)\s+has been added to Team\s+([0-9]+)"
+)
+
+
+def _on_player_added_to_team(
+    m: re.Match, chain_id: int, time: str, store: EventStore
+) -> None:
+    player_name = m.group(3).strip()
+    team_id = int(m.group(4))
+
+    # Cache by raw and cleaned names for later combat correlation.
+    store.player_teams_by_name[player_name] = team_id
+    cleaned = _clean_player_name(player_name)
+    if cleaned:
+        store.player_teams_by_name[cleaned] = team_id
+
+    for record in store.players.values():
+        record_name = str(record.get("name", "")).strip()
+        if record_name and _names_match(player_name, record_name):
+            record["team_id"] = team_id
+    return None
 
 
 # PlayerDisconnected (UChannel::Close): group 3 = IP, group 4 = controller,
@@ -183,6 +341,7 @@ def _on_player_damaged(
     }
     if ids["eos_id"]:
         store.players.setdefault(ids["eos_id"], {})["controller"] = attacker_controller
+    _remember_player(attacker, store)
     return PlayerDamaged(
         victim_name=victim_name, damage=damage, attacker=attacker, weapon=weapon_raw
     )
@@ -223,6 +382,13 @@ def _on_player_wounded(
         "attacker_steam_id": ids["steam_id"],
         "weapon": weapon_raw,
     }
+    _remember_player(attacker, store)
+    _queue_teamkill_if_detected(
+        store=store,
+        attacker=attacker,
+        victim_name=victim_name,
+        weapon=weapon_raw,
+    )
     return PlayerWounded(
         victim_name=victim_name, damage=damage, attacker=attacker, weapon=weapon_raw
     )
@@ -262,6 +428,7 @@ def _on_player_died(
         "attacker_steam_id": ids["steam_id"],
         "weapon": weapon_raw,
     }
+    _remember_player(attacker, store)
     return PlayerDied(
         victim_name=victim_name, damage=damage, attacker=attacker, weapon=weapon_raw
     )
@@ -315,6 +482,7 @@ def _on_player_possess(m: re.Match, chain_id: int, time: str, store: EventStore)
     pawn_class = m.group(5)
     full_path = (m.group(6) or "").strip()
     player = PlayerID(eos_id=ids["eos_id"], steam_id=ids["steam_id"], name=player_name)
+    _remember_player(player, store)
     if pawn_class == "BP_DeveloperAdminCam_C":
         store.pending_admin_cam_possess[chain_id] = {
             "admin": player,
@@ -337,6 +505,7 @@ _PLAYER_UNPOSSESS_VEHICLE_RE = re.compile(
 def _on_player_unpossess_vehicle(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerUnpossess:
     ids = parse_online_ids(m.group(4))
     player = PlayerID(eos_id=ids["eos_id"], steam_id=ids["steam_id"], name=m.group(3))
+    _remember_player(player, store)
     return PlayerUnpossess(
         player=player, exited_vehicle=True,
         vehicle_name=m.group(5), seat_number=int(m.group(6)),
@@ -352,6 +521,7 @@ _PLAYER_UNPOSSESS_RE = re.compile(
 def _on_player_unpossess(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerUnpossess:
     ids = parse_online_ids(m.group(4))
     player = PlayerID(eos_id=ids["eos_id"], steam_id=ids["steam_id"], name=m.group(3))
+    _remember_player(player, store)
     return PlayerUnpossess(player=player, health=float(m.group(5)))
 
 
@@ -678,6 +848,7 @@ def get_rules() -> list[Rule]:
     return [
         Rule(_PLAYER_CONNECTED_RE, _on_player_connected),
         Rule(_JOIN_SUCCEEDED_RE, _on_join_succeeded),
+        Rule(_PLAYER_ADDED_TO_TEAM_RE, _on_player_added_to_team),
         Rule(_PLAYER_DISCONNECTED_RE, _on_player_disconnected),
         Rule(_PLAYER_DAMAGED_RE, _on_player_damaged),
         Rule(_PLAYER_WOUNDED_RE, _on_player_wounded),

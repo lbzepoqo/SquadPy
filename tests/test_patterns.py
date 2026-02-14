@@ -5,6 +5,7 @@ from squadpy.log_parser.patterns import match_line
 from squadpy.events.types import (
     PlayerConnected, JoinSucceeded, PlayerDisconnected,
     PlayerDamaged, PlayerWounded, PlayerDied, PlayerRevived,
+    Teamkill,
     PlayerPossess, PlayerUnpossess, NewGame, RoundEnded,
     ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked, PlayerBanned,
     AdminCamPossess, AdminCamUnpossess, DeployableDamaged,
@@ -151,6 +152,49 @@ class TestPlayerDied:
         line = '[2026.02.06-16.57.23:024][130]LogSquadTrace: [DedicatedServer]Die(): Player: enwez KillingDamage=-300.000000 from BP_PlayerController_C_2147285821 (Online IDs: EOS: 0002ded45cb5412e8d5c7833a92d36b3 steam: 76561198376630934 | Contoller ID: BP_PlayerController_C_2147285821) caused by BP_Soldier_RU_HAT_RPG28_Desert_C_2147279843'
         event = match_line(line, store)
         assert isinstance(event, PlayerDied)
+
+
+class TestTeamkill:
+    def test_wounded_same_team_queues_teamkill_event(self):
+        store = EventStore()
+        lines = [
+            "[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 2",
+            "[2026.02.14-01.09.56:371][244]LogSquad: Player  Blackburn has been added to Team 2",
+            "[2026.02.14-00.52.27:960][412]LogSquadTrace: [DedicatedServer]OnPossess(): PC=PamanPanda (Online IDs: EOS: 000202cd1a3a4c739203a874221393d0 steam: 76561198161847878) Pawn=BP_Soldier_VDV_SquadLeader_Desert_C_2147407760 FullPath=BP_Soldier_VDV_SquadLeader_Desert_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldier_VDV_SquadLeader_Desert_C_2147407760",
+            "[2026.02.14-01.11.39:377][810]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Blackburn (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778) Pawn=BP_Soldiers_WPMC_SL_05_C_2147379502 FullPath=BP_Soldiers_WPMC_SL_05_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldiers_WPMC_SL_05_C_2147379502",
+            "[2026.02.14-01.16.31:277][417]LogSquadTrace: [DedicatedServer]Wound(): Player:[INAF]  PamanPanda KillingDamage=150.000000 from BP_PlayerController_SATSeed_C_2147382416 (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778 | Controller ID: BP_PlayerController_SATSeed_C_2147382416) caused by BP_M134_Loach_Dual_C_2147377585",
+        ]
+
+        emitted: list[object] = []
+        for line in lines:
+            event = match_line(line, store)
+            if event is not None:
+                emitted.append(event)
+            emitted.extend(store.drain_pending_events())
+
+        teamkills = [e for e in emitted if isinstance(e, Teamkill)]
+        assert len(teamkills) == 1
+        teamkill = teamkills[0]
+        assert teamkill.attacker.eos_id == "00024bce20aa414282702cf909896053"
+        assert teamkill.attacker.name == "Blackburn"
+        assert teamkill.victim.eos_id == "000202cd1a3a4c739203a874221393d0"
+        assert teamkill.victim.name == "PamanPanda"
+        assert teamkill.weapon == "BP_M134_Loach_Dual_C"
+
+    def test_wounded_different_team_does_not_queue_teamkill(self):
+        store = EventStore()
+        lines = [
+            "[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 1",
+            "[2026.02.14-01.09.56:371][244]LogSquad: Player  Blackburn has been added to Team 2",
+            "[2026.02.14-00.52.27:960][412]LogSquadTrace: [DedicatedServer]OnPossess(): PC=PamanPanda (Online IDs: EOS: 000202cd1a3a4c739203a874221393d0 steam: 76561198161847878) Pawn=BP_Soldier_VDV_SquadLeader_Desert_C_2147407760 FullPath=BP_Soldier_VDV_SquadLeader_Desert_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldier_VDV_SquadLeader_Desert_C_2147407760",
+            "[2026.02.14-01.11.39:377][810]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Blackburn (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778) Pawn=BP_Soldiers_WPMC_SL_05_C_2147379502 FullPath=BP_Soldiers_WPMC_SL_05_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldiers_WPMC_SL_05_C_2147379502",
+            "[2026.02.14-01.16.31:277][417]LogSquadTrace: [DedicatedServer]Wound(): Player:[INAF]  PamanPanda KillingDamage=150.000000 from BP_PlayerController_SATSeed_C_2147382416 (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778 | Controller ID: BP_PlayerController_SATSeed_C_2147382416) caused by BP_M134_Loach_Dual_C_2147377585",
+        ]
+
+        for line in lines:
+            match_line(line, store)
+
+        assert store.drain_pending_events() == []
 
 
 class TestPlayerRevived:
