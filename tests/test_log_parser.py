@@ -217,6 +217,35 @@ class TestLogParser:
         assert teamkills[0].attacker.name == "Blackburn"
         assert teamkills[0].victim.name == "PamanPanda"
 
+    async def test_emits_teamkill_from_died_without_prior_wound(self):
+        lines = [
+            "[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 2",
+            "[2026.02.14-01.09.56:371][244]LogSquad: Player  Blackburn has been added to Team 2",
+            "[2026.02.14-00.52.27:960][412]LogSquadTrace: [DedicatedServer]OnPossess(): PC=PamanPanda (Online IDs: EOS: 000202cd1a3a4c739203a874221393d0 steam: 76561198161847878) Pawn=BP_Soldier_VDV_SquadLeader_Desert_C_2147407760 FullPath=BP_Soldier_VDV_SquadLeader_Desert_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldier_VDV_SquadLeader_Desert_C_2147407760",
+            "[2026.02.14-01.11.39:377][810]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Blackburn (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778) Pawn=BP_Soldiers_WPMC_SL_05_C_2147379502 FullPath=BP_Soldiers_WPMC_SL_05_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldiers_WPMC_SL_05_C_2147379502",
+            "[2026.02.14-01.16.33:333][420]LogSquadTrace: [DedicatedServer]Die(): Player:[INAF]  PamanPanda KillingDamage=100.000000 from BP_PlayerController_SATSeed_C_2147382416 (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778 | Contoller ID: BP_PlayerController_SATSeed_C_2147382416) caused by BP_M134_Loach_Dual_C_2147377585",
+        ]
+        events = await self._run_parser(lines)
+        teamkills = [event for event in events if isinstance(event, Teamkill)]
+        assert len(teamkills) == 1
+        assert teamkills[0].attacker.name == "Blackburn"
+        assert teamkills[0].victim.name == "PamanPanda"
+        assert teamkills[0].weapon == "BP_M134_Loach_Dual_C"
+
+    async def test_wound_then_died_same_attacker_emits_one_teamkill(self):
+        lines = [
+            "[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 2",
+            "[2026.02.14-01.09.56:371][244]LogSquad: Player  Blackburn has been added to Team 2",
+            "[2026.02.14-00.52.27:960][412]LogSquadTrace: [DedicatedServer]OnPossess(): PC=PamanPanda (Online IDs: EOS: 000202cd1a3a4c739203a874221393d0 steam: 76561198161847878) Pawn=BP_Soldier_VDV_SquadLeader_Desert_C_2147407760 FullPath=BP_Soldier_VDV_SquadLeader_Desert_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldier_VDV_SquadLeader_Desert_C_2147407760",
+            "[2026.02.14-01.11.39:377][810]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Blackburn (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778) Pawn=BP_Soldiers_WPMC_SL_05_C_2147379502 FullPath=BP_Soldiers_WPMC_SL_05_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldiers_WPMC_SL_05_C_2147379502",
+            "[2026.02.14-01.16.31:277][417]LogSquadTrace: [DedicatedServer]Wound(): Player:[INAF]  PamanPanda KillingDamage=150.000000 from BP_PlayerController_SATSeed_C_2147382416 (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778 | Controller ID: BP_PlayerController_SATSeed_C_2147382416) caused by BP_M134_Loach_Dual_C_2147377585",
+            "[2026.02.14-01.16.33:333][420]LogSquadTrace: [DedicatedServer]Die(): Player:[INAF]  PamanPanda KillingDamage=-300.000000 from BP_PlayerController_SATSeed_C_2147382416 (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778 | Contoller ID: BP_PlayerController_SATSeed_C_2147382416) caused by BP_Soldier_WPMC_SL_05_C_2147379502",
+        ]
+        events = await self._run_parser(lines)
+        teamkills = [event for event in events if isinstance(event, Teamkill)]
+        assert len(teamkills) == 1
+        assert teamkills[0].weapon == "BP_M134_Loach_Dual_C"
+
     async def test_round_ended_uses_cached_winner_and_loser(self):
         lines = [
             '[2026.02.06-20.45.07:818][740]LogSquadGameEvents: Display: Team 1, Irregular Battle Group ( Middle Eastern Insurgents ) has won the match with 2 Tickets on layer Sumari Bala Seed v1 (level Sumari Bala)!',

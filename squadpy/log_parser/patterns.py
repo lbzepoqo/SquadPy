@@ -338,6 +338,7 @@ def _on_player_damaged(
         "attacker_steam_id": ids["steam_id"],
         "attacker_controller": attacker_controller,
         "weapon": weapon_raw,
+        "last_event": "damage",
     }
     if ids["eos_id"]:
         store.players.setdefault(ids["eos_id"], {})["controller"] = attacker_controller
@@ -370,17 +371,20 @@ def _on_player_wounded(
     victim_name = m.group(3).strip()
     damage = float(m.group(4))
     weapon_raw = m.group(8)
+    attacker_controller = m.group(5).strip()
     attacker = PlayerID(
         eos_id=ids["eos_id"],
         steam_id=ids["steam_id"],
-        controller=m.group(5).strip(),
+        controller=attacker_controller,
     )
     correlated = store.session.get(victim_name, {})
     store.session[victim_name] = {
         **correlated,
         "attacker_eos_id": ids["eos_id"],
         "attacker_steam_id": ids["steam_id"],
+        "attacker_controller": attacker_controller,
         "weapon": weapon_raw,
+        "last_event": "wound",
     }
     _remember_player(attacker, store)
     _queue_teamkill_if_detected(
@@ -416,19 +420,50 @@ def _on_player_died(
     victim_name = m.group(3).strip()
     damage = float(m.group(4))
     weapon_raw = m.group(8)
+    attacker_controller = m.group(5).strip()
     attacker = PlayerID(
         eos_id=ids["eos_id"],
         steam_id=ids["steam_id"],
-        controller=m.group(5).strip(),
+        controller=attacker_controller,
     )
     correlated = store.session.get(victim_name, {})
+    same_attacker = (
+        (
+            bool(ids["eos_id"])
+            and str(correlated.get("attacker_eos_id", "")) == ids["eos_id"]
+        )
+        or (
+            bool(ids["steam_id"])
+            and str(correlated.get("attacker_steam_id", "")) == ids["steam_id"]
+        )
+        or (
+            attacker_controller
+            and attacker_controller != "nullptr"
+            and str(correlated.get("attacker_controller", "")) == attacker_controller
+        )
+    )
+    is_followup_wound = (
+        correlated.get("last_event") == "wound"
+        and same_attacker
+    )
     store.session[victim_name] = {
         **correlated,
         "attacker_eos_id": ids["eos_id"],
         "attacker_steam_id": ids["steam_id"],
+        "attacker_controller": attacker_controller,
         "weapon": weapon_raw,
+        "last_event": "died",
     }
     _remember_player(attacker, store)
+    # SquadJS emits TEAMKILL from Wound; add a die-path fallback for cases that
+    # skip Wound entirely (for example insta-kill or revived-then-die edge paths).
+    if not is_followup_wound:
+        _queue_teamkill_if_detected(
+            store=store,
+            attacker=attacker,
+            victim_name=victim_name,
+            weapon=weapon_raw,
+        )
     return PlayerDied(
         victim_name=victim_name, damage=damage, attacker=attacker, weapon=weapon_raw
     )

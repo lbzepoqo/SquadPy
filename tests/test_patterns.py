@@ -196,6 +196,52 @@ class TestTeamkill:
 
         assert store.drain_pending_events() == []
 
+    def test_died_same_team_without_prior_wound_queues_teamkill_event(self):
+        store = EventStore()
+        lines = [
+            "[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 2",
+            "[2026.02.14-01.09.56:371][244]LogSquad: Player  Blackburn has been added to Team 2",
+            "[2026.02.14-00.52.27:960][412]LogSquadTrace: [DedicatedServer]OnPossess(): PC=PamanPanda (Online IDs: EOS: 000202cd1a3a4c739203a874221393d0 steam: 76561198161847878) Pawn=BP_Soldier_VDV_SquadLeader_Desert_C_2147407760 FullPath=BP_Soldier_VDV_SquadLeader_Desert_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldier_VDV_SquadLeader_Desert_C_2147407760",
+            "[2026.02.14-01.11.39:377][810]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Blackburn (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778) Pawn=BP_Soldiers_WPMC_SL_05_C_2147379502 FullPath=BP_Soldiers_WPMC_SL_05_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldiers_WPMC_SL_05_C_2147379502",
+            "[2026.02.14-01.16.33:333][420]LogSquadTrace: [DedicatedServer]Die(): Player:[INAF]  PamanPanda KillingDamage=100.000000 from BP_PlayerController_SATSeed_C_2147382416 (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778 | Contoller ID: BP_PlayerController_SATSeed_C_2147382416) caused by BP_M134_Loach_Dual_C_2147377585",
+        ]
+
+        emitted: list[object] = []
+        for line in lines:
+            event = match_line(line, store)
+            if event is not None:
+                emitted.append(event)
+            emitted.extend(store.drain_pending_events())
+
+        teamkills = [e for e in emitted if isinstance(e, Teamkill)]
+        assert len(teamkills) == 1
+        teamkill = teamkills[0]
+        assert teamkill.attacker.name == "Blackburn"
+        assert teamkill.victim.name == "PamanPanda"
+        assert teamkill.weapon == "BP_M134_Loach_Dual_C"
+
+    def test_wounded_then_died_same_attacker_queues_one_teamkill(self):
+        store = EventStore()
+        lines = [
+            "[2026.02.14-00.50.32:400][ 45]LogSquad: Player  PamanPanda has been added to Team 2",
+            "[2026.02.14-01.09.56:371][244]LogSquad: Player  Blackburn has been added to Team 2",
+            "[2026.02.14-00.52.27:960][412]LogSquadTrace: [DedicatedServer]OnPossess(): PC=PamanPanda (Online IDs: EOS: 000202cd1a3a4c739203a874221393d0 steam: 76561198161847878) Pawn=BP_Soldier_VDV_SquadLeader_Desert_C_2147407760 FullPath=BP_Soldier_VDV_SquadLeader_Desert_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldier_VDV_SquadLeader_Desert_C_2147407760",
+            "[2026.02.14-01.11.39:377][810]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Blackburn (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778) Pawn=BP_Soldiers_WPMC_SL_05_C_2147379502 FullPath=BP_Soldiers_WPMC_SL_05_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_Soldiers_WPMC_SL_05_C_2147379502",
+            "[2026.02.14-01.16.31:277][417]LogSquadTrace: [DedicatedServer]Wound(): Player:[INAF]  PamanPanda KillingDamage=150.000000 from BP_PlayerController_SATSeed_C_2147382416 (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778 | Controller ID: BP_PlayerController_SATSeed_C_2147382416) caused by BP_M134_Loach_Dual_C_2147377585",
+            "[2026.02.14-01.16.33:333][420]LogSquadTrace: [DedicatedServer]Die(): Player:[INAF]  PamanPanda KillingDamage=-300.000000 from BP_PlayerController_SATSeed_C_2147382416 (Online IDs: EOS: 00024bce20aa414282702cf909896053 steam: 76561198191272778 | Contoller ID: BP_PlayerController_SATSeed_C_2147382416) caused by BP_Soldier_WPMC_SL_05_C_2147379502",
+        ]
+
+        emitted: list[object] = []
+        for line in lines:
+            event = match_line(line, store)
+            if event is not None:
+                emitted.append(event)
+            emitted.extend(store.drain_pending_events())
+
+        teamkills = [e for e in emitted if isinstance(e, Teamkill)]
+        assert len(teamkills) == 1
+        assert teamkills[0].weapon == "BP_M134_Loach_Dual_C"
+
 
 class TestPlayerRevived:
     def test_revive(self):
