@@ -263,7 +263,7 @@ class ServerStatus(Plugin):
         }
         encoded = quote(
             json.dumps(chart_config, separators=(",", ":")),
-            safe=':,{}[]"',
+            safe="",
         )
         width = self._positive_int(self.config.get("graph_width", 900), 900)
         height = self._positive_int(self.config.get("graph_height", 340), 340)
