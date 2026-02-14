@@ -11,8 +11,12 @@
 - `python -m venv .venv && source .venv/bin/activate`: create local environment.
 - `pip install -e ".[dev]"`: install package plus dev dependencies.
 - `python -m squadpy`: run the orchestrator with local TOML configs.
-- `pytest -v`: run all tests.
-- `pytest tests/test_plugin_loader.py -v`: run a focused module while iterating.
+- `make setup-dev`: install/update dev dependencies in `.venv`.
+- `make test`: run all tests through the project virtualenv.
+- `make test-unit`: run non-contract tests through the project virtualenv.
+- `make test-contract`: run contract tests through the project virtualenv.
+- `.venv/bin/python -m pytest -v`: direct test invocation using the project virtualenv interpreter.
+- `.venv/bin/python -m pytest tests/test_plugin_loader.py -v`: run a focused module while iterating.
 
 ## Coding Style & Naming Conventions
 - Python 3.12+, 4-space indentation, PEP 8.
@@ -39,6 +43,7 @@
 - Before editing, read relevant `README.md` sections, target modules, and matching tests.
 - Reuse existing repo patterns before introducing new abstractions.
 - Keep diffs minimal and report changed files plus validation commands in handoff notes.
+- For test execution, always use the project virtualenv (`make test*` or `.venv/bin/python -m pytest ...`), not system `python3`/`pytest`.
 
 ## Parity Program Workflow
 - For SquadJS/SquadTS parity work, treat `docs/plans/2026-02-13-parity-and-beyond-roadmap.md` as the strategic source of truth.

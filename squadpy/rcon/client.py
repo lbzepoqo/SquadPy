@@ -368,6 +368,10 @@ class RconClient:
         """Switch a player to the opposite team by steam ID or EOS ID."""
         return await self.execute(f"AdminForceTeamChange {player_id}")
 
+    async def demote_commander(self, player_id: str) -> str:
+        """Demote a commander by player name, steam ID, or EOS ID."""
+        return await self.execute(f"AdminDemoteCommander {player_id}")
+
     async def force_team_change(self, player_id: int | str) -> str:
         """Force a player onto the opposite team using numeric player ID."""
         try:

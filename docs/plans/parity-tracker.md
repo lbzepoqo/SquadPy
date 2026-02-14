@@ -58,8 +58,9 @@ Status legend:
 - [x] `P0-PROG-007` Define command contract schema docs (`@core-runtime`, `P0`)
   - Acceptance: schema document exists at `docs/plans/command-contracts.md`.
   - Acceptance note (2026-02-14): Added `docs/plans/command-contracts.md` defining helper-to-command mappings, request/response contract model, and command test acceptance rules.
-- [ ] `P0-PROG-008` Create weekly parity report template (`@qa-release`, `P1`)
+- [x] `P0-PROG-008` Create weekly parity report template (`@qa-release`, `P1`)
   - Acceptance: report template exists at `docs/plans/parity-weekly-template.md`.
+  - Acceptance note (2026-02-14): Added `docs/plans/parity-weekly-template.md` with reusable weekly parity-report sections for tracker deltas, capability changes, validation evidence, risks, and next-week planning.
 
 ## 1) Phase 1 - RCON + Event Foundation Parity
 
@@ -82,8 +83,9 @@ Status legend:
 - [x] `P0-RCON-005` Add `set_next_layer(layer)` helper (`@core-runtime`, `P0`)
   - Acceptance: contract test confirms layer string safety and command dispatch.
   - Acceptance note (2026-02-14): Added `RconClient.set_next_layer(...)` in `squadpy/rcon/client.py` with safe layer-string validation, unit tests in `tests/test_rcon_helpers.py`, and contract tests in `tests/contracts/core_runtime/test_rcon_set_next_layer_contract.py` for exact command template + unsafe-input rejection.
-- [ ] `P1-RCON-006` Add `demote_commander(player_id)` helper (`@core-runtime`, `P1`)
+- [x] `P1-RCON-006` Add `demote_commander(player_id)` helper (`@core-runtime`, `P1`)
   - Acceptance: helper implemented with tests.
+  - Acceptance note (2026-02-14): Added `RconClient.demote_commander(...)` in `squadpy/rcon/client.py`, unit helper coverage in `tests/test_rcon_helpers.py`, and contract coverage in `tests/contracts/core_runtime/test_rcon_demote_commander_contract.py` validating exact command-template dispatch and response passthrough.
 - [ ] `P1-RCON-007` Add explicit `set_team(player_id, team)` helper (`@core-runtime`, `P1`)
   - Acceptance: team enum validation and command test coverage.
 - [ ] `P1-RCON-008` Add `end_match` helper (`@core-runtime`, `P1`)

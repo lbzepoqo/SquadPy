@@ -259,6 +259,13 @@ class TestRconClientConvenience:
             "AdminForceTeamChange 76561198000000000"
         )
 
+    async def test_demote_commander_quotes_player_id(self, client):
+        client.execute.return_value = ""
+        await client.demote_commander("76561198000000000")
+        client.execute.assert_awaited_once_with(
+            "AdminDemoteCommander 76561198000000000"
+        )
+
     async def test_force_team_change_by_id_calls_execute(self, client):
         client.execute.return_value = ""
         await client.force_team_change(123)
