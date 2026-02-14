@@ -128,8 +128,9 @@ Status legend:
 - [x] `P0-RT-001` Add reconnect replay contract tests (`@core-runtime`, `P0`)
   - Acceptance: queued commands flush correctly after reconnect.
   - Acceptance note (2026-02-14): Updated `RconClient.execute()` reconnect gating in `squadpy/rcon/client.py` to wait for in-progress reconnect windows before dispatch, and added runtime regression coverage in `tests/test_rcon_client.py` plus contract test `tests/contracts/core_runtime/test_rcon_reconnect_replay_contract.py` validating queued command flush after reconnect.
-- [ ] `P0-RT-002` Add out-of-order response stress tests (`@core-runtime`, `P0`)
+- [x] `P0-RT-002` Add out-of-order response stress tests (`@core-runtime`, `P0`)
   - Acceptance: request correlation remains deterministic under concurrency.
+  - Acceptance note (2026-02-14): Added high-concurrency out-of-order response tests in `tests/test_rcon_client.py` and contract stress test `tests/contracts/core_runtime/test_rcon_out_of_order_responses_contract.py` using real `ListPlayers`/`ListSquads` fixtures to validate deterministic request-id correlation under reverse-order completion.
 - [ ] `P1-RT-003` Add typed error taxonomy for RCON failures (`@core-runtime`, `P1`)
   - Acceptance: callers can branch on error classes in tests.
 

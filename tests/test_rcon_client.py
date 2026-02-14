@@ -110,6 +110,33 @@ class TestRconProtocolHandler:
         result = await asyncio.wait_for(future, timeout=1.0)
         assert result == "data"
 
+    async def test_out_of_order_responses_resolve_correct_futures(self, client):
+        future_a = asyncio.get_event_loop().create_future()
+        future_b = asyncio.get_event_loop().create_future()
+        request_a = 101
+        request_b = 202
+        client._pending_requests[request_a] = future_a
+        client._response_buffers[request_a] = []
+        client._pending_requests[request_b] = future_b
+        client._response_buffers[request_b] = []
+
+        # Complete request B before request A.
+        client._handle_response_packet(
+            RconPacket(id=request_b, type=PacketType.RESPONSE_VALUE, body="resp-b")
+        )
+        client._handle_response_packet(
+            RconPacket(id=request_b, type=PacketType.RESPONSE_VALUE, body="")
+        )
+        client._handle_response_packet(
+            RconPacket(id=request_a, type=PacketType.RESPONSE_VALUE, body="resp-a")
+        )
+        client._handle_response_packet(
+            RconPacket(id=request_a, type=PacketType.RESPONSE_VALUE, body="")
+        )
+
+        assert await asyncio.wait_for(future_a, timeout=1.0) == "resp-a"
+        assert await asyncio.wait_for(future_b, timeout=1.0) == "resp-b"
+
 
 class TestRconReconnect:
     @pytest.fixture
@@ -208,3 +235,90 @@ class TestRconReconnect:
         assert await execute_task == "ok"
         client._writer.write.assert_called_once()
         client._writer.drain.assert_awaited_once()
+
+    async def test_concurrent_execute_out_of_order_completion(self, client):
+        client._connected = True
+        client._reconnecting = False
+        client._reconnect_event.set()
+        client._writer = AsyncMock()
+        client._writer.write = Mock()
+        client._writer.drain = AsyncMock()
+
+        task_players = asyncio.create_task(client.execute("ListPlayers"))
+        await asyncio.sleep(0)
+        request_id_players = next(iter(client._pending_requests.keys()))
+
+        task_squads = asyncio.create_task(client.execute("ListSquads"))
+        await asyncio.sleep(0)
+        request_id_squads = next(
+            rid for rid in client._pending_requests.keys() if rid != request_id_players
+        )
+
+        # Return squad response first, then players response.
+        client._handle_response_packet(
+            RconPacket(
+                id=request_id_squads,
+                type=PacketType.RESPONSE_VALUE,
+                body="squads-response",
+            )
+        )
+        client._handle_response_packet(
+            RconPacket(id=request_id_squads, type=PacketType.RESPONSE_VALUE, body="")
+        )
+        client._handle_response_packet(
+            RconPacket(
+                id=request_id_players,
+                type=PacketType.RESPONSE_VALUE,
+                body="players-response",
+            )
+        )
+        client._handle_response_packet(
+            RconPacket(id=request_id_players, type=PacketType.RESPONSE_VALUE, body="")
+        )
+
+        players_result = await task_players
+        squads_result = await task_squads
+
+        assert players_result == "players-response"
+        assert squads_result == "squads-response"
+        assert client._writer.write.call_count == 2
+        assert client._writer.drain.await_count == 2
+
+    async def test_high_concurrency_reverse_order_completion(self, client):
+        client._connected = True
+        client._reconnecting = False
+        client._reconnect_event.set()
+        client._writer = AsyncMock()
+        client._writer.write = Mock()
+        client._writer.drain = AsyncMock()
+
+        tasks: list[asyncio.Task[str]] = []
+        expected_by_request: dict[int, str] = {}
+        seen_request_ids: set[int] = set()
+
+        for idx in range(12):
+            task = asyncio.create_task(client.execute(f"Command-{idx}"))
+            tasks.append(task)
+            await asyncio.sleep(0)
+            new_ids = set(client._pending_requests.keys()) - seen_request_ids
+            assert len(new_ids) == 1
+            request_id = new_ids.pop()
+            seen_request_ids.add(request_id)
+            expected_by_request[request_id] = f"response-{idx}"
+
+        for request_id in sorted(expected_by_request.keys(), reverse=True):
+            client._handle_response_packet(
+                RconPacket(
+                    id=request_id,
+                    type=PacketType.RESPONSE_VALUE,
+                    body=expected_by_request[request_id],
+                )
+            )
+            client._handle_response_packet(
+                RconPacket(id=request_id, type=PacketType.RESPONSE_VALUE, body="")
+            )
+
+        results = await asyncio.gather(*tasks)
+        assert sorted(results) == sorted(expected_by_request.values())
+        assert client._writer.write.call_count == 12
+        assert client._writer.drain.await_count == 12
