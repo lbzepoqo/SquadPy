@@ -47,6 +47,7 @@
 - Reuse existing repo patterns before introducing new abstractions.
 - Keep diffs minimal and report changed files plus validation commands in handoff notes.
 - For test execution, always use the project virtualenv (`make test*` or `.venv/bin/python -m pytest ...`), not system `python3`/`pytest`.
+- Run `make typecheck` before every commit/handoff and include the result in validation notes.
 
 ## Parity Program Workflow
 - For SquadJS/SquadTS parity work, treat `docs/plans/2026-02-13-parity-and-beyond-roadmap.md` as the strategic source of truth.

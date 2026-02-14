@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Any
 from unittest.mock import patch
 
-import aiohttp
 import pytest
 
 from squadpy.connectors import BattleMetricsConnector, BattleMetricsPlayer
@@ -28,7 +27,7 @@ class FakeResponse:
 
     def raise_for_status(self) -> None:
         if self.status >= 400:
-            raise aiohttp.ClientResponseError(None, (), status=self.status, message="HTTP error")
+            raise RuntimeError(f"HTTP error ({self.status})")
 
 
 class FakeSession:
@@ -120,4 +119,3 @@ class TestBattleMetricsConnector:
             with pytest.raises(RuntimeError, match="Invalid BattleMetrics response payload"):
                 await connector.lookup_player("broken")
             await connector.stop()
-
