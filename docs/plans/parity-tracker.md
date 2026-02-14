@@ -46,10 +46,12 @@ Status legend:
 - [x] `P0-PROG-005` Add integration CI job with mocked Discord/RCON (`@qa-release`, `P0`)
   - Acceptance: CI workflow includes integration matrix stage.
   - Acceptance note (2026-02-14): Added `integration` matrix job (`discord`, `rcon`) in `.github/workflows/ci.yml` running mocked Discord/RCON integration suites.
-- [ ] `P0-PROG-006` Define event contract schema docs (`@parser`, `P0`)
+- [x] `P0-PROG-006` Define event contract schema docs (`@parser`, `P0`)
   - Acceptance: schema document exists at `docs/plans/event-contracts.md`.
-- [ ] `P0-PROG-007` Define command contract schema docs (`@core-runtime`, `P0`)
+  - Acceptance note (2026-02-14): Added `docs/plans/event-contracts.md` defining event envelope, shared types, current event catalog, planned P0 event extensions, and fixture schema rules.
+- [x] `P0-PROG-007` Define command contract schema docs (`@core-runtime`, `P0`)
   - Acceptance: schema document exists at `docs/plans/command-contracts.md`.
+  - Acceptance note (2026-02-14): Added `docs/plans/command-contracts.md` defining helper-to-command mappings, request/response contract model, and command test acceptance rules.
 - [ ] `P0-PROG-008` Create weekly parity report template (`@qa-release`, `P1`)
   - Acceptance: report template exists at `docs/plans/parity-weekly-template.md`.
 
