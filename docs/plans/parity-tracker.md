@@ -32,8 +32,8 @@ Status legend:
 ## Current Sprint Focus (2026-02-14)
 
 - Active in-progress IDs: none.
-- Rationale: completed queued moderation/seeding wave (`P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`) and validated with full green test suite.
-- Next queued IDs: `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`.
+- Rationale: completed second seeding wave (`P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`) after finishing the moderation+seeding kickoff wave.
+- Next queued IDs: `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`.
 
 ## 0) Phase 0 - Program Setup and Acceptance Harness
 
@@ -179,12 +179,15 @@ Status legend:
 - [x] `P0-SEED-001` Implement `plugins/seeding_mode` (`@plugins-seeding`, `P0`)
   - Acceptance: seed/live mode transition contracts pass.
   - Acceptance note (2026-02-14): Added `plugins/seeding_mode/plugin.py` with threshold-based seed/live transitions, optional transition broadcasts, optional fog-of-war transition hooks, and `new_game` reset behavior; added example config at `config/plugins/seeding_mode.toml.example` and transition coverage in `tests/test_plugin_seeding_mode.py`.
-- [ ] `P0-SEED-002` Implement `plugins/auto_seed_low_players` (`@plugins-seeding`, `P0`)
+- [x] `P0-SEED-002` Implement `plugins/auto_seed_low_players` (`@plugins-seeding`, `P0`)
   - Acceptance: low-population automation actions validated by tests.
-- [ ] `P0-SEED-003` Implement `plugins/auto_rejoin_team` (`@plugins-seeding`, `P0`)
+  - Acceptance note (2026-02-14): Added `plugins/auto_seed_low_players/plugin.py` with low-population entry/exit transitions, reminder cadence, optional unassigned warnings, and optional fog-of-war transition hooks; added example config at `config/plugins/auto_seed_low_players.toml.example` and tests in `tests/test_plugin_auto_seed_low_players.py`.
+- [x] `P0-SEED-003` Implement `plugins/auto_rejoin_team` (`@plugins-seeding`, `P0`)
   - Acceptance: team assignment persistence behavior tested.
-- [ ] `P0-SEED-004` Implement `plugins/team_randomizer` (`@plugins-seeding`, `P0`)
+  - Acceptance note (2026-02-14): Added `plugins/auto_rejoin_team/plugin.py` with reconnect tracking, prior-team memory, bounded retry enforcement, and population guardrails for seeding windows; added example config at `config/plugins/auto_rejoin_team.toml.example` and tests in `tests/test_plugin_auto_rejoin_team.py`.
+- [x] `P0-SEED-004` Implement `plugins/team_randomizer` (`@plugins-seeding`, `P0`)
   - Acceptance: randomization rules and fairness constraints tested.
+  - Acceptance note (2026-02-14): Added `plugins/team_randomizer/plugin.py` with imbalance detection, bounded random moves, cooldown gating, leader/exemption filtering, and transition announcements; added example config at `config/plugins/team_randomizer.toml.example` and tests in `tests/test_plugin_team_randomizer.py`.
 - [ ] `P0-SEED-005` Implement `plugins/switch_command` (`@plugins-seeding`, `P0`)
   - Acceptance: user-triggered switch flow with cooldown checks tested.
 - [ ] `P0-SEED-006` Implement `plugins/end_match_vote` (`@plugins-seeding`, `P0`)
@@ -292,8 +295,9 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | Discord FOB/HAB damage | Yes | Missing | `P1-PLUG-MOD-008` |
 | Discord RCON console | Yes | Missing | `P1-PLUG-MOD-009` |
 | Seeding mode | Yes | Done | `P0-SEED-001` |
-| Auto seed low players | Yes | Missing | `P0-SEED-002` |
-| Team randomizer | Yes | Missing | `P0-SEED-004` |
+| Auto seed low players | Yes | Done | `P0-SEED-002` |
+| Auto rejoin team | Yes | Done | `P0-SEED-003` |
+| Team randomizer | Yes | Done | `P0-SEED-004` |
 | Switch command | Yes | Missing | `P0-SEED-005` |
 | End match vote | Yes | Missing | `P0-SEED-006` |
 | Max players in squad | Yes | Missing | `P1-SEED-007` |
@@ -323,9 +327,9 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 
 Week of: 2026-02-14
 
-- Completed IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`
+- Completed IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`, `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`
 - In-progress IDs: none
 - Blocked IDs: none
-- New risks: chat command role maps and cooldown defaults require operator tuning to avoid under/over-restrictive behavior in live environments.
-- Mitigations applied: added explicit config defaults/examples plus targeted tests for permission, cooldown, transition, and edge-case behavior; full suite remains green.
-- Next week top 5 IDs: `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`
+- New risks: new seeding automation defaults may require server-specific threshold tuning to avoid over-aggressive balancing or rejoin nudges.
+- Mitigations applied: added bounded retries/cooldowns/exemption controls, explicit config templates, focused seeding plugin tests, and full-suite verification.
+- Next week top 5 IDs: `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`, `P0-API-001`
