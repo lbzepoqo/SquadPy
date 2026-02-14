@@ -1,0 +1,16 @@
+enabled = false
+
+[settings]
+# Population threshold model
+seed_player_threshold = 50
+hysteresis_players = 2
+change_cooldown_seconds = 30
+
+# Fog mode by state (valid values: 0|1 or false|true)
+seed_fog_mode = "1"
+live_fog_mode = "0"
+
+# Reset/revert behavior
+reset_on_new_game = true
+revert_on_disable = true
+revert_to_mode = "live"

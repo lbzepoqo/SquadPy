@@ -217,8 +217,9 @@ Status legend:
 - [x] `P1-SEED-009` Implement `plugins/intervalled_broadcasts` (`@plugins-seeding`, `P1`)
   - Acceptance: schedule and dedupe behavior covered by tests.
   - Acceptance note (2026-02-14): Added `plugins/intervalled_broadcasts/plugin.py` with interval-based broadcast scheduling, sequential/random message rotation, optional consecutive-message dedupe, optional population gating, and optional new-game reset behavior; added config template `config/plugins/intervalled_broadcasts.toml.example` and coverage in `tests/test_plugin_intervalled_broadcasts.py` for schedule timing, dedupe on/off behavior, min-player gating, reset handling, and handler/task registration.
-- [ ] `P1-SEED-010` Implement `plugins/fog_of_war` (`@plugins-seeding`, `P1`)
+- [x] `P1-SEED-010` Implement `plugins/fog_of_war` (`@plugins-seeding`, `P1`)
   - Acceptance: fog mode changes are safe, audited, and reversible.
+  - Acceptance note (2026-02-14): Added `plugins/fog_of_war/plugin.py` with threshold+hysteresis fog-mode automation, change-cooldown safety guard, dynamic threshold updates from seeding transition events, in-plugin audit records for all mode-change outcomes, and explicit disable-time reversion support; added config template `config/plugins/fog_of_war.toml.example` and coverage in `tests/test_plugin_fog_of_war.py` for safe invalid-config handling, cooldown behavior, audit emission, and reversible disable flow.
 - [ ] `P1-SEED-011` Implement `plugins/heli_crash_broadcast` (`@plugins-seeding`, `P1`)
   - Acceptance: relevant event detection and broadcast tests pass.
 - [ ] `P1-SEED-012` Implement `plugins/knife_broadcast` (`@plugins-seeding`, `P1`)
@@ -326,7 +327,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | End match vote | Yes | Done | `P0-SEED-006` |
 | Max players in squad | Yes | Done | `P1-SEED-007` |
 | Squad name validator | Yes | Done | `P1-SEED-008` |
-| Fog of war automation | Yes | Missing | `P1-SEED-010` |
+| Fog of war automation | Yes | Done | `P1-SEED-010` |
 | DB event logging plugin | Yes | Done | `P0-DATA-001` |
 | Websocket API plugin/service | Yes | Done | `P0-API-001` |
 
