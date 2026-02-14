@@ -289,8 +289,9 @@ Status legend:
 - [x] `P1-CONN-003` Add external moderation API connector #2 (`@api-security`, `P1`)
   - Acceptance: integration tests use mocked API and pass.
   - Acceptance note (2026-02-14): Added `CommunityBanListConnector` in `squadpy/connectors/community_ban_list.py` with token-authenticated HTTP lifecycle, started/stopped session management, and normalized player + active-ban lookup via `lookup_player`; exported connector types via `squadpy/connectors/__init__.py`; added mocked API integration coverage in `tests/test_community_ban_list_connector.py` and contract coverage in `tests/contracts/api_security/test_community_ban_list_connector_contract.py`.
-- [ ] `P1-CONN-004` Add admin list sync engine (local + remote + sftp) (`@api-security`, `P1`)
+- [x] `P1-CONN-004` Add admin list sync engine (local + remote + sftp) (`@api-security`, `P1`)
   - Acceptance: merge precedence and conflict behavior covered by tests.
+  - Acceptance note (2026-02-14): Added admin list sync subsystem under `squadpy/admin_lists/` with source adapters (`LocalAdminListSource`, `RemoteAdminListSource`, `SftpAdminListSource`) and `AdminListSyncEngine` precedence-based merge/conflict handling in `squadpy/admin_lists/sync.py`; added targeted coverage in `tests/test_admin_list_sync.py` for local/remote/sftp ingestion and merge precedence/conflicts, plus contract coverage in `tests/contracts/api_security/test_admin_list_sync_contract.py`.
 
 ## 5) Phase 5 - Migration and Compatibility
 
