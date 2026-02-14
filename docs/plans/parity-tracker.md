@@ -57,8 +57,9 @@ Status legend:
 
 ### 1.1 RCON command surface
 
-- [ ] `P0-RCON-001` Add `ban(player_id, duration, reason)` helper (`@core-runtime`, `P0`)
+- [x] `P0-RCON-001` Add `ban(player_id, duration, reason)` helper (`@core-runtime`, `P0`)
   - Acceptance: contract test verifies exact command string and response handling.
+  - Acceptance note (2026-02-14): Added `RconClient.ban(...)` in `squadpy/rcon/client.py`, unit helper coverage in `tests/test_rcon_helpers.py`, and contract test `tests/contracts/core_runtime/test_rcon_ban_contract.py` validating exact command template + response passthrough.
 - [ ] `P0-RCON-002` Add `switch_team(player_id)` helper (`@core-runtime`, `P0`)
   - Acceptance: helper present and covered by command contract test.
 - [ ] `P0-RCON-003` Add force team change helper (`@core-runtime`, `P0`)
