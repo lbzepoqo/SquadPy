@@ -276,6 +276,46 @@ class TestRconClientConvenience:
             await client.force_team_change("abc")
         client.execute.assert_not_called()
 
+    async def test_set_team_calls_force_team_change_when_target_differs(self, client):
+        client.execute.return_value = "OK"
+        client.list_players = AsyncMock(return_value=[
+            RconPlayer(
+                id=123,
+                steam_id="76561198000000000",
+                eos_id="eos-123",
+                name="Player123",
+                team_id=1,
+                squad_id=1,
+                is_leader=False,
+                role="Rifleman",
+            ),
+        ])
+        response = await client.set_team(123, 2)
+        client.execute.assert_awaited_once_with("AdminForceTeamChangeById 123")
+        assert response == "OK"
+
+    async def test_set_team_rejects_invalid_team_enum(self, client):
+        with pytest.raises(ValueError, match="team must be one of"):
+            await client.set_team(123, 3)
+        client.execute.assert_not_called()
+
+    async def test_set_team_returns_noop_when_already_on_team(self, client):
+        client.list_players = AsyncMock(return_value=[
+            RconPlayer(
+                id=123,
+                steam_id="76561198000000000",
+                eos_id="eos-123",
+                name="Player123",
+                team_id=2,
+                squad_id=1,
+                is_leader=False,
+                role="Rifleman",
+            ),
+        ])
+        response = await client.set_team(123, "team2")
+        client.execute.assert_not_called()
+        assert response == "Player is already on requested team"
+
     async def test_set_fog_of_war_calls_execute_with_valid_mode(self, client):
         client.execute.return_value = ""
         await client.set_fog_of_war(1)

@@ -86,8 +86,9 @@ Status legend:
 - [x] `P1-RCON-006` Add `demote_commander(player_id)` helper (`@core-runtime`, `P1`)
   - Acceptance: helper implemented with tests.
   - Acceptance note (2026-02-14): Added `RconClient.demote_commander(...)` in `squadpy/rcon/client.py`, unit helper coverage in `tests/test_rcon_helpers.py`, and contract coverage in `tests/contracts/core_runtime/test_rcon_demote_commander_contract.py` validating exact command-template dispatch and response passthrough.
-- [ ] `P1-RCON-007` Add explicit `set_team(player_id, team)` helper (`@core-runtime`, `P1`)
+- [x] `P1-RCON-007` Add explicit `set_team(player_id, team)` helper (`@core-runtime`, `P1`)
   - Acceptance: team enum validation and command test coverage.
+  - Acceptance note (2026-02-14): Added `RconClient.set_team(...)` in `squadpy/rcon/client.py` with explicit team enum validation (`1`, `2`, `team1`, `team2`) and deterministic target-team behavior, plus unit tests in `tests/test_rcon_helpers.py` and contract tests in `tests/contracts/core_runtime/test_rcon_set_team_contract.py` for command-template dispatch and enum rejection.
 - [ ] `P1-RCON-008` Add `end_match` helper (`@core-runtime`, `P1`)
   - Acceptance: command helper and safety guard tests.
 - [ ] `P1-RCON-009` Add privileged passthrough wrapper with policy checks (`@core-runtime`, `P1`)

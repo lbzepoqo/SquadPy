@@ -42,6 +42,13 @@ _NEXT_MAP_RE = re.compile(
 )
 
 _SAFE_NEXT_LAYER_RE = re.compile(r"^[A-Za-z0-9_+\- ]+$")
+_VALID_TEAM_IDS = {1, 2}
+_TEAM_ALIASES = {
+    "1": 1,
+    "2": 2,
+    "team1": 1,
+    "team2": 2,
+}
 
 
 def parse_players(response: str) -> list[RconPlayer]:
@@ -381,6 +388,41 @@ class RconClient:
 
         if parsed_player_id <= 0:
             raise ValueError("player_id must be a positive integer")
+
+        return await self.execute(f"AdminForceTeamChangeById {parsed_player_id}")
+
+    async def set_team(self, player_id: int | str, team: int | str) -> str:
+        """Set a player to a specific team (1 or 2) via deterministic team switch."""
+        try:
+            parsed_player_id = int(player_id)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("player_id must be a positive integer") from exc
+
+        if parsed_player_id <= 0:
+            raise ValueError("player_id must be a positive integer")
+
+        if isinstance(team, int):
+            parsed_team = team
+        elif isinstance(team, str):
+            parsed_team = _TEAM_ALIASES.get(team.strip().lower())
+            if parsed_team is None:
+                raise ValueError("team must be one of: 1, 2, team1, team2")
+        else:
+            raise ValueError("team must be one of: 1, 2, team1, team2")
+
+        if parsed_team not in _VALID_TEAM_IDS:
+            raise ValueError("team must be one of: 1, 2, team1, team2")
+
+        players = await self.list_players()
+        player = next((item for item in players if item.id == parsed_player_id), None)
+        if player is None:
+            raise ValueError("player_id not found in current player list")
+
+        if player.team_id not in _VALID_TEAM_IDS:
+            raise ValueError("player must currently be on team 1 or team 2")
+
+        if player.team_id == parsed_team:
+            return "Player is already on requested team"
 
         return await self.execute(f"AdminForceTeamChangeById {parsed_player_id}")
 
