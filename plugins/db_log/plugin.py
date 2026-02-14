@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from squadpy.database import Base
 from squadpy.plugin import Plugin
+from plugins.db_log.migrations import apply_sqlite_migrations
 
 
 class DbLogMatch(Base):
@@ -122,5 +124,13 @@ class DbLog(Plugin):
     async def on_enable(self):
         if self.db is None:
             raise RuntimeError("Database manager is not available")
+
+        if self.db.driver == "sqlite":
+            sqlite_path = self.db.sqlite_path
+            if sqlite_path and sqlite_path != ":memory:":
+                applied = apply_sqlite_migrations(Path(sqlite_path))
+                if applied:
+                    self.logger.info("Applied db_log migrations: %s", applied)
+
         await self.db.create_tables()
         self.logger.info("DB log core schema ensured")

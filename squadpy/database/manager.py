@@ -27,6 +27,16 @@ class DatabaseManager:
     def __init__(self) -> None:
         self._engine: AsyncEngine | None = None
         self._session_factory: async_sessionmaker[AsyncSession] | None = None
+        self._driver: str | None = None
+        self._sqlite_path: str | None = None
+
+    @property
+    def driver(self) -> str | None:
+        return self._driver
+
+    @property
+    def sqlite_path(self) -> str | None:
+        return self._sqlite_path
 
     def _build_url(self, config: DatabaseConfig) -> str:
         dialect = _DRIVER_MAP[config.driver]
@@ -38,6 +48,8 @@ class DatabaseManager:
 
     async def initialize(self, config: DatabaseConfig) -> None:
         url = self._build_url(config)
+        self._driver = config.driver
+        self._sqlite_path = config.path if config.driver == "sqlite" else None
         connect_args = {}
         kwargs = {}
         if config.driver == "sqlite":
@@ -73,4 +85,6 @@ class DatabaseManager:
             await self._engine.dispose()
             self._engine = None
             self._session_factory = None
+            self._driver = None
+            self._sqlite_path = None
             logger.info("Database shut down")
