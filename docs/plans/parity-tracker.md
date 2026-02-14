@@ -87,8 +87,9 @@ Status legend:
 
 ### 1.2 Event types and parser parity
 
-- [ ] `P0-EVT-001` Add `PlayerWarned` event (`@parser`, `P0`)
+- [x] `P0-EVT-001` Add `PlayerWarned` event (`@parser`, `P0`)
   - Acceptance: event dataclass + parser contract fixture.
+  - Acceptance note (2026-02-14): Added `PlayerWarned` dataclass in `squadpy/events/types.py`, log parser rule/handler in `squadpy/log_parser/patterns.py`, and parser contract fixture/test at `tests/contracts/fixtures/parser/player_warned_line.txt` + `tests/contracts/parser/test_player_warned_contract.py`.
 - [ ] `P0-EVT-002` Add `PlayerKicked` event (`@parser`, `P0`)
   - Acceptance: event dataclass + parser contract fixture.
 - [ ] `P0-EVT-003` Add `PlayerBanned` event (`@parser`, `P0`)

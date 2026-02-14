@@ -16,6 +16,7 @@ from squadpy.events.types import (
     RoundTickets,
     ServerTickRate,
     AdminBroadcast,
+    PlayerWarned,
     DeployableDamaged,
 )
 
@@ -71,3 +72,22 @@ class TestDeployableDamaged:
     def test_event_name(self):
         e = DeployableDamaged()
         assert e.event_name == "deployable_damaged"
+
+
+class TestPlayerWarned:
+    def test_event_name(self):
+        e = PlayerWarned()
+        assert e.event_name == "player_warned"
+
+    def test_fields(self):
+        pid = PlayerID(name="Rellmi")
+        e = PlayerWarned(
+            admin="Remote admin",
+            player=pid,
+            reason="Welcome to the server.",
+            source="RCON",
+        )
+        assert e.admin == "Remote admin"
+        assert e.player.name == "Rellmi"
+        assert e.reason == "Welcome to the server."
+        assert e.source == "RCON"

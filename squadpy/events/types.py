@@ -144,6 +144,15 @@ class AdminBroadcast(BaseEvent):
 
 
 @dataclass
+class PlayerWarned(BaseEvent):
+    event_name: str = "player_warned"
+    admin: str = ""
+    player: PlayerID = field(default_factory=PlayerID)
+    reason: str = ""
+    source: str = ""
+
+
+@dataclass
 class DeployableDamaged(BaseEvent):
     event_name: str = "deployable_damaged"
     deployable: str = ""

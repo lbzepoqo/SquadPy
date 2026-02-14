@@ -24,6 +24,7 @@ from squadpy.events.types import (
     RoundEnded,
     ServerTickRate,
     AdminBroadcast,
+    PlayerWarned,
     DeployableDamaged,
 )
 from squadpy.log_parser.event_store import EventStore
@@ -436,6 +437,23 @@ def _on_admin_broadcast(m: re.Match, chain_id: int, time: str, store: EventStore
     return AdminBroadcast(message=m.group(3), from_player=m.group(4))
 
 
+# Admin Warned: group 3 = admin/source actor, group 4 = warned player name,
+# group 5 = warn message, group 6 = command source (for example RCON)
+_PLAYER_WARNED_RE = re.compile(
+    _PREFIX
+    + r'LogSquad: ADMIN COMMAND: (.+?) has warned player\s+(.+?)\. Message was "(.+)" from (.+)'
+)
+
+
+def _on_player_warned(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerWarned:
+    return PlayerWarned(
+        admin=m.group(3).strip(),
+        player=PlayerID(name=m.group(4).strip()),
+        reason=m.group(5),
+        source=m.group(6).strip(),
+    )
+
+
 # Deployable Damaged: group 3 = damage source type, group 4 = deployable name,
 # group 5 = damage amount, group 6 = damage type, group 7 = direct hit (0 or 1)
 _DEPLOYABLE_DAMAGED_RE = re.compile(
@@ -473,5 +491,6 @@ def get_rules() -> list[Rule]:
         Rule(_NEW_GAME_RE, _on_new_game),
         Rule(_SERVER_TICK_RATE_RE, _on_server_tick_rate),
         Rule(_ADMIN_BROADCAST_RE, _on_admin_broadcast),
+        Rule(_PLAYER_WARNED_RE, _on_player_warned),
         Rule(_DEPLOYABLE_DAMAGED_RE, _on_deployable_damaged),
     ]

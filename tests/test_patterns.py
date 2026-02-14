@@ -6,7 +6,7 @@ from squadpy.events.types import (
     PlayerConnected, JoinSucceeded, PlayerDisconnected,
     PlayerDamaged, PlayerWounded, PlayerDied, PlayerRevived,
     PlayerPossess, PlayerUnpossess, NewGame, RoundEnded,
-    ServerTickRate, AdminBroadcast, DeployableDamaged,
+    ServerTickRate, AdminBroadcast, PlayerWarned, DeployableDamaged,
 )
 
 
@@ -309,6 +309,18 @@ class TestAdminBroadcast:
         assert isinstance(event, AdminBroadcast)
         assert "Custom squad creation" in event.message
         assert event.from_player == "RCON"
+
+
+class TestPlayerWarned:
+    def test_warned(self):
+        line = '[2026.02.02-02.40.44:503][466]LogSquad: ADMIN COMMAND: Remote admin has warned player  Rellmi. Message was "Type !commands to know the server commands." from RCON'
+        store = EventStore()
+        event = match_line(line, store)
+        assert isinstance(event, PlayerWarned)
+        assert event.admin == "Remote admin"
+        assert event.player.name == "Rellmi"
+        assert event.reason == "Type !commands to know the server commands."
+        assert event.source == "RCON"
 
 
 class TestDeployableDamaged:

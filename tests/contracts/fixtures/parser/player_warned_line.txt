@@ -1,0 +1,1 @@
+[2026.02.02-02.40.44:503][466]LogSquad: ADMIN COMMAND: Remote admin has warned player  Rellmi. Message was "Type !commands to know the server commands." from RCON

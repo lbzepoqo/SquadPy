@@ -8,7 +8,7 @@ from squadpy.events.emitter import EventBus
 from squadpy.events.types import (
     BaseEvent, PlayerConnected, JoinSucceeded, PlayerDamaged,
     PlayerWounded, PlayerDied, PlayerPossess, PlayerUnpossess,
-    NewGame, RoundEnded, ServerTickRate, AdminBroadcast, DeployableDamaged,
+    NewGame, RoundEnded, ServerTickRate, AdminBroadcast, PlayerWarned, DeployableDamaged,
 )
 from squadpy.log_parser.parser import LogParser
 from squadpy.log_parser.reader import LogReader
@@ -100,6 +100,17 @@ class TestLogParser:
         assert events[1].deployable == "BP_I_Sandbag_80"
         assert events[1].direct_hit is False
 
+    async def test_emits_player_warned(self):
+        lines = [
+            '[2026.02.02-02.40.44:503][466]LogSquad: ADMIN COMMAND: Remote admin has warned player  Rellmi. Message was "Type !commands to know the server commands." from RCON',
+        ]
+        events = await self._run_parser(lines)
+        assert len(events) == 1
+        assert isinstance(events[0], PlayerWarned)
+        assert events[0].admin == "Remote admin"
+        assert events[0].player.name == "Rellmi"
+        assert events[0].source == "RCON"
+
     async def test_round_ended_uses_cached_winner_and_loser(self):
         lines = [
             '[2026.02.06-20.45.07:818][740]LogSquadGameEvents: Display: Team 1, Irregular Battle Group ( Middle Eastern Insurgents ) has won the match with 2 Tickets on layer Sumari Bala Seed v1 (level Sumari Bala)!',
@@ -138,7 +149,7 @@ class TestLogParser:
             "player_connected", "join_succeeded", "player_disconnected",
             "player_damaged", "player_wounded", "player_died", "player_revived",
             "player_possess", "player_unpossess", "new_game", "round_ended",
-            "server_tick_rate", "admin_broadcast", "deployable_damaged",
+            "server_tick_rate", "admin_broadcast", "player_warned", "deployable_damaged",
         ]
         for name in event_names:
             bus.subscribe(name, capture)
