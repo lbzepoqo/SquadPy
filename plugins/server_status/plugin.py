@@ -28,6 +28,7 @@ class ServerStatus(Plugin):
 
         channel_id = self._channel_id()
         if channel_id:
+            self.logger.debug("ServerStatus enabled: channel_id=%s", channel_id)
             embed = self._build_embed(
                 player_count=0,
                 squad_count=0,
@@ -39,13 +40,34 @@ class ServerStatus(Plugin):
                 graph_url="",
             )
             self._message = await self.discord.send(channel_id, embed=embed)
+            self.logger.debug(
+                "ServerStatus initial embed posted: channel_id=%s message_id=%s",
+                channel_id,
+                getattr(self._message, "id", "unknown"),
+            )
+            try:
+                await self.update_status()
+            except Exception:
+                self.logger.warning(
+                    "ServerStatus immediate update failed; will retry on periodic schedule",
+                    exc_info=True,
+                )
+        else:
+            self.logger.debug("ServerStatus enabled without channel_id; status updates are disabled")
 
     @periodic(seconds=60)
     async def update_status(self):
         channel_id = self._channel_id()
         if not channel_id:
+            self.logger.debug("ServerStatus update skipped: no channel_id configured")
             return
 
+        self.logger.debug(
+            "ServerStatus update tick: channel_id=%s message_exists=%s samples=%s",
+            channel_id,
+            bool(self._message),
+            len(self._trend_samples),
+        )
         players = await self.rcon.list_players()
         current_map = await self.rcon.show_current_map()
         next_map = await self.rcon.show_next_map()
@@ -70,6 +92,17 @@ class ServerStatus(Plugin):
             tick_rate=tick_rate,
         )
         graph_url = self._build_graph_url()
+        self.logger.debug(
+            "ServerStatus snapshot: players=%s squads=%s tick_rate=%.2f map=%s layer=%s samples=%s sampled=%s graph_url_len=%s",
+            player_count,
+            squad_count,
+            tick_rate,
+            level,
+            layer,
+            len(self._trend_samples),
+            len(self._sampled_trend_points()),
+            len(graph_url),
+        )
 
         embed = self._build_embed(
             player_count=player_count,
@@ -81,16 +114,29 @@ class ServerStatus(Plugin):
             tick_rate=tick_rate,
             graph_url=graph_url,
         )
+        self.logger.debug(
+            "ServerStatus embed ready: has_graph_image=%s",
+            bool(getattr(embed.image, "url", None)),
+        )
 
         if self._message:
             try:
                 self._message = await self.discord.edit_message(self._message, embed=embed)
+                self.logger.debug(
+                    "ServerStatus embed edited: message_id=%s",
+                    getattr(self._message, "id", "unknown"),
+                )
                 return
             except Exception:
                 self.logger.warning("Failed to edit status message, posting new one")
                 self._message = None
 
         self._message = await self.discord.send(channel_id, embed=embed)
+        self.logger.debug(
+            "ServerStatus embed posted: channel_id=%s message_id=%s",
+            channel_id,
+            getattr(self._message, "id", "unknown"),
+        )
 
     @on_event("server_tick_rate")
     async def cache_tick_rate(self, event):

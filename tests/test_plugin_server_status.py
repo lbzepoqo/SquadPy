@@ -134,6 +134,7 @@ class TestServerStatus:
         plugin.rcon.list_players.return_value = [_make_player()]
         plugin.rcon.show_current_map.return_value = MapInfo("Tallil", "Tallil_Seed", "US RU")
         plugin.rcon.show_next_map.return_value = None
+        plugin._trend_samples.clear()
 
         base = plugin._now()
         times = [
