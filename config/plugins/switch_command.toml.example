@@ -1,0 +1,9 @@
+enabled = false
+
+[settings]
+command = "!switch"
+cooldown_seconds = 300
+allowed_channels = ["ChatAll", "ChatTeam"]
+notify_on_success = true
+success_message = "Team switch requested. Please wait before requesting again."
+cooldown_message = "You can use {command} again in {remaining}s."

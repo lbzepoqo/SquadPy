@@ -32,8 +32,8 @@ Status legend:
 ## Current Sprint Focus (2026-02-14)
 
 - Active in-progress IDs: none.
-- Rationale: completed second seeding wave (`P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`) after finishing the moderation+seeding kickoff wave.
-- Next queued IDs: `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`.
+- Rationale: completed second seeding wave plus user-triggered switching (`P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`) after finishing the moderation+seeding kickoff wave.
+- Next queued IDs: `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`.
 
 ## 0) Phase 0 - Program Setup and Acceptance Harness
 
@@ -188,8 +188,9 @@ Status legend:
 - [x] `P0-SEED-004` Implement `plugins/team_randomizer` (`@plugins-seeding`, `P0`)
   - Acceptance: randomization rules and fairness constraints tested.
   - Acceptance note (2026-02-14): Added `plugins/team_randomizer/plugin.py` with imbalance detection, bounded random moves, cooldown gating, leader/exemption filtering, and transition announcements; added example config at `config/plugins/team_randomizer.toml.example` and tests in `tests/test_plugin_team_randomizer.py`.
-- [ ] `P0-SEED-005` Implement `plugins/switch_command` (`@plugins-seeding`, `P0`)
+- [x] `P0-SEED-005` Implement `plugins/switch_command` (`@plugins-seeding`, `P0`)
   - Acceptance: user-triggered switch flow with cooldown checks tested.
+  - Acceptance note (2026-02-14): Added `plugins/switch_command/plugin.py` with chat-triggered switch requests, configurable channel filtering, and per-player cooldown enforcement plus success/cooldown messaging; added example config at `config/plugins/switch_command.toml.example` and coverage in `tests/test_plugin_switch_command.py`.
 - [ ] `P0-SEED-006` Implement `plugins/end_match_vote` (`@plugins-seeding`, `P0`)
   - Acceptance: vote quorum and action thresholds tested.
 - [ ] `P1-SEED-007` Implement `plugins/max_player_in_squad` (`@plugins-seeding`, `P1`)
@@ -298,7 +299,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | Auto seed low players | Yes | Done | `P0-SEED-002` |
 | Auto rejoin team | Yes | Done | `P0-SEED-003` |
 | Team randomizer | Yes | Done | `P0-SEED-004` |
-| Switch command | Yes | Missing | `P0-SEED-005` |
+| Switch command | Yes | Done | `P0-SEED-005` |
 | End match vote | Yes | Missing | `P0-SEED-006` |
 | Max players in squad | Yes | Missing | `P1-SEED-007` |
 | Squad name validator | Yes | Missing | `P1-SEED-008` |
@@ -327,9 +328,9 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 
 Week of: 2026-02-14
 
-- Completed IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`, `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`
+- Completed IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`, `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`
 - In-progress IDs: none
 - Blocked IDs: none
-- New risks: new seeding automation defaults may require server-specific threshold tuning to avoid over-aggressive balancing or rejoin nudges.
-- Mitigations applied: added bounded retries/cooldowns/exemption controls, explicit config templates, focused seeding plugin tests, and full-suite verification.
-- Next week top 5 IDs: `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`, `P0-API-001`
+- New risks: switch command cooldown defaults may feel too strict or too permissive across communities with different seeding cadence.
+- Mitigations applied: added configurable cooldown/channel/success messaging controls, explicit config template, and focused plugin tests for request/cooldown/channel behavior.
+- Next week top 5 IDs: `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`, `P0-API-001`, `P0-API-002`
