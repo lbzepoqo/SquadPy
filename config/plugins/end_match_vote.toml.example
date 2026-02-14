@@ -1,0 +1,17 @@
+enabled = false
+
+[settings]
+command = "!endmatch"
+allowed_channels = ["ChatAll", "ChatTeam"]
+min_players = 1
+min_votes = 8
+vote_threshold_ratio = 0.6
+vote_window_seconds = 120
+cooldown_seconds = 600
+announce_progress = true
+progress_message = "End match vote: {votes}/{required} ({players} players online)."
+vote_recorded_message = "End match vote recorded ({votes}/{required})."
+already_voted_message = "You already voted to end the match."
+not_enough_players_message = "End match vote needs at least {min_players} players online."
+cooldown_message = "End match vote is on cooldown for {remaining}s."
+success_message = "Vote passed ({votes}/{required}). Ending match."
