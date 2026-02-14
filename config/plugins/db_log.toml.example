@@ -1,0 +1,4 @@
+enabled = false
+
+[settings]
+# Reserved for future db_log settings.

@@ -32,8 +32,8 @@ Status legend:
 ## Current Sprint Focus (2026-02-14)
 
 - Active in-progress IDs: none.
-- Rationale: completed second seeding wave plus player-triggered control plugins (`P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`) after finishing the moderation+seeding kickoff wave.
-- Next queued IDs: `P0-DATA-001`, `P0-DATA-002`, `P0-API-001`.
+- Rationale: completed second seeding wave plus initial DBLog schema foundation (`P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`) after finishing the moderation+seeding kickoff wave.
+- Next queued IDs: `P0-DATA-002`, `P0-API-001`, `P0-API-002`.
 
 ## 0) Phase 0 - Program Setup and Acceptance Harness
 
@@ -211,8 +211,9 @@ Status legend:
 
 ### 4.1 Data and DBLog parity
 
-- [ ] `P0-DATA-001` Implement `plugins/db_log` core schema (`@data-platform`, `P0`)
+- [x] `P0-DATA-001` Implement `plugins/db_log` core schema (`@data-platform`, `P0`)
   - Acceptance: migration creates expected tables/indexes.
+  - Acceptance note (2026-02-14): Added `plugins/db_log/plugin.py` with DBLog core schema models for matches/players/sessions/events/admin actions/chat messages and explicit index definitions, plus plugin bootstrap that ensures schema creation on enable; added example config at `config/plugins/db_log.toml.example` and schema/bootstrap coverage in `tests/test_plugin_db_log.py`.
 - [ ] `P0-DATA-002` Add versioned migrations for db log (`@data-platform`, `P0`)
   - Acceptance: forward migration and clean bootstrap tests pass.
 - [ ] `P1-DATA-003` Add retention and pruning jobs (`@data-platform`, `P1`)
@@ -305,7 +306,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | Max players in squad | Yes | Missing | `P1-SEED-007` |
 | Squad name validator | Yes | Missing | `P1-SEED-008` |
 | Fog of war automation | Yes | Missing | `P1-SEED-010` |
-| DB event logging plugin | Yes | Missing | `P0-DATA-001` |
+| DB event logging plugin | Yes | Done | `P0-DATA-001` |
 | Websocket API plugin/service | Yes | Missing | `P0-API-001` |
 
 ## 8) Release Gates
@@ -329,9 +330,9 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 
 Week of: 2026-02-14
 
-- Completed IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`, `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`
+- Completed IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`, `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`
 - In-progress IDs: none
 - Blocked IDs: none
-- New risks: end-match vote thresholds may be tuned too low or high for some server populations, causing unwanted or unreachable vote outcomes.
-- Mitigations applied: added configurable minimum-votes/ratio/min-player thresholds, bounded vote windows, cooldown gating after success, explicit config template, and focused tests for quorum + threshold behavior.
-- Next week top 5 IDs: `P0-DATA-001`, `P0-DATA-002`, `P0-API-001`, `P0-API-002`, `P0-API-003`
+- New risks: DBLog core schema may require careful migration handling as fields evolve beyond initial table/index footprint.
+- Mitigations applied: established explicit named indexes and table contracts in `db_log` schema tests, and queued versioned migration work next (`P0-DATA-002`) to absorb forward schema changes safely.
+- Next week top 5 IDs: `P0-DATA-002`, `P0-API-001`, `P0-API-002`, `P0-API-003`, `P1-DATA-003`
