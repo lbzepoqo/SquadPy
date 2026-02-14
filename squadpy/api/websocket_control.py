@@ -65,8 +65,7 @@ class WebsocketControlService:
         return self._path
 
     async def start(self) -> None:
-        app = web.Application()
-        app.router.add_get(self._path, self._handle_ws)
+        app = self._build_app()
         self._runner = web.AppRunner(app)
         await self._runner.setup()
         self._site = web.TCPSite(self._runner, host=self._host, port=self._port)
@@ -129,6 +128,55 @@ class WebsocketControlService:
             request_id=request_id,
         ).as_dict()
 
+    async def process_health(self, *, token: str | None) -> dict[str, Any]:
+        if not self._is_authorized(token):
+            return ControlResponse(
+                ok=False,
+                error="Unauthorized",
+                code="unauthorized",
+            ).as_dict()
+
+        return ControlResponse(
+            ok=True,
+            result={"status": "ok"},
+        ).as_dict()
+
+    async def process_status(self, *, token: str | None) -> dict[str, Any]:
+        if not self._is_authorized(token):
+            return ControlResponse(
+                ok=False,
+                error="Unauthorized",
+                code="unauthorized",
+            ).as_dict()
+
+        rcon = self._resolve_rcon()
+        response = {
+            "service": "control_api",
+            "rcon_connected": bool(rcon and getattr(rcon, "connected", False)),
+            "server_running": bool(getattr(self._server, "running", False)) if self._server else False,
+        }
+        return ControlResponse(
+            ok=True,
+            result=response,
+        ).as_dict()
+
+    async def process_command(
+        self,
+        payload: dict[str, Any],
+        *,
+        token: str | None,
+    ) -> dict[str, Any]:
+        request_id = str(payload.get("request_id", "")).strip()
+        command = str(payload.get("command", "")).strip()
+        return await self.process_payload(
+            {
+                "request_id": request_id,
+                "action": "rcon.execute",
+                "command": command,
+            },
+            token=token,
+        )
+
     async def _handle_ws(self, request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
         await ws.prepare(request)
@@ -165,6 +213,40 @@ class WebsocketControlService:
 
         return ws
 
+    async def _handle_health(self, request: web.Request) -> web.Response:
+        token = self._request_token(request)
+        response = await self.process_health(token=token)
+        return web.json_response(response, status=self._http_status(response))
+
+    async def _handle_status(self, request: web.Request) -> web.Response:
+        token = self._request_token(request)
+        response = await self.process_status(token=token)
+        return web.json_response(response, status=self._http_status(response))
+
+    async def _handle_command(self, request: web.Request) -> web.Response:
+        token = self._request_token(request)
+        try:
+            payload = await request.json()
+        except json.JSONDecodeError:
+            response = ControlResponse(
+                ok=False,
+                error="Malformed JSON",
+                code="invalid_json",
+            ).as_dict()
+            return web.json_response(response, status=self._http_status(response))
+
+        if not isinstance(payload, dict):
+            response = ControlResponse(
+                ok=False,
+                error="Payload must be an object",
+                code="invalid_json",
+            ).as_dict()
+            return web.json_response(response, status=self._http_status(response))
+
+        request_token = str(payload.get("token", "")).strip() or token
+        response = await self.process_command(payload, token=request_token)
+        return web.json_response(response, status=self._http_status(response))
+
     def _request_token(self, request: web.Request) -> str:
         header = request.headers.get("Authorization", "")
         if header.startswith("Bearer "):
@@ -186,3 +268,23 @@ class WebsocketControlService:
         if self._server is None:
             return None
         return getattr(self._server, "_rcon", None)
+
+    def _build_app(self) -> web.Application:
+        app = web.Application()
+        app.router.add_get(self._path, self._handle_ws)
+        app.router.add_get("/api/health", self._handle_health)
+        app.router.add_get("/api/status", self._handle_status)
+        app.router.add_post("/api/command", self._handle_command)
+        return app
+
+    def _http_status(self, response: dict[str, Any]) -> int:
+        if bool(response.get("ok")):
+            return 200
+        code = str(response.get("code", ""))
+        if code == "unauthorized":
+            return 401
+        if code in {"invalid_json", "invalid_request", "unknown_action"}:
+            return 400
+        if code == "unavailable":
+            return 503
+        return 500
