@@ -351,6 +351,10 @@ class RconClient:
         """Ban a player by steam ID or EOS ID."""
         return await self.execute(f'AdminBan "{player_id}" {duration} {reason}')
 
+    async def switch_team(self, player_id: str) -> str:
+        """Switch a player to the opposite team by steam ID or EOS ID."""
+        return await self.execute(f'AdminSwitchTeam "{player_id}"')
+
     async def show_current_map(self) -> MapInfo | None:
         """Get current map info."""
         response = await self.execute("ShowCurrentMap")

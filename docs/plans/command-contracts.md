@@ -59,6 +59,7 @@ Request fixture may be:
 | `warn(player_id, message)` | `warn` | `AdminWarn "{player_id}" {message}` | passthrough `str` |
 | `kick(player_id, reason)` | `kick` | `AdminKick "{player_id}" {reason}` | passthrough `str` |
 | `ban(player_id, duration, reason)` | `ban` | `AdminBan "{player_id}" {duration} {reason}` | passthrough `str` |
+| `switch_team(player_id)` | `switch_team` | `AdminSwitchTeam "{player_id}"` | passthrough `str` |
 | `show_current_map()` | `show_current_map` | `ShowCurrentMap` | parse to `MapInfo \| None` |
 | `show_next_map()` | `show_next_map` | `ShowNextMap` | parse to `MapInfo \| None`; returns `None` when response contains `not defined` |
 
@@ -68,7 +69,6 @@ These command IDs already exist in fixtures and are reserved for upcoming helper
 
 | Tracker ID | Contract ID | Planned Helper |
 |---|---|---|
-| `P0-RCON-002` | `switch_team` | `switch_team(player_id)` |
 | `P0-RCON-003` | `force_team_change` | force team change helper |
 | `P0-RCON-004` | `set_fog_of_war` | `set_fog_of_war(mode)` |
 | `P0-RCON-005` | `set_next_layer` | `set_next_layer(layer)` |

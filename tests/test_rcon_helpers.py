@@ -252,6 +252,13 @@ class TestRconClientConvenience:
             'AdminBan "76561198000000000" 24h Cheating'
         )
 
+    async def test_switch_team_quotes_player_id(self, client):
+        client.execute.return_value = ""
+        await client.switch_team("76561198000000000")
+        client.execute.assert_awaited_once_with(
+            'AdminSwitchTeam "76561198000000000"'
+        )
+
     async def test_show_current_map_calls_execute(self, client):
         client.execute.return_value = "Current level is Test, layer is Test_v1, factions A B"
         result = await client.show_current_map()
