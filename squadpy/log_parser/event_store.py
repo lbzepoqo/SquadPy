@@ -12,6 +12,7 @@ class EventStore:
     - join_requests: pending joins by chain ID (consumed by JoinSucceeded)
     - disconnected: recently disconnected EOS IDs
     - pending_bans: temporary ban context by chain ID
+    - pending_admin_cam_possess: temporary possess context by chain ID
     - round_winner/round_loser: held until RoundEnded emits them
     """
 
@@ -21,6 +22,7 @@ class EventStore:
         self.join_requests: dict[int, Any] = {}
         self.disconnected: dict[str, bool] = {}
         self.pending_bans: dict[int, Any] = {}
+        self.pending_admin_cam_possess: dict[int, Any] = {}
         self.round_winner: dict[str, Any] | None = None
         self.round_loser: dict[str, Any] | None = None
 
@@ -31,5 +33,6 @@ class EventStore:
         self.join_requests.clear()
         self.disconnected.clear()
         self.pending_bans.clear()
+        self.pending_admin_cam_possess.clear()
         self.round_winner = None
         self.round_loser = None

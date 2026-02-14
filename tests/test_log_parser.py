@@ -9,7 +9,7 @@ from squadpy.events.types import (
     BaseEvent, PlayerConnected, JoinSucceeded, PlayerDamaged,
     PlayerWounded, PlayerDied, PlayerPossess, PlayerUnpossess,
     NewGame, RoundEnded, ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked,
-    PlayerBanned, DeployableDamaged,
+    PlayerBanned, AdminCamPossess, DeployableDamaged,
 )
 from squadpy.log_parser.parser import LogParser
 from squadpy.log_parser.reader import LogReader
@@ -138,6 +138,19 @@ class TestLogParser:
         assert events[0].reason == "Kupal na admin"
         assert events[0].source == "RCON"
 
+    async def test_emits_admin_cam_possess(self):
+        lines = [
+            '[2026.02.14-05.23.57:674][804]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Callsign (Online IDs: EOS: 00025c44975740ca82effe91ef190757 steam: 76561199267250463) Pawn=BP_DeveloperAdminCam_C_2146619275 FullPath=BP_DeveloperAdminCam_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_DeveloperAdminCam_C_2146619275',
+            '[2026.02.14-05.23.57:674][804]LogSquad: Warning: Admin Camera possessed.',
+        ]
+        events = await self._run_parser(lines)
+        assert len(events) == 2
+        assert isinstance(events[0], PlayerPossess)
+        assert isinstance(events[1], AdminCamPossess)
+        assert events[1].admin.name == "Callsign"
+        assert events[1].target == "Admin Camera"
+        assert events[1].context["pawn_classname"] == "BP_DeveloperAdminCam_C"
+
     async def test_round_ended_uses_cached_winner_and_loser(self):
         lines = [
             '[2026.02.06-20.45.07:818][740]LogSquadGameEvents: Display: Team 1, Irregular Battle Group ( Middle Eastern Insurgents ) has won the match with 2 Tickets on layer Sumari Bala Seed v1 (level Sumari Bala)!',
@@ -177,7 +190,7 @@ class TestLogParser:
             "player_damaged", "player_wounded", "player_died", "player_revived",
             "player_possess", "player_unpossess", "new_game", "round_ended",
             "server_tick_rate", "admin_broadcast", "player_warned", "player_kicked",
-            "player_banned", "deployable_damaged",
+            "player_banned", "admin_cam_possess", "deployable_damaged",
         ]
         for name in event_names:
             bus.subscribe(name, capture)

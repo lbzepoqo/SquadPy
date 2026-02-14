@@ -6,7 +6,8 @@ from squadpy.events.types import (
     PlayerConnected, JoinSucceeded, PlayerDisconnected,
     PlayerDamaged, PlayerWounded, PlayerDied, PlayerRevived,
     PlayerPossess, PlayerUnpossess, NewGame, RoundEnded,
-    ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked, PlayerBanned, DeployableDamaged,
+    ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked, PlayerBanned,
+    AdminCamPossess, DeployableDamaged,
 )
 
 
@@ -199,6 +200,34 @@ class TestPlayerUnpossess:
         assert event.exited_vehicle is True
         assert event.vehicle_name == "BP_Loach_CAS_Small_C"
         assert event.seat_number == 0
+
+
+class TestAdminCamPossess:
+    def test_admin_cam_possess_from_correlated_lines(self):
+        store = EventStore()
+        match_line(
+            '[2026.02.14-05.23.57:674][804]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Callsign (Online IDs: EOS: 00025c44975740ca82effe91ef190757 steam: 76561199267250463) Pawn=BP_DeveloperAdminCam_C_2146619275 FullPath=BP_DeveloperAdminCam_C /SquadAdminTools/Maps/SATSeed/Maps/Tallil/L_SAT_Tallil_Seed_v1.L_SAT_Tallil_Seed_v1:PersistentLevel.BP_DeveloperAdminCam_C_2146619275',
+            store,
+        )
+        event = match_line(
+            '[2026.02.14-05.23.57:674][804]LogSquad: Warning: Admin Camera possessed.',
+            store,
+        )
+        assert isinstance(event, AdminCamPossess)
+        assert event.admin.name == "Callsign"
+        assert event.admin.eos_id == "00025c44975740ca82effe91ef190757"
+        assert event.admin.steam_id == "76561199267250463"
+        assert event.target == "Admin Camera"
+        assert event.context["pawn_classname"] == "BP_DeveloperAdminCam_C"
+        assert "BP_DeveloperAdminCam_C" in event.context["full_path"]
+
+    def test_admin_cam_warning_without_context_returns_none(self):
+        store = EventStore()
+        event = match_line(
+            '[2026.02.14-05.23.57:674][804]LogSquad: Warning: Admin Camera possessed.',
+            store,
+        )
+        assert event is None
 
 
 class TestNewGame:

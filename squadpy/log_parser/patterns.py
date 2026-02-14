@@ -27,6 +27,7 @@ from squadpy.events.types import (
     PlayerWarned,
     PlayerKicked,
     PlayerBanned,
+    AdminCamPossess,
     DeployableDamaged,
 )
 from squadpy.log_parser.event_store import EventStore
@@ -296,17 +297,32 @@ def _on_player_revived(
 
 # --- Possess/Unpossess ---
 
-# OnPossess: group 3 = player name, group 4 = online IDs, group 5 = pawn class name
+# OnPossess:
+# group 3 = player name, group 4 = online IDs, group 5 = pawn class name,
+# group 6 = optional full path payload.
 _PLAYER_POSSESS_RE = re.compile(
-    _PREFIX + r"LogSquadTrace: \[DedicatedServer\](?:ASQPlayerController::)?OnPossess\(\): PC=(.+) \(Online IDs: ([^)]+)\) Pawn=([A-Za-z0-9_]+_C)_\d+"
+    _PREFIX
+    + r"LogSquadTrace: \[DedicatedServer\](?:ASQPlayerController::)?OnPossess\(\): "
+    + r"PC=(.+) \(Online IDs: ([^)]+)\) Pawn=([A-Za-z0-9_]+_C)_\d+"
+    + r"(?: FullPath=(.+))?"
 )
 
 
 def _on_player_possess(m: re.Match, chain_id: int, time: str, store: EventStore) -> PlayerPossess:
-    player_name = m.group(3)
+    player_name = m.group(3).strip()
     ids = parse_online_ids(m.group(4))
     pawn_class = m.group(5)
+    full_path = (m.group(6) or "").strip()
     player = PlayerID(eos_id=ids["eos_id"], steam_id=ids["steam_id"], name=player_name)
+    if pawn_class == "BP_DeveloperAdminCam_C":
+        store.pending_admin_cam_possess[chain_id] = {
+            "admin": player,
+            "target": "Admin Camera",
+            "context": {
+                "pawn_classname": pawn_class,
+                "full_path": full_path,
+            },
+        }
     return PlayerPossess(player=player, possess_classname=pawn_class)
 
 
@@ -336,6 +352,25 @@ def _on_player_unpossess(m: re.Match, chain_id: int, time: str, store: EventStor
     ids = parse_online_ids(m.group(4))
     player = PlayerID(eos_id=ids["eos_id"], steam_id=ids["steam_id"], name=m.group(3))
     return PlayerUnpossess(player=player, health=float(m.group(5)))
+
+
+# Admin Camera possess marker: emitted after admin-cam OnPossess on same chain id.
+_ADMIN_CAM_POSSESSED_RE = re.compile(
+    _PREFIX + r"LogSquad: Warning: Admin Camera possessed\."
+)
+
+
+def _on_admin_cam_possessed(
+    m: re.Match, chain_id: int, time: str, store: EventStore
+) -> AdminCamPossess | None:
+    context = store.pending_admin_cam_possess.pop(chain_id, None)
+    if context is None:
+        return None
+    return AdminCamPossess(
+        admin=context["admin"],
+        target=context["target"],
+        context=context["context"],
+    )
 
 
 # --- Game state events ---
@@ -606,6 +641,7 @@ def get_rules() -> list[Rule]:
         Rule(_PLAYER_POSSESS_RE, _on_player_possess),
         Rule(_PLAYER_UNPOSSESS_VEHICLE_RE, _on_player_unpossess_vehicle),
         Rule(_PLAYER_UNPOSSESS_RE, _on_player_unpossess),
+        Rule(_ADMIN_CAM_POSSESSED_RE, _on_admin_cam_possessed),
         Rule(_ROUND_DRAW_RE, _on_round_draw),
         Rule(_ROUND_WINNER_RE, _on_round_winner),
         Rule(_ROUND_TICKETS_RE, _on_round_tickets),

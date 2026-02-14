@@ -19,6 +19,7 @@ from squadpy.events.types import (
     PlayerWarned,
     PlayerKicked,
     PlayerBanned,
+    AdminCamPossess,
     DeployableDamaged,
 )
 
@@ -133,3 +134,24 @@ class TestPlayerBanned:
         assert e.duration == "1d"
         assert e.reason == "Cheating"
         assert e.source == "RCON"
+
+
+class TestAdminCamPossess:
+    def test_event_name(self):
+        e = AdminCamPossess()
+        assert e.event_name == "admin_cam_possess"
+
+    def test_fields(self):
+        admin = PlayerID(
+            eos_id="00025c44975740ca82effe91ef190757",
+            steam_id="76561199267250463",
+            name="Callsign",
+        )
+        e = AdminCamPossess(
+            admin=admin,
+            target="Admin Camera",
+            context={"pawn_classname": "BP_DeveloperAdminCam_C"},
+        )
+        assert e.admin.name == "Callsign"
+        assert e.target == "Admin Camera"
+        assert e.context["pawn_classname"] == "BP_DeveloperAdminCam_C"
