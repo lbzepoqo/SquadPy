@@ -283,8 +283,9 @@ Status legend:
 - [x] `P0-CONN-001` Add connector abstraction under `squadpy/connectors/` (`@api-security`, `P0`)
   - Acceptance: connector interface and lifecycle tests pass.
   - Acceptance note (2026-02-14): Added connector abstraction package in `squadpy/connectors/` with base `Connector` lifecycle/state interface and `ConnectorManager` orchestration, wired `DiscordConnector` to the shared connector interface lifecycle, and added targeted coverage in `tests/test_connectors.py` plus contract coverage in `tests/contracts/api_security/test_connector_lifecycle_contract.py`.
-- [ ] `P1-CONN-002` Add external moderation API connector #1 (`@api-security`, `P1`)
+- [x] `P1-CONN-002` Add external moderation API connector #1 (`@api-security`, `P1`)
   - Acceptance: integration tests use mocked API and pass.
+  - Acceptance note (2026-02-14): Added `BattleMetricsConnector` in `squadpy/connectors/battlemetrics.py` with token-authenticated HTTP lifecycle, started/stopped session management, and normalized player lookup via `lookup_player`; exported connector types via `squadpy/connectors/__init__.py`; added mocked API integration coverage in `tests/test_battlemetrics_connector.py` and contract coverage in `tests/contracts/api_security/test_battlemetrics_connector_contract.py`.
 - [ ] `P1-CONN-003` Add external moderation API connector #2 (`@api-security`, `P1`)
   - Acceptance: integration tests use mocked API and pass.
 - [ ] `P1-CONN-004` Add admin list sync engine (local + remote + sftp) (`@api-security`, `P1`)
