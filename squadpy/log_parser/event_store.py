@@ -13,6 +13,7 @@ class EventStore:
     - disconnected: recently disconnected EOS IDs
     - pending_bans: temporary ban context by chain ID
     - pending_admin_cam_possess: temporary possess context by chain ID
+    - active_admin_cam_sessions: open admin-cam sessions by admin identity
     - round_winner/round_loser: held until RoundEnded emits them
     """
 
@@ -23,6 +24,7 @@ class EventStore:
         self.disconnected: dict[str, bool] = {}
         self.pending_bans: dict[int, Any] = {}
         self.pending_admin_cam_possess: dict[int, Any] = {}
+        self.active_admin_cam_sessions: dict[str, Any] = {}
         self.round_winner: dict[str, Any] | None = None
         self.round_loser: dict[str, Any] | None = None
 
@@ -34,5 +36,6 @@ class EventStore:
         self.disconnected.clear()
         self.pending_bans.clear()
         self.pending_admin_cam_possess.clear()
+        self.active_admin_cam_sessions.clear()
         self.round_winner = None
         self.round_loser = None

@@ -20,6 +20,7 @@ from squadpy.events.types import (
     PlayerKicked,
     PlayerBanned,
     AdminCamPossess,
+    AdminCamUnpossess,
     DeployableDamaged,
 )
 
@@ -155,3 +156,25 @@ class TestAdminCamPossess:
         assert e.admin.name == "Callsign"
         assert e.target == "Admin Camera"
         assert e.context["pawn_classname"] == "BP_DeveloperAdminCam_C"
+
+
+class TestAdminCamUnpossess:
+    def test_event_name(self):
+        e = AdminCamUnpossess()
+        assert e.event_name == "admin_cam_unpossess"
+
+    def test_fields(self):
+        admin = PlayerID(
+            eos_id="00025c44975740ca82effe91ef190757",
+            steam_id="76561199267250463",
+            name="Callsign",
+        )
+        e = AdminCamUnpossess(
+            admin=admin,
+            target="Admin Camera",
+            context={"open_chain_id": 529, "close_chain_id": 912},
+        )
+        assert e.admin.name == "Callsign"
+        assert e.target == "Admin Camera"
+        assert e.context["open_chain_id"] == 529
+        assert e.context["close_chain_id"] == 912

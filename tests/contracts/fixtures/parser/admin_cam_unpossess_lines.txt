@@ -1,0 +1,3 @@
+[2026.02.02-12.23.29:659][529]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Callsign (Online IDs: EOS: 00025c44975740ca82effe91ef190757 steam: 76561199267250463) Pawn=BP_DeveloperAdminCam_C_2141703157 FullPath=BP_DeveloperAdminCam_C /Game/Maps/Yehorivka/Gameplay_Layers/Yehorivka_RAAS_v2.Yehorivka_RAAS_v2:PersistentLevel.BP_DeveloperAdminCam_C_2141703157
+[2026.02.02-12.23.29:660][529]LogSquad: Warning: Admin Camera possessed.
+[2026.02.02-12.29.43:890][912]LogSquadTrace: [DedicatedServer]OnUnPossess(): PC=Callsign (Online IDs: EOS: 00025c44975740ca82effe91ef190757 steam: 76561199267250463)

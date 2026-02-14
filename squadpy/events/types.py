@@ -180,6 +180,14 @@ class AdminCamPossess(BaseEvent):
 
 
 @dataclass
+class AdminCamUnpossess(BaseEvent):
+    event_name: str = "admin_cam_unpossess"
+    admin: PlayerID = field(default_factory=PlayerID)
+    target: str = ""
+    context: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class DeployableDamaged(BaseEvent):
     event_name: str = "deployable_damaged"
     deployable: str = ""

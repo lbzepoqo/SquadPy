@@ -9,7 +9,7 @@ from squadpy.events.types import (
     BaseEvent, PlayerConnected, JoinSucceeded, PlayerDamaged,
     PlayerWounded, PlayerDied, PlayerPossess, PlayerUnpossess,
     NewGame, RoundEnded, ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked,
-    PlayerBanned, AdminCamPossess, DeployableDamaged,
+    PlayerBanned, AdminCamPossess, AdminCamUnpossess, DeployableDamaged,
 )
 from squadpy.log_parser.parser import LogParser
 from squadpy.log_parser.reader import LogReader
@@ -151,6 +151,22 @@ class TestLogParser:
         assert events[1].target == "Admin Camera"
         assert events[1].context["pawn_classname"] == "BP_DeveloperAdminCam_C"
 
+    async def test_emits_admin_cam_unpossess(self):
+        lines = [
+            '[2026.02.02-12.23.29:659][529]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Callsign (Online IDs: EOS: 00025c44975740ca82effe91ef190757 steam: 76561199267250463) Pawn=BP_DeveloperAdminCam_C_2141703157 FullPath=BP_DeveloperAdminCam_C /Game/Maps/Yehorivka/Gameplay_Layers/Yehorivka_RAAS_v2.Yehorivka_RAAS_v2:PersistentLevel.BP_DeveloperAdminCam_C_2141703157',
+            '[2026.02.02-12.23.29:660][529]LogSquad: Warning: Admin Camera possessed.',
+            '[2026.02.02-12.29.43:890][912]LogSquadTrace: [DedicatedServer]OnUnPossess(): PC=Callsign (Online IDs: EOS: 00025c44975740ca82effe91ef190757 steam: 76561199267250463)',
+        ]
+        events = await self._run_parser(lines)
+        assert len(events) == 3
+        assert isinstance(events[0], PlayerPossess)
+        assert isinstance(events[1], AdminCamPossess)
+        assert isinstance(events[2], AdminCamUnpossess)
+        assert events[2].admin.name == "Callsign"
+        assert events[2].target == "Admin Camera"
+        assert events[2].context["open_chain_id"] == 529
+        assert events[2].context["close_chain_id"] == 912
+
     async def test_round_ended_uses_cached_winner_and_loser(self):
         lines = [
             '[2026.02.06-20.45.07:818][740]LogSquadGameEvents: Display: Team 1, Irregular Battle Group ( Middle Eastern Insurgents ) has won the match with 2 Tickets on layer Sumari Bala Seed v1 (level Sumari Bala)!',
@@ -190,7 +206,8 @@ class TestLogParser:
             "player_damaged", "player_wounded", "player_died", "player_revived",
             "player_possess", "player_unpossess", "new_game", "round_ended",
             "server_tick_rate", "admin_broadcast", "player_warned", "player_kicked",
-            "player_banned", "admin_cam_possess", "deployable_damaged",
+            "player_banned", "admin_cam_possess", "admin_cam_unpossess",
+            "deployable_damaged",
         ]
         for name in event_names:
             bus.subscribe(name, capture)

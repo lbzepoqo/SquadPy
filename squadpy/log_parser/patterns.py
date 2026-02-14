@@ -28,6 +28,7 @@ from squadpy.events.types import (
     PlayerKicked,
     PlayerBanned,
     AdminCamPossess,
+    AdminCamUnpossess,
     DeployableDamaged,
 )
 from squadpy.log_parser.event_store import EventStore
@@ -354,6 +355,39 @@ def _on_player_unpossess(m: re.Match, chain_id: int, time: str, store: EventStor
     return PlayerUnpossess(player=player, health=float(m.group(5)))
 
 
+# OnUnPossess (bare variant used by admin-cam exit):
+# group 3 = player name, group 4 = online IDs
+_PLAYER_UNPOSSESS_BARE_RE = re.compile(
+    _PREFIX
+    + r"LogSquadTrace: \[DedicatedServer\](?:ASQPlayerController::)?OnUnPossess\(\): "
+    + r"PC=(.+) \(Online IDs: ([^)]+)\)$"
+)
+
+
+def _on_player_unpossess_bare(
+    m: re.Match, chain_id: int, time: str, store: EventStore
+) -> AdminCamUnpossess | None:
+    player_name = m.group(3).strip()
+    ids = parse_online_ids(m.group(4))
+    admin = PlayerID(
+        eos_id=ids["eos_id"],
+        steam_id=ids["steam_id"],
+        name=player_name,
+    )
+    session_key = admin.eos_id or admin.name
+    session = store.active_admin_cam_sessions.pop(session_key, None)
+    if session is None:
+        return None
+    session_context = dict(session.get("context", {}))
+    session_context["open_chain_id"] = session.get("open_chain_id")
+    session_context["close_chain_id"] = chain_id
+    return AdminCamUnpossess(
+        admin=admin,
+        target=session.get("target", "Admin Camera"),
+        context=session_context,
+    )
+
+
 # Admin Camera possess marker: emitted after admin-cam OnPossess on same chain id.
 _ADMIN_CAM_POSSESSED_RE = re.compile(
     _PREFIX + r"LogSquad: Warning: Admin Camera possessed\."
@@ -366,10 +400,21 @@ def _on_admin_cam_possessed(
     context = store.pending_admin_cam_possess.pop(chain_id, None)
     if context is None:
         return None
+    admin: PlayerID = context["admin"]
+    session_key = admin.eos_id or admin.name
+    store.active_admin_cam_sessions[session_key] = {
+        "admin": admin,
+        "target": context["target"],
+        "context": context["context"],
+        "open_chain_id": chain_id,
+    }
     return AdminCamPossess(
-        admin=context["admin"],
+        admin=admin,
         target=context["target"],
-        context=context["context"],
+        context={
+            **context["context"],
+            "open_chain_id": chain_id,
+        },
     )
 
 
@@ -641,6 +686,7 @@ def get_rules() -> list[Rule]:
         Rule(_PLAYER_POSSESS_RE, _on_player_possess),
         Rule(_PLAYER_UNPOSSESS_VEHICLE_RE, _on_player_unpossess_vehicle),
         Rule(_PLAYER_UNPOSSESS_RE, _on_player_unpossess),
+        Rule(_PLAYER_UNPOSSESS_BARE_RE, _on_player_unpossess_bare),
         Rule(_ADMIN_CAM_POSSESSED_RE, _on_admin_cam_possessed),
         Rule(_ROUND_DRAW_RE, _on_round_draw),
         Rule(_ROUND_WINNER_RE, _on_round_winner),

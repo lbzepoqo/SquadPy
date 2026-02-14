@@ -80,6 +80,7 @@ The following event names and field contracts map to `squadpy/events/types.py`.
 | `player_kicked` | `admin`, `player`, `reason`, `source` | `player` is `PlayerID` |
 | `player_banned` | `admin`, `player`, `duration`, `reason`, `source` | `player` is `PlayerID` |
 | `admin_cam_possess` | `admin`, `target`, `context` | `admin` is `PlayerID`; `context` includes pawn/full path |
+| `admin_cam_unpossess` | `admin`, `target`, `context` | `admin` is `PlayerID`; `context` includes open/close pairing |
 | `deployable_damaged` | `deployable`, `damage`, `damage_source`, `damage_type`, `direct_hit` | |
 | `chat_message` | `player_name`, `steam_id`, `eos_id`, `channel`, `message` | |
 
@@ -89,7 +90,6 @@ These contracts are reserved for upcoming parity items and should be implemented
 
 | Tracker ID | Planned Event Name | Minimum Fields |
 |---|---|---|
-| `P0-EVT-005` | `admin_cam_unpossess` | `admin`, `target`, `context` |
 | `P0-EVT-006` | `squad_created` | `team_id`, `squad_id`, `squad_name`, `creator` |
 | `P0-EVT-007` | `teamkill` | `attacker`, `victim`, `weapon` |
 

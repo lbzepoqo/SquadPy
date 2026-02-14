@@ -7,7 +7,7 @@ from squadpy.events.types import (
     PlayerDamaged, PlayerWounded, PlayerDied, PlayerRevived,
     PlayerPossess, PlayerUnpossess, NewGame, RoundEnded,
     ServerTickRate, AdminBroadcast, PlayerWarned, PlayerKicked, PlayerBanned,
-    AdminCamPossess, DeployableDamaged,
+    AdminCamPossess, AdminCamUnpossess, DeployableDamaged,
 )
 
 
@@ -225,6 +225,39 @@ class TestAdminCamPossess:
         store = EventStore()
         event = match_line(
             '[2026.02.14-05.23.57:674][804]LogSquad: Warning: Admin Camera possessed.',
+            store,
+        )
+        assert event is None
+
+
+class TestAdminCamUnpossess:
+    def test_admin_cam_unpossess_from_correlated_open_close(self):
+        store = EventStore()
+        match_line(
+            '[2026.02.02-12.23.29:659][529]LogSquadTrace: [DedicatedServer]OnPossess(): PC=Callsign (Online IDs: EOS: 00025c44975740ca82effe91ef190757 steam: 76561199267250463) Pawn=BP_DeveloperAdminCam_C_2141703157 FullPath=BP_DeveloperAdminCam_C /Game/Maps/Yehorivka/Gameplay_Layers/Yehorivka_RAAS_v2.Yehorivka_RAAS_v2:PersistentLevel.BP_DeveloperAdminCam_C_2141703157',
+            store,
+        )
+        match_line(
+            '[2026.02.02-12.23.29:660][529]LogSquad: Warning: Admin Camera possessed.',
+            store,
+        )
+        event = match_line(
+            '[2026.02.02-12.29.43:890][912]LogSquadTrace: [DedicatedServer]OnUnPossess(): PC=Callsign (Online IDs: EOS: 00025c44975740ca82effe91ef190757 steam: 76561199267250463)',
+            store,
+        )
+        assert isinstance(event, AdminCamUnpossess)
+        assert event.admin.name == "Callsign"
+        assert event.admin.eos_id == "00025c44975740ca82effe91ef190757"
+        assert event.admin.steam_id == "76561199267250463"
+        assert event.target == "Admin Camera"
+        assert event.context["pawn_classname"] == "BP_DeveloperAdminCam_C"
+        assert event.context["open_chain_id"] == 529
+        assert event.context["close_chain_id"] == 912
+
+    def test_admin_cam_unpossess_without_open_session_returns_none(self):
+        store = EventStore()
+        event = match_line(
+            '[2026.02.02-12.29.43:890][912]LogSquadTrace: [DedicatedServer]OnUnPossess(): PC=Callsign (Online IDs: EOS: 00025c44975740ca82effe91ef190757 steam: 76561199267250463)',
             store,
         )
         assert event is None
