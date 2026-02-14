@@ -103,6 +103,7 @@ class ServerStatus(Plugin):
             len(self._sampled_trend_points()),
             len(graph_url),
         )
+        self.logger.debug("ServerStatus graph_url=%s", graph_url)
 
         embed = self._build_embed(
             player_count=player_count,
