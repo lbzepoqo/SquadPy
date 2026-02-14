@@ -140,8 +140,9 @@ Status legend:
 - [x] `P0-RT-002` Add out-of-order response stress tests (`@core-runtime`, `P0`)
   - Acceptance: request correlation remains deterministic under concurrency.
   - Acceptance note (2026-02-14): Added high-concurrency out-of-order response tests in `tests/test_rcon_client.py` and contract stress test `tests/contracts/core_runtime/test_rcon_out_of_order_responses_contract.py` using real `ListPlayers`/`ListSquads` fixtures to validate deterministic request-id correlation under reverse-order completion.
-- [ ] `P1-RT-003` Add typed error taxonomy for RCON failures (`@core-runtime`, `P1`)
+- [x] `P1-RT-003` Add typed error taxonomy for RCON failures (`@core-runtime`, `P1`)
   - Acceptance: callers can branch on error classes in tests.
+  - Acceptance note (2026-02-14): Added typed RCON runtime exceptions in `squadpy/rcon/client.py` (`RconConnectionError`, `RconDisconnectedError`, `RconAuthenticationError`, `RconCommandError`, `RconCommandTimeoutError`) with backward-compatible `RconAuthError` aliasing, updated runtime raise sites (`connect`, `execute`, auth handling, disconnect propagation) to emit typed subclasses, and added branching coverage in `tests/test_rcon_client.py` plus contract test `tests/contracts/core_runtime/test_rcon_error_taxonomy_contract.py`.
 
 ## 2) Phase 2 - Moderation Plugin Parity
 

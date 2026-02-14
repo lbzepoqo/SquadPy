@@ -123,8 +123,28 @@ class RconError(Exception):
     """General RCON error."""
 
 
-class RconAuthError(RconError):
+class RconConnectionError(RconError):
+    """Connection-level RCON error."""
+
+
+class RconDisconnectedError(RconConnectionError):
+    """RCON command attempted without an active connection."""
+
+
+class RconAuthenticationError(RconError):
     """Authentication failed."""
+
+
+class RconAuthError(RconAuthenticationError):
+    """Backward-compatible alias for authentication errors."""
+
+
+class RconCommandError(RconError):
+    """Command execution error."""
+
+
+class RconCommandTimeoutError(RconCommandError):
+    """Command timed out waiting for a response."""
 
 
 class RconClient:
@@ -159,6 +179,7 @@ class RconClient:
         self._reconnect_event: asyncio.Event = asyncio.Event()
         self._reconnect_event.set()
         self._reader_task: asyncio.Task | None = None
+        self._auth_request_id: int | None = None
         self._privileged_audit_records: list[dict[str, str]] = []
         self._max_privileged_audit_records = 1000
 
@@ -185,7 +206,9 @@ class RconClient:
                 timeout=self._command_timeout,
             )
         except (OSError, asyncio.TimeoutError) as e:
-            raise RconError(f"Failed to connect to {self.host}:{self.port}: {e}") from e
+            raise RconConnectionError(
+                f"Failed to connect to {self.host}:{self.port}: {e}",
+            ) from e
 
         self._reader = reader
         self._writer = writer
@@ -206,10 +229,14 @@ class RconClient:
         future: asyncio.Future[str] = asyncio.get_event_loop().create_future()
         self._pending_requests[auth_id] = future
         self._response_buffers[auth_id] = []
+        self._auth_request_id = auth_id
 
         try:
             await asyncio.wait_for(future, timeout=self._command_timeout)
         except asyncio.TimeoutError:
+            self._pending_requests.pop(auth_id, None)
+            self._response_buffers.pop(auth_id, None)
+            self._auth_request_id = None
             raise RconAuthError("Authentication timed out")
 
     async def execute(self, command: str) -> str:
@@ -221,11 +248,11 @@ class RconClient:
             if waiting_for_reconnect:
                 await self._reconnect_event.wait()
             else:
-                raise RconError("Not connected")
+                raise RconDisconnectedError("Not connected")
 
         await self._reconnect_event.wait()
         if not self._connected or self._writer is None:
-            raise RconError("Not connected")
+            raise RconDisconnectedError("Not connected")
 
         request_id = self._next_packet_id()
         cmd_packet = encode_packet(PacketType.EXEC_COMMAND, request_id, command)
@@ -244,7 +271,7 @@ class RconClient:
         except asyncio.TimeoutError:
             self._pending_requests.pop(request_id, None)
             self._response_buffers.pop(request_id, None)
-            raise RconError(f"Command timed out: {command}")
+            raise RconCommandTimeoutError(f"Command timed out: {command}")
 
     async def execute_privileged(
         self,
@@ -352,12 +379,24 @@ class RconClient:
                 self._handle_response_packet(packet)
 
     def _handle_auth_response(self, packet: RconPacket) -> None:
+        if packet.id == -1:
+            if self._auth_request_id is None:
+                return
+
+            auth_id = self._auth_request_id
+            self._auth_request_id = None
+            future = self._pending_requests.pop(auth_id, None)
+            self._response_buffers.pop(auth_id, None)
+            if future is not None and not future.done():
+                future.set_exception(RconAuthError("Authentication failed"))
+            return
+
         if packet.id in self._pending_requests:
             future = self._pending_requests.pop(packet.id)
             self._response_buffers.pop(packet.id, None)
-            if packet.id == -1:
-                future.set_exception(RconAuthError("Authentication failed"))
-            elif not future.done():
+            if packet.id == self._auth_request_id:
+                self._auth_request_id = None
+            if not future.done():
                 future.set_result("")
 
     def _handle_response_packet(self, packet: RconPacket) -> None:
@@ -389,9 +428,10 @@ class RconClient:
             self._reconnect_event.clear()
         for future in self._pending_requests.values():
             if not future.done():
-                future.set_exception(RconError("Connection lost"))
+                future.set_exception(RconDisconnectedError("Connection lost"))
         self._pending_requests.clear()
         self._response_buffers.clear()
+        self._auth_request_id = None
 
         if self.auto_reconnect:
             await self._reconnect()

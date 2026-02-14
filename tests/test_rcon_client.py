@@ -5,7 +5,15 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from squadpy.rcon.client import RconClient, RconError
+from squadpy.rcon.client import (
+    RconAuthError,
+    RconAuthenticationError,
+    RconClient,
+    RconCommandTimeoutError,
+    RconConnectionError,
+    RconDisconnectedError,
+    RconError,
+)
 from squadpy.rcon.protocol import (
     PacketType,
     RconPacket,
@@ -21,7 +29,7 @@ class TestRconClient:
         assert not client.connected
 
     async def test_execute_when_not_connected_raises(self, client):
-        with pytest.raises(RconError, match="Not connected"):
+        with pytest.raises(RconDisconnectedError, match="Not connected"):
             await client.execute("ListPlayers")
 
     async def test_packet_id_increments(self, client):
@@ -33,6 +41,44 @@ class TestRconClient:
         client._packet_id_counter = 2**31 - 1
         next_id = client._next_packet_id()
         assert next_id == 1
+
+    async def test_connect_failure_raises_connection_error(self, client):
+        with patch(
+            "squadpy.rcon.client.asyncio.open_connection",
+            side_effect=OSError("connect failed"),
+        ):
+            with pytest.raises(RconConnectionError, match="Failed to connect"):
+                await client.connect()
+
+    async def test_authenticate_timeout_raises_auth_error(self, client):
+        client._writer = AsyncMock()
+        client._writer.write = Mock()
+        client._writer.drain = AsyncMock()
+
+        with patch(
+            "squadpy.rcon.client.asyncio.wait_for",
+            side_effect=asyncio.TimeoutError,
+        ):
+            with pytest.raises(RconAuthenticationError, match="Authentication timed out"):
+                await client._authenticate()
+
+        assert client._pending_requests == {}
+        assert client._response_buffers == {}
+
+    async def test_execute_timeout_raises_command_timeout_error(self, client):
+        client._connected = True
+        client._reconnecting = False
+        client._reconnect_event.set()
+        client._writer = AsyncMock()
+        client._writer.write = Mock()
+        client._writer.drain = AsyncMock()
+
+        with patch(
+            "squadpy.rcon.client.asyncio.wait_for",
+            side_effect=asyncio.TimeoutError,
+        ):
+            with pytest.raises(RconCommandTimeoutError, match="Command timed out"):
+                await client.execute("ListPlayers")
 
 
 class TestRconProtocolHandler:
@@ -137,6 +183,20 @@ class TestRconProtocolHandler:
         assert await asyncio.wait_for(future_a, timeout=1.0) == "resp-a"
         assert await asyncio.wait_for(future_b, timeout=1.0) == "resp-b"
 
+    async def test_auth_failure_response_sets_auth_error(self, client):
+        request_id = 5
+        future = asyncio.get_event_loop().create_future()
+        client._pending_requests[request_id] = future
+        client._response_buffers[request_id] = []
+        client._auth_request_id = request_id
+
+        client._handle_auth_response(
+            RconPacket(id=-1, type=PacketType.AUTH_RESPONSE, body="")
+        )
+
+        with pytest.raises(RconAuthError, match="Authentication failed"):
+            await future
+
 
 class TestRconReconnect:
     @pytest.fixture
@@ -172,7 +232,7 @@ class TestRconReconnect:
         assert client.connected is False
         assert client._pending_requests == {}
         assert client._response_buffers == {}
-        with pytest.raises(RconError, match="Connection lost"):
+        with pytest.raises(RconDisconnectedError, match="Connection lost"):
             await future
 
     async def test_handle_disconnect_calls_reconnect_when_enabled(self, client):
