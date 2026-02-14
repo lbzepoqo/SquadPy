@@ -67,8 +67,9 @@ Status legend:
   - Acceptance: helper present and covered by command contract test.
   - Acceptance note (2026-02-14): Added `RconClient.switch_team(...)` in `squadpy/rcon/client.py`, unit helper test in `tests/test_rcon_helpers.py`, and contract test `tests/contracts/core_runtime/test_rcon_switch_team_contract.py` for exact command-template and response passthrough validation.
   - Verification note (2026-02-14): Corrected command to `AdminForceTeamChange <NameOrSteamId>` per `tests/contracts/fixtures/rcon/commands/commands_with_details.txt`.
-- [ ] `P0-RCON-003` Add force team change helper (`@core-runtime`, `P0`)
+- [x] `P0-RCON-003` Add force team change helper (`@core-runtime`, `P0`)
   - Acceptance: command is exposed and tested with valid/invalid ids.
+  - Acceptance note (2026-02-14): Added `RconClient.force_team_change(...)` in `squadpy/rcon/client.py` using `AdminForceTeamChangeById`, unit tests in `tests/test_rcon_helpers.py` for valid and invalid ids, and contract tests in `tests/contracts/core_runtime/test_rcon_force_team_change_contract.py` for command template + invalid-id response passthrough.
 - [ ] `P0-RCON-004` Add `set_fog_of_war(mode)` helper (`@core-runtime`, `P0`)
   - Acceptance: mode validation and command dispatch tests pass.
 - [ ] `P0-RCON-005` Add `set_next_layer(layer)` helper (`@core-runtime`, `P0`)

@@ -259,6 +259,16 @@ class TestRconClientConvenience:
             "AdminForceTeamChange 76561198000000000"
         )
 
+    async def test_force_team_change_by_id_calls_execute(self, client):
+        client.execute.return_value = ""
+        await client.force_team_change(123)
+        client.execute.assert_awaited_once_with("AdminForceTeamChangeById 123")
+
+    async def test_force_team_change_rejects_invalid_id(self, client):
+        with pytest.raises(ValueError, match="positive integer"):
+            await client.force_team_change("abc")
+        client.execute.assert_not_called()
+
     async def test_show_current_map_calls_execute(self, client):
         client.execute.return_value = "Current level is Test, layer is Test_v1, factions A B"
         result = await client.show_current_map()

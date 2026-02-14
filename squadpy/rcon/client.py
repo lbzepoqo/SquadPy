@@ -355,6 +355,18 @@ class RconClient:
         """Switch a player to the opposite team by steam ID or EOS ID."""
         return await self.execute(f"AdminForceTeamChange {player_id}")
 
+    async def force_team_change(self, player_id: int | str) -> str:
+        """Force a player onto the opposite team using numeric player ID."""
+        try:
+            parsed_player_id = int(player_id)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("player_id must be a positive integer") from exc
+
+        if parsed_player_id <= 0:
+            raise ValueError("player_id must be a positive integer")
+
+        return await self.execute(f"AdminForceTeamChangeById {parsed_player_id}")
+
     async def show_current_map(self) -> MapInfo | None:
         """Get current map info."""
         response = await self.execute("ShowCurrentMap")

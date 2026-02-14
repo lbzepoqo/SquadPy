@@ -61,6 +61,7 @@ Request fixture may be:
 | `kick(player_id, reason)` | `kick` | `AdminKick "{player_id}" {reason}` | passthrough `str` |
 | `ban(player_id, duration, reason)` | `ban` | `AdminBan "{player_id}" "{duration}" {reason}` | passthrough `str` |
 | `switch_team(player_id)` | `switch_team` | `AdminForceTeamChange {player_id}` | passthrough `str` |
+| `force_team_change(player_id)` | `force_team_change` | `AdminForceTeamChangeById {player_id}` | passthrough `str` (with positive-integer ID validation) |
 | `show_current_map()` | `show_current_map` | `ShowCurrentMap` | parse to `MapInfo \| None` |
 | `show_next_map()` | `show_next_map` | `ShowNextMap` | parse to `MapInfo \| None`; returns `None` when response contains `not defined` |
 
@@ -70,7 +71,6 @@ These command IDs already exist in fixtures and are reserved for upcoming helper
 
 | Tracker ID | Contract ID | Planned Helper |
 |---|---|---|
-| `P0-RCON-003` | `force_team_change` | force team change helper (by-id path uses `AdminForceTeamChangeById`) |
 | `P0-RCON-004` | `set_fog_of_war` | `set_fog_of_war(mode)` |
 | `P0-RCON-005` | `set_next_layer` | `set_next_layer(layer)` |
 | `P1-RCON-006` | `demote_commander` | `demote_commander(player_id)` |
