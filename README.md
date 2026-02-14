@@ -169,7 +169,24 @@ Events are typed dataclasses. Key events include:
 ## Testing
 
 ```bash
-pytest tests/ -v
+make setup-dev
+make test
+```
+
+`make setup-dev` bootstraps `.venv` and installs `.[dev]` dependencies (including `pytest`).
+`make test` only runs tests with the venv interpreter (it does not install dependencies).
+
+Additional targets:
+
+```bash
+make test-unit
+make test-contract
+```
+
+For direct invocation without `make`:
+
+```bash
+.venv/bin/python -m pytest tests/ -v
 ```
 
 All tests are async using `pytest-asyncio` with auto mode. Services are mockable — no running server needed.

@@ -1,6 +1,6 @@
 """Validate regex patterns against real Squad log files.
 
-Skipped if sample files don't exist (they're gitignored).
+Skipped if no local sample logs are available.
 """
 
 import pytest
@@ -10,14 +10,15 @@ from squadpy.log_parser.event_store import EventStore
 from squadpy.log_parser.patterns import match_line
 
 SAMPLES_DIR = Path(__file__).parent / "fixtures" / "samples"
+LOG_FILES = sorted(SAMPLES_DIR.rglob("*.log")) if SAMPLES_DIR.exists() else []
 
 
 @pytest.mark.skipif(
-    not SAMPLES_DIR.exists() or not list(SAMPLES_DIR.glob("*.log")),
+    not LOG_FILES,
     reason="No sample log files available",
 )
 class TestRealLogs:
-    @pytest.fixture(params=list(SAMPLES_DIR.glob("*.log")) if SAMPLES_DIR.exists() else [])
+    @pytest.fixture(params=LOG_FILES)
     def log_file(self, request):
         return request.param
 
