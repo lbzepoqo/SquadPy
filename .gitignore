@@ -20,3 +20,6 @@ tests/fixtures/samples/
 
 # Local live-capture artifacts
 tmp/live_capture/
+
+# Editor settings
+.vscode/
