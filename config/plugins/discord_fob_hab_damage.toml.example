@@ -1,0 +1,21 @@
+enabled = false
+
+[settings]
+# Discord channel ID where FOB/HAB damage summaries are posted
+channel_id = 0
+
+# Emit a summary only when cumulative damage crosses one of these values
+summary_thresholds = [250, 500, 1000]
+
+# Keyword filters used to classify deployable names
+hab_keywords = ["hab", "bunker", "spawn"]
+fob_keywords = ["fob", "radio"]
+
+# Include non-FOB/HAB deployables as category=OTHER
+include_other_deployables = false
+
+# Include damage source/type/direct-hit metadata in message output
+include_damage_metadata = true
+
+# Clear cumulative counters at new round start
+reset_on_new_game = true

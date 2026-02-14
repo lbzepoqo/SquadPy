@@ -169,8 +169,9 @@ Status legend:
 - [x] `P1-PLUG-MOD-007` Implement `plugins/discord_squad_created` (`@plugins-moderation`, `P1`)
   - Acceptance: squad creation alerts include team and creator metadata.
   - Acceptance note (2026-02-14): Added `plugins/discord_squad_created/plugin.py` to publish `squad_created` events to Discord with team metadata (`team_id`, `team_name`) and creator metadata (`creator.name`, optional Steam/EOS IDs), added config template `config/plugins/discord_squad_created.toml.example`, and added coverage in `tests/test_plugin_discord_squad_created.py` for dispatch, disabled channel behavior, creator-id toggling, and handler registration.
-- [ ] `P1-PLUG-MOD-008` Implement `plugins/discord_fob_hab_damage` (`@plugins-moderation`, `P1`)
+- [x] `P1-PLUG-MOD-008` Implement `plugins/discord_fob_hab_damage` (`@plugins-moderation`, `P1`)
   - Acceptance: deployable damage events are summarized with thresholds.
+  - Acceptance note (2026-02-14): Added `plugins/discord_fob_hab_damage/plugin.py` to aggregate `deployable_damaged` events by FOB/HAB deployable classification and emit Discord summaries only when cumulative damage crosses configured thresholds, with optional damage metadata and new-round reset support; added config template `config/plugins/discord_fob_hab_damage.toml.example` and coverage in `tests/test_plugin_discord_fob_hab_damage.py` for threshold crossings, multi-threshold progression, reset behavior, non-FOB/HAB filtering, and handler registration.
 - [ ] `P1-PLUG-MOD-009` Implement `plugins/discord_rcon_console` (`@plugins-moderation`, `P1`)
   - Acceptance: privileged console command execution is audited and gated.
 
@@ -309,8 +310,8 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 | Discord killfeed | Yes | Done | `P0-PLUG-MOD-004` |
 | Discord teamkill feed | Yes | Done | `P0-PLUG-MOD-005` |
 | Discord round events | Yes | Done | `P0-PLUG-MOD-006` |
-| Discord squad created | Yes | Missing | `P1-PLUG-MOD-007` |
-| Discord FOB/HAB damage | Yes | Missing | `P1-PLUG-MOD-008` |
+| Discord squad created | Yes | Done | `P1-PLUG-MOD-007` |
+| Discord FOB/HAB damage | Yes | Done | `P1-PLUG-MOD-008` |
 | Discord RCON console | Yes | Missing | `P1-PLUG-MOD-009` |
 | Seeding mode | Yes | Done | `P0-SEED-001` |
 | Auto seed low players | Yes | Done | `P0-SEED-002` |
