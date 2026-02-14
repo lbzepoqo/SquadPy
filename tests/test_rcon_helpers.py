@@ -120,14 +120,14 @@ class TestParseListPlayers:
 class TestParseListSquads:
     def test_squad_count(self):
         """Sample has squads from 2 teams."""
-        data = load_fixture("ListSquads.txt")
+        data = load_fixture("ListSquads (Sample 1).txt")
         squads = parse_squads(data)
         # Team 1: 13 squads (IDs 1-8, 10-14), Team 2: 11 squads
         assert len(squads) == 24
 
     def test_team_assignment(self):
         """Squads are assigned to correct teams."""
-        data = load_fixture("ListSquads.txt")
+        data = load_fixture("ListSquads (Sample 1).txt")
         squads = parse_squads(data)
         team1 = [s for s in squads if s.team_id == 1]
         team2 = [s for s in squads if s.team_id == 2]
@@ -136,14 +136,14 @@ class TestParseListSquads:
 
     def test_team_names(self):
         """Team names with special characters parsed correctly."""
-        data = load_fixture("ListSquads.txt")
+        data = load_fixture("ListSquads (Sample 1).txt")
         squads = parse_squads(data)
         team2_squad = next(s for s in squads if s.team_id == 2)
         assert '"' in team2_squad.team_name  # Contains quotes
 
     def test_squad_fields(self):
         """Squad fields parsed correctly."""
-        data = load_fixture("ListSquads.txt")
+        data = load_fixture("ListSquads (Sample 1).txt")
         squads = parse_squads(data)
         first = squads[0]
         assert first.id == 1
@@ -157,7 +157,7 @@ class TestParseListSquads:
 
     def test_skipped_squad_ids(self):
         """Squad IDs can skip numbers (e.g. 8 -> 10)."""
-        data = load_fixture("ListSquads.txt")
+        data = load_fixture("ListSquads (Sample 1).txt")
         squads = parse_squads(data)
         team1_ids = [s.id for s in squads if s.team_id == 1]
         assert 8 in team1_ids
@@ -166,7 +166,7 @@ class TestParseListSquads:
 
     def test_creator_with_special_chars(self):
         """Creator names with special characters parsed correctly."""
-        data = load_fixture("ListSquads.txt")
+        data = load_fixture("ListSquads (Sample 1).txt")
         squads = parse_squads(data)
         # Sillychilli <3 is a creator
         rws = next(s for s in squads if s.name == "RWS")
@@ -327,7 +327,7 @@ class TestRconClientConvenience:
 
     async def test_list_squads_returns_parsed(self, client):
         """Integration: real fixture data flows through convenience method."""
-        client.execute.return_value = load_fixture("ListSquads.txt")
+        client.execute.return_value = load_fixture("ListSquads (Sample 1).txt")
         squads = await client.list_squads()
         assert len(squads) == 24
         assert isinstance(squads[0], RconSquad)
