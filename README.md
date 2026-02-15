@@ -1,199 +1,290 @@
 # SquadPy
 
-A Python-based framework for [Squad](https://joinsquad.com/) game server management. Inspired by [SquadJS](https://github.com/Team-Silver-Sphere/SquadJS) and [SquadTS](https://github.com/ambroiseRabier/SquadTS).
+Python framework for [Squad](https://joinsquad.com/) server operations, inspired by SquadJS and SquadTS, with typed Python APIs and async-first runtime behavior.
 
-## Features
+## Highlights
 
-- **Async RCON client** — handles Squad's non-standard protocol (oversized packets, TCP fragmentation, multi-packet reassembly)
-- **Log parser** — tails server logs (local or SFTP), extracts 15+ event types via regex
-- **Event-driven plugin system** — `@on_event`, `@periodic`, `@slash_command` decorators with per-plugin TOML config
-- **Discord integration** — embeds, buttons, threads, slash commands as a core service
-- **Database** — SQLAlchemy async with SQLite default, MySQL/PostgreSQL swappable
-- **Error isolation** — plugins fail independently, auto-disable after repeated errors, never crash the server
-- **Hot-reload** — reload plugins at runtime via Discord `/reload` command
+- Async RCON client with reconnect and command correlation.
+- Parser-backed event bus with typed events for plugin workflows.
+- Broad built-in plugin coverage for moderation, seeding, Discord, and data logging.
+- Control API with token auth, optional RBAC, signed webhook policy, and audit records.
+- Observability endpoints: `/metrics`, `/api/health`, `/api/readiness`, `/api/traces`.
+- One-process multi-server orchestration (`config/servers/*` discovery).
+- RCON broker primitive (`RconBroker`) for one upstream socket and many authenticated clients.
+- Plugin watchdog failure budgets for controlled degradation.
+- Dev tooling for migration analysis, plugin scaffolding, and local replay simulation.
 
 ## Requirements
 
 - Python 3.12+
-- A running Squad dedicated server with RCON enabled
+- Squad dedicated server with RCON enabled
 
-## Quick Start
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/your-username/SquadPy.git
-   cd SquadPy
-   ```
-
-2. **Create a virtual environment and install dependencies**
-
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install -e ".[dev]"
-   ```
-
-3. **Copy example configs**
-
-   ```bash
-   cp config/server.toml.example config/server.toml
-   cp config/logging.toml.example config/logging.toml
-   ```
-
-4. **Edit `config/server.toml`** with your server's RCON details
-
-   ```toml
-   [rcon]
-   host = "127.0.0.1"
-   port = 21114
-   password = "your_rcon_password"
-   ```
-
-5. **Run**
-
-   ```bash
-   python -m squadpy
-   ```
-
-## Configuration
-
-All configuration uses TOML files in the `config/` directory. Example files (`*.toml.example`) are provided for every config — copy them and remove the `.example` suffix.
-
-| Config | Purpose |
-|--------|---------|
-| `config/server.toml` | RCON connection, log reader, Discord bot |
-| `config/logging.toml` | Log level, file rotation settings |
-| `config/database.toml` | Database driver and connection (optional) |
-| `config/plugins/*.toml` | Per-plugin settings |
-
-### Optional Services
-
-Enable these by uncommenting the relevant sections in `config/server.toml`:
-
-- **Log reader** — required for most event-driven plugins (kills, connections, chat)
-- **Discord** — required for slash commands, embeds, and Discord-facing plugins
-- **Database** — required for plugins that persist data across restarts
-
-## Architecture
-
-```
-Log Reader (local/SFTP) --> Log Parser (regex + state) --> Event Bus --> Plugins
-                                                              ^
-RCON Client (async, Squad-quirks-aware) ----------------------+
-```
-
-Plugins subscribe to events and call back into services (RCON, Discord, Database). They never talk to each other directly — communication happens through events, keeping plugins decoupled and independently testable.
-
-## Built-in Plugins
-
-| Plugin | Requires | Description |
-|--------|----------|-------------|
-| **AutoKickUnassigned** | rcon | Warns then kicks players not in a squad |
-| **TKWarn** | rcon | Tracks teamkills, warns offenders, kicks after threshold |
-| **ServerStatus** | rcon, discord | Live-updating Discord embed with server info |
-| **AdminRequest** | rcon, discord | `!admin` chat command creates Discord tickets with threads |
-| **DiscordChatBridge** | rcon, discord | Two-way game chat <-> Discord channel bridge |
-| **DiscordAdminBroadcast** | rcon, discord | Privileged `/broadcast` command to send server announcements |
-| **DiscordAdminCamLogs** | discord | Posts admin camera possess/unpossess lifecycle events to Discord |
-| **DiscordKillfeed** | discord | Posts structured player kill feed messages to Discord |
-| **DiscordTeamkill** | discord | Posts structured teamkill feed messages to Discord |
-| **DiscordRoundEvents** | discord | Posts round start/end summaries to Discord |
-| **PluginManager** | discord | `/status`, `/plugins`, `/reload` slash commands |
-
-Enable plugins by copying their example config:
+## Install
 
 ```bash
-cp config/plugins/auto_kick_unassigned.toml.example config/plugins/auto_kick_unassigned.toml
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
 ```
 
-## Writing Plugins
+## Runtime Modes
 
-Create a directory under `plugins/` with a `plugin.py` file:
+### Single Server (Default)
+
+1. Copy config examples:
+
+```bash
+cp config/server.toml.example config/server.toml
+cp config/logging.toml.example config/logging.toml
+```
+
+2. Minimum `config/server.toml`:
+
+```toml
+[rcon]
+host = "127.0.0.1"
+port = 21114
+password = "your_rcon_password"
+```
+
+3. Run:
+
+```bash
+python -m squadpy
+```
+
+### Multi-Server (One Process, N Server Contexts)
+
+When `config/servers/<name>/server.toml` exists, `python -m squadpy` auto-starts multi-server mode.
+
+Recommended layout:
+
+```text
+config/
+  logging.toml                  # optional shared fallback
+  database.toml                 # optional shared fallback
+  servers/
+    server-a/
+      server.toml               # required
+      logging.toml              # optional per-server override
+      database.toml             # optional per-server override
+      plugins/                  # optional per-server plugin configs
+        auto_kick_unassigned.toml
+    server-b/
+      server.toml
+      plugins/
+        auto_kick_unassigned.toml
+```
+
+Example `config/servers/server-a/server.toml`:
+
+```toml
+[rcon]
+host = "10.0.1.21"
+port = 21114
+password = "password_a"
+
+[log]
+enabled = true
+mode = "local"
+path = "/srv/squad-a/SquadGame.log"
+
+[api]
+enabled = true
+host = "127.0.0.1"
+port = 18091
+websocket_path = "/ws/control"
+auth_token = "token_a"
+```
+
+Example `config/servers/server-b/server.toml`:
+
+```toml
+[rcon]
+host = "10.0.1.22"
+port = 21114
+password = "password_b"
+
+[log]
+enabled = true
+mode = "local"
+path = "/srv/squad-b/SquadGame.log"
+
+[api]
+enabled = true
+host = "127.0.0.1"
+port = 18092
+websocket_path = "/ws/control"
+auth_token = "token_b"
+```
+
+Operational rules:
+
+- Use distinct RCON endpoints per server context.
+- Use distinct log sources/paths per server context.
+- Use distinct API ports per server context.
+- Plugin code is shared from `plugins/`, while plugin config can be isolated per server under `config/servers/<name>/plugins/`.
+
+### RCON Broker Mode (Library Primitive)
+
+`RconBroker` is available for embedding into local control services:
 
 ```python
+from squadpy.rcon.client import RconClient
+from squadpy.rcon.broker import RconBroker
+
+upstream = RconClient(host="127.0.0.1", port=21114, password="secret")
+await upstream.connect()
+
+broker = RconBroker(
+    upstream,
+    clients={"tool-a": "token-a", "tool-b": "token-b"},
+)
+
+response = await broker.execute(token="token-a", command="ListPlayers")
+```
+
+## Configuration Overview
+
+Core files:
+
+| File | Purpose |
+|---|---|
+| `config/server.toml` | Single-server runtime config |
+| `config/logging.toml` | Logging setup |
+| `config/database.toml` | Optional DB setup |
+| `config/plugins/*.toml` | Per-plugin settings |
+| `config/servers/<name>/server.toml` | Multi-server per-context config |
+| `config/servers/<name>/plugins/*.toml` | Multi-server per-context plugin settings |
+
+`server.toml` sections:
+
+- `[rcon]` required.
+- `[log]` optional local/SFTP log tail.
+- `[discord]` optional Discord bot connector.
+- `[api]` optional REST + websocket control API.
+- `[plugin_watchdog]` optional failure-budget controls (`enabled`, `failure_threshold`, `failure_window_seconds`).
+
+## Control API, Security, and Observability
+
+If `[api].enabled = true`, SquadPy serves:
+
+- `GET /api/health`
+- `GET /api/readiness`
+- `GET /api/status`
+- `GET /api/traces`
+- `GET /metrics` (Prometheus format)
+- `POST /api/command`
+- `POST /api/layers/query`
+- `POST /api/webhook/command`
+- `WS /ws/control` (path configurable)
+
+Auth and policy:
+
+- API token via `Authorization: Bearer <token>` (or `?token=` query fallback).
+- Optional RBAC via `[api].rbac_*` settings.
+- Optional signed webhook policy via `[api].webhook_signing_*` settings.
+
+## Built-In Plugins
+
+Directory: `plugins/<plugin_name>/plugin.py`.
+
+Moderation and admin:
+
+- `auto_kick_unassigned`
+- `tk_warn`
+- `admin_request`
+- `chat_commands`
+- `switch_command`
+- `max_player_in_squad`
+- `squad_name_validator`
+- `end_match_vote`
+
+Seeding and gameplay automation:
+
+- `seeding_mode`
+- `auto_seed_low_players`
+- `auto_rejoin_team`
+- `team_randomizer`
+- `intervalled_broadcasts`
+- `fog_of_war`
+- `knife_broadcast`
+- `heli_crash_broadcast`
+
+Discord integrations:
+
+- `discord_chat_bridge`
+- `discord_admin_broadcast`
+- `discord_admin_cam_logs`
+- `discord_killfeed`
+- `discord_teamkill`
+- `discord_round_events`
+- `discord_squad_created`
+- `discord_fob_hab_damage`
+- `discord_rcon_console`
+- `server_status`
+- `plugin_manager`
+
+Data:
+
+- `db_log`
+
+## Tooling Scripts
+
+| Script | Purpose |
+|---|---|
+| `scripts/migrate_from_squadjs.py` | Report-first SquadJS config analyzer |
+| `scripts/migrate_from_squadts.py` | Report-first SquadTS config analyzer |
+| `scripts/lint_migrated_toml.py` | Lint migrated TOML and emit fixups/severity |
+| `scripts/scaffold_plugin.py` | Generate typed plugin skeleton + starter tests/config |
+| `scripts/simulate_local_replay.py` | Replay logs/RCON fixtures through plugins locally |
+
+## Plugin Development
+
+### Scaffolder
+
+Create a typed plugin skeleton:
+
+```bash
+.venv/bin/python scripts/scaffold_plugin.py my_new_plugin
+```
+
+This generates:
+
+- `plugins/my_new_plugin/plugin.py`
+- `tests/test_plugin_my_new_plugin.py`
+- `config/plugins/my_new_plugin.toml.example`
+
+### Manual Plugin Example
+
+```python
+from squadpy.events.types import ChatMessage, PlayerConnected
 from squadpy.plugin import Plugin, on_event, periodic
+
 
 class MyPlugin(Plugin):
     name = "My Plugin"
     description = "Does something useful"
     requires = ["rcon"]
 
-    async def on_enable(self):
-        self.logger.info("Plugin enabled")
-
     @on_event("player_connected")
-    async def greet_player(self, event):
-        await self.rcon.warn(event.eos_id, "Welcome to the server!")
+    async def handle_player_connected(self, event: PlayerConnected) -> None:
+        await self.rcon.warn(event.eos_id, "Welcome")
+
+    @on_event("chat_message")
+    async def handle_chat(self, event: ChatMessage) -> None:
+        if event.message == "!ping":
+            await self.rcon.warn(event.eos_id, "pong")
 
     @periodic(seconds=60)
-    async def periodic_task(self):
+    async def periodic_task(self) -> None:
         players = await self.rcon.list_players()
-        self.logger.info(f"{len(players)} players online")
-
-    async def on_disable(self):
-        self.logger.info("Plugin disabled")
+        self.logger.info("Players online: %d", len(players))
 ```
 
-**Available services** on `self`:
+## Local Simulation Harness
 
-| Service | Description |
-|---------|-------------|
-| `self.rcon` | RCON client — execute commands, list players/squads, broadcast, warn, kick |
-| `self.discord` | Discord connector — send messages, create threads, edit embeds |
-| `self.db` | Database session factory (`None` if not configured) |
-| `self.config` | Plugin's parsed TOML config |
-| `self.logger` | Named logger (`squadpy.plugins.<name>`) |
-| `self.event_bus` | Event bus for emitting custom events |
-
-**Decorators**:
-
-| Decorator | Description |
-|-----------|-------------|
-| `@on_event("event_name")` | Subscribe to server events |
-| `@periodic(seconds=N)` | Run a method on an interval |
-| `@slash_command(name, description)` | Register a Discord slash command |
-| `@on_discord("button_click", custom_id="...")` | Handle Discord interactions |
-
-## Events
-
-Events are typed dataclasses. Key events include:
-
-- `PlayerConnected`, `PlayerDisconnected` — join/leave
-- `PlayerDamaged`, `PlayerWounded`, `PlayerDied`, `PlayerRevived` — combat
-- `PlayerPossess`, `PlayerUnpossess` — vehicle/role changes
-- `ChatMessage` — in-game chat (All/Team/Squad channels)
-- `NewGame`, `RoundEnded`, `RoundTickets` — match lifecycle
-- `ServerTickRate`, `AdminBroadcast`, `DeployableDamaged` — server state
-
-## Testing
-
-```bash
-make setup-dev
-make test
-```
-
-`make setup-dev` bootstraps `.venv` and installs `.[dev]` dependencies (including `pytest`).
-`make test` only runs tests with the venv interpreter (it does not install dependencies).
-
-Additional targets:
-
-```bash
-make test-unit
-make test-contract
-```
-
-For direct invocation without `make`:
-
-```bash
-.venv/bin/python -m pytest tests/ -v
-```
-
-All tests are async using `pytest-asyncio` with auto mode. Services are mockable — no running server needed.
-
-### Local Simulation Harness
-
-Replay fixture logs + deterministic RCON responses through plugins for local dev loops:
+Replay fixtures through plugins for fast local loops:
 
 ```bash
 .venv/bin/python scripts/simulate_local_replay.py \
@@ -204,28 +295,46 @@ Replay fixture logs + deterministic RCON responses through plugins for local dev
   --plugin-config-dir tests/fixtures/simulation/config/plugins
 ```
 
+## Testing and Typechecking
+
+```bash
+make setup-dev
+make test
+make test-unit
+make test-contract
+make typecheck
+```
+
+Focused test run example:
+
+```bash
+.venv/bin/python -m pytest tests/test_server.py -v
+```
+
 ## Project Layout
 
+```text
+squadpy/
+  api/                 Control API service and HTTP/WS endpoints
+  rcon/                RCON client, protocol, and broker
+  log_parser/          Log readers, parser, and pattern matching
+  events/              Event bus and typed dataclasses
+  discord/             Discord connector
+  database/            SQLAlchemy async integration
+  layers/              Layer catalog services
+  connectors/          External moderation connector primitives
+  admin_lists/         Admin list sync engine
+  simulation/          Local replay harness
+  multi_server.py      Multi-server runtime orchestration
+  plugin_loader.py     Plugin discovery and lifecycle
+  server.py            Main orchestrator
+plugins/               Built-in plugins
+config/                Runtime and plugin TOML configs
+scripts/               Migration/scaffolding/simulation utilities
+tests/                 Unit and contract coverage
+docs/                  Plans, runbooks, and parity tracker
 ```
-squadpy/              Core framework
-  rcon/               RCON protocol + async client
-  log_parser/         Log reader, regex patterns, parser
-  events/             Event bus + typed event dataclasses
-  discord/            Discord connector (core service)
-  database/           SQLAlchemy async setup
-  plugin.py           Base Plugin class + decorators
-  plugin_loader.py    Plugin discovery + error isolation
-  config.py           TOML loader + Pydantic models
-  server.py           Orchestrator (startup, shutdown, lifecycle)
-plugins/              Built-in plugins (each a subdirectory)
-config/               TOML configs (*.toml.example tracked, *.toml gitignored)
-tests/                Test suite
-```
-
-## Why Python?
-
-Because I wanted to.
 
 ## License
 
-This project is licensed under the [GNU General Public License v3.0](LICENSE).
+GNU GPL v3.0. See `LICENSE`.
