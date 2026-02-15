@@ -1,6 +1,6 @@
 # SquadPy Parity Tracker (SquadJS + SquadTS)
 
-Last updated: 2026-02-14
+Last updated: 2026-02-15
 Primary roadmap: `docs/plans/2026-02-13-parity-and-beyond-roadmap.md`
 
 ## Purpose
@@ -398,6 +398,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 - [x] `GATE-B-003` Multi-server or broker mode validated in pilot environment.
   - Validation package (2026-02-15): Added pilot execution runbook `docs/plans/gate-b-003-pilot-validation.md` and structured evidence template `docs/plans/gate-b-003-pilot-evidence-template.json` to drive and record staging/production pilot validation for multi-server or broker mode.
   - Acceptance note (2026-02-15): Completed multi-server pilot validation on commit `c173cf9` with two server contexts (`server-a`, `server-b`) under one process; captured startup evidence and baseline/end API snapshots (`/api/health`, `/api/readiness`, `/metrics`) in `tmp/pilot/gate-b-003/20260215-1712/`; validated action-window isolation after manual server-b gameplay event (join/spawn/grenade) using per-context command snapshots (`ListPlayers`, `ListSquads`, `ShowCurrentMap`) showing server-b activity without server-a cross-talk; validated single-context degradation by restarting server-b and observing bounded reconnect attempts with eventual recovery while server-a remained healthy; consolidated structured evidence in `tmp/pilot/gate-b-003/20260215-1712/evidence.json`.
+  - Acceptance note (2026-02-15, revalidation after db_log fix): Re-ran one-process multi-server live window and manual server-b disruption sequence using `tmp/pilot/gate-b-003/20260215-1909-manual-window/`; startup confirmed `DB Log` enabled in both contexts with no duplicate-model/table import errors (`Failed to import plugin db_log`, `SAWarning`, `already defined` absent), baseline/end snapshots confirmed server-a remained isolated while server-b state changed during the window, and server-b reconnect degradation remained bounded with successful recovery (`RCON connection closed by server` followed by `Reconnected successfully`).
 
 ## 9) Weekly Update Block (Copy/Paste)
 
