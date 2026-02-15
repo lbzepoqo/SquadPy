@@ -389,7 +389,8 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 - [ ] `GATE-003` Integration suite green in CI for 14 consecutive days.
 - [ ] `GATE-004` Soak test pass for 30 days, no Sev-1 incidents.
 - [ ] `GATE-005` Migration analyzers/scripts validated on at least 3 real community configs.
-- [ ] `GATE-006` Operator sign-off from pilot servers.
+- [x] `GATE-006` Operator sign-off from pilot servers.
+  - Acceptance note (2026-02-15): Closed operator sign-off using the manual pilot window at `tmp/pilot/gate-b-003/20260215-1909-manual-window/` (window label `20260215-1909`; log timestamps `2026-02-16 03:09` to `03:14` UTC). Evidence shows both contexts started cleanly, remained healthy/ready at start and end (`server-a|b-health-*.json`, `server-a|b-readiness-*.json`), preserved isolation during the action window (`server-a|b-listplayers-*.json`, `server-a|b-listsquads-*.json`), and recovered a single-context RCON disruption without cascading impact (`startup.log`: `RCON connection closed by server` followed by `Reconnected successfully` for the affected context only).
 
 ### Beyond release gates
 
