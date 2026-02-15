@@ -62,18 +62,26 @@ SquadPy runtime mode precedence:
 3. Config file: `config/runtime.toml`
 4. Default: `auto`
 
+For DB isolation policy in multi-server mode:
+
+1. Environment variable: `SQUADPY_REQUIRE_PER_SERVER_DATABASE`
+2. Config file: `config/runtime.toml`
+3. Default: `false`
+
 Examples:
 
 ```bash
 python -m squadpy --mode single
 python -m squadpy --mode multi
 SQUADPY_RUNTIME_MODE=single python -m squadpy
+SQUADPY_REQUIRE_PER_SERVER_DATABASE=true python -m squadpy --mode multi
 ```
 
 `config/runtime.toml` example:
 
 ```toml
 mode = "auto" # auto | single | multi
+require_per_server_database = false
 ```
 
 Behavior summary:
@@ -81,6 +89,7 @@ Behavior summary:
 - `auto`: run multi-server only when valid `config/servers/*/server.toml` definitions are present; otherwise run single-server.
 - `single`: always run `config/server.toml` path and ignore multi-server definitions.
 - `multi`: require at least one `config/servers/*/server.toml` definition; exits with clear error if none found.
+- `require_per_server_database=true`: in multi mode, each discovered server must have `config/servers/<name>/database.toml`; shared fallback is disallowed.
 
 ### Multi-Server (One Process, N Server Contexts)
 
@@ -147,11 +156,29 @@ websocket_path = "/ws/control"
 auth_token = "token_b"
 ```
 
+Example `config/servers/server-a/database.toml`:
+
+```toml
+enabled = true
+driver = "sqlite"
+path = "data/server-a.db"
+```
+
+Example `config/servers/server-b/database.toml`:
+
+```toml
+enabled = true
+driver = "sqlite"
+path = "data/server-b.db"
+```
+
 Operational rules:
 
 - Use distinct RCON endpoints per server context.
 - Use distinct log sources/paths per server context.
 - Use distinct API ports per server context.
+- Prefer distinct per-server DB configs/paths (`config/servers/<name>/database.toml`) to avoid data mixing.
+- If per-server DB config is missing and shared `config/database.toml` exists, SquadPy warns and falls back to shared DB.
 - Plugin code is shared from `plugins/`, while plugin config can be isolated per server under `config/servers/<name>/plugins/`.
 
 ### RCON Broker Mode (Library Primitive)
@@ -179,12 +206,13 @@ Core files:
 
 | File | Purpose |
 |---|---|
-| `config/runtime.toml` | Optional runtime mode selection (`auto`, `single`, `multi`) |
+| `config/runtime.toml` | Optional runtime mode and DB isolation selection |
 | `config/server.toml` | Single-server runtime config |
 | `config/logging.toml` | Logging setup |
 | `config/database.toml` | Optional DB setup |
 | `config/plugins/*.toml` | Per-plugin settings |
 | `config/servers/<name>/server.toml` | Multi-server per-context config |
+| `config/servers/<name>/database.toml` | Multi-server per-context DB config |
 | `config/servers/<name>/plugins/*.toml` | Multi-server per-context plugin settings |
 
 `server.toml` sections:

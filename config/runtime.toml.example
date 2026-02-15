@@ -1,1 +1,2 @@
 mode = "auto" # auto | single | multi
+require_per_server_database = false

@@ -1,0 +1,3 @@
+enabled = true
+driver = "sqlite"
+path = "data/server-a.db"
