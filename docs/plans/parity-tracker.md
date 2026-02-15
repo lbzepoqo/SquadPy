@@ -390,6 +390,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 - [ ] `GATE-002` Contract suite green in CI for 14 consecutive days.
   - Tracking note (2026-02-16): Consecutive-green window started; day-0 baseline captured. Earliest close date is 2026-03-01 if CI contract jobs remain green each day.
   - Verification note (2026-02-16): Local day-0 contract baseline run passed via `.venv/bin/python -m pytest -m contract -v` (`64 passed`).
+  - Daily ledger: `docs/plans/gate-window-tracking.md` (updated via `scripts/record_gate_windows.py`).
 - [ ] `GATE-003` Integration suite green in CI for 14 consecutive days.
   - Tracking note (2026-02-16): Consecutive-green window started; day-0 baseline captured. Earliest close date is 2026-03-01 if CI integration jobs remain green each day.
   - Verification note (2026-02-16): Local day-0 integration baseline matched CI module matrix and passed (`tests/test_discord_integration.py tests/test_plugin_chat_bridge.py tests/test_plugin_admin_request.py` -> `29 passed`; `tests/test_rcon_client.py tests/test_rcon_helpers.py tests/test_rcon_protocol.py tests/test_server.py` -> `108 passed`).

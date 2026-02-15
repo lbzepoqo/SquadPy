@@ -26,6 +26,7 @@ tests/fixtures/samples/
 tmp/live_capture/
 tmp/pilot/
 tmp/gate-005/
+tmp/gate-windows/
 
 # Editor settings
 .vscode/
