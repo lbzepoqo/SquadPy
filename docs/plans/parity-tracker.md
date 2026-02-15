@@ -397,7 +397,8 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 
 ### Beyond release gates
 
-- [ ] `GATE-B-001` At least 3 `P2-BEYOND-*` features released and documented.
+- [x] `GATE-B-001` At least 3 `P2-BEYOND-*` features released and documented.
+  - Acceptance note (2026-02-16): Published consolidated release/documentation evidence in `docs/plans/gate-b-001-beyond-release-evidence.md` covering at least four shipped and documented `P2-BEYOND-*` capabilities (`P2-BEYOND-001`, `P2-BEYOND-003`, `P2-BEYOND-005`, `P2-BEYOND-008`).
 - [x] `GATE-B-002` Observability baseline dashboard pack published.
   - Acceptance note (2026-02-15): Published baseline dashboard pack documentation at `docs/plans/gate-b-002-observability-dashboard-pack.md` with standard Prometheus panel queries over `/metrics` runtime/dependency/plugin signals and verification notes from live evidence in `tmp/pilot/gate-b-003/20260215-1909-manual-window/` (`server-a|b-metrics-start.txt`, `server-a|b-metrics-end.txt`), including stable required-health metrics and expected API uptime progression per context.
 - [x] `GATE-B-003` Multi-server or broker mode validated in pilot environment.
