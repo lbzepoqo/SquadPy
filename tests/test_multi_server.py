@@ -2,12 +2,15 @@
 
 import asyncio
 from pathlib import Path
+from types import SimpleNamespace
 from typing import cast
+from unittest.mock import AsyncMock
 
 import pytest
 
 from squadpy.config import LoggingConfig, ServerConfig
 from squadpy.events.types import BaseEvent, PlayerConnected
+from squadpy.plugin_loader import PluginStatus
 from squadpy.multi_server import (
     MultiServerRuntime,
     ServerRuntimeDefinition,
@@ -90,6 +93,76 @@ class TestMultiServerRuntime:
 
         await alpha.event_bus.emit(PlayerConnected())
         assert seen == ["player_connected"]
+
+    async def test_db_log_enables_in_both_contexts_in_one_process(self, tmp_path: Path) -> None:
+        project_root = Path(__file__).resolve().parent.parent
+        plugins_dir = project_root / "plugins"
+        alpha_config_dir = tmp_path / "config" / "plugins-alpha"
+        bravo_config_dir = tmp_path / "config" / "plugins-bravo"
+        alpha_config_dir.mkdir(parents=True)
+        bravo_config_dir.mkdir(parents=True)
+
+        for plugin_dir in sorted(path for path in plugins_dir.iterdir() if path.is_dir()):
+            if plugin_dir.name == "db_log":
+                continue
+            disabled_config = "enabled = false\n"
+            (alpha_config_dir / f"{plugin_dir.name}.toml").write_text(disabled_config, encoding="utf-8")
+            (bravo_config_dir / f"{plugin_dir.name}.toml").write_text(disabled_config, encoding="utf-8")
+
+        definitions = [
+            ServerRuntimeDefinition(
+                name="alpha",
+                server_config=ServerConfig.model_validate({
+                    "rcon": {"host": "127.0.0.1", "port": 21114, "password": "test"},
+                }),
+                logging_config=LoggingConfig.model_validate(
+                    {"level": "INFO", "file": {"enabled": False}}
+                ),
+                base_dir=project_root,
+                plugins_dir=plugins_dir,
+                plugin_config_dir=alpha_config_dir,
+            ),
+            ServerRuntimeDefinition(
+                name="bravo",
+                server_config=ServerConfig.model_validate({
+                    "rcon": {"host": "127.0.0.1", "port": 21114, "password": "test"},
+                }),
+                logging_config=LoggingConfig.model_validate(
+                    {"level": "INFO", "file": {"enabled": False}}
+                ),
+                base_dir=project_root,
+                plugins_dir=plugins_dir,
+                plugin_config_dir=bravo_config_dir,
+            ),
+        ]
+        runtime = MultiServerRuntime.from_definitions(definitions)
+        alpha = cast(SquadPyServer, runtime.get_server("alpha"))
+        bravo = cast(SquadPyServer, runtime.get_server("bravo"))
+
+        alpha._db = SimpleNamespace(
+            driver="sqlite",
+            sqlite_path=":memory:",
+            create_tables=AsyncMock(),
+            session=lambda: None,
+        )
+        bravo._db = SimpleNamespace(
+            driver="sqlite",
+            sqlite_path=":memory:",
+            create_tables=AsyncMock(),
+            session=lambda: None,
+        )
+
+        await alpha._load_plugins(alpha._build_services(rcon=None, log_parser=None))
+        await bravo._load_plugins(bravo._build_services(rcon=None, log_parser=None))
+
+        alpha_db_log = next(
+            loaded for loaded in alpha._loaded_plugins if loaded.dir_name == "db_log"
+        )
+        bravo_db_log = next(
+            loaded for loaded in bravo._loaded_plugins if loaded.dir_name == "db_log"
+        )
+        assert alpha_db_log.status == PluginStatus.ENABLED
+        assert bravo_db_log.status == PluginStatus.ENABLED
 
 
 class TestMultiServerDiscovery:

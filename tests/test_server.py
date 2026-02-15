@@ -9,7 +9,7 @@ import pytest
 from squadpy.config import LoggingConfig, ServerConfig
 from squadpy.events.types import PlayerConnected
 from squadpy.server import SquadPyServer, format_plugin_line, format_service_line
-from squadpy.plugin_loader import LoadedPlugin, PluginStatus
+from squadpy.plugin_loader import LoadedPlugin, PluginLoader, PluginStatus
 
 
 class TestSquadPyServer:
@@ -200,6 +200,59 @@ class TestHotReloadPeriodicTasks:
 
         other_task.cancel()
         await asyncio.sleep(0)
+
+    async def test_reload_reimports_updated_plugin_code(self, tmp_path: Path):
+        plugin_name = "reload_target"
+        plugins_dir = tmp_path / "plugins"
+        plugin_dir = plugins_dir / plugin_name
+        plugin_dir.mkdir(parents=True)
+        config_dir = tmp_path / "config" / "plugins"
+        config_dir.mkdir(parents=True)
+
+        def write_plugin(build_id: str) -> None:
+            (plugin_dir / "plugin.py").write_text(
+                (
+                    "from squadpy.plugin import Plugin\n\n"
+                    "class ReloadTarget(Plugin):\n"
+                    "    name = \"Reload Target\"\n\n"
+                    "    async def on_enable(self):\n"
+                    f"        self.build_id = \"{build_id}\"\n"
+                ),
+                encoding="utf-8",
+            )
+
+        write_plugin("v1")
+        PluginLoader.clear_module_cache(plugin_name)
+
+        server = SquadPyServer(
+            server_config=ServerConfig.model_validate({
+                "rcon": {"host": "127.0.0.1", "port": 21114, "password": "test"},
+            }),
+            logging_config=LoggingConfig.model_validate({"level": "INFO", "file": {"enabled": False}}),
+            base_dir=tmp_path,
+            plugins_dir=plugins_dir,
+            plugin_config_dir=config_dir,
+        )
+
+        try:
+            loader = PluginLoader(plugins_dir=plugins_dir, config_dir=config_dir)
+            services = server._build_services(rcon=None, log_parser=None)
+            server._loaded_plugins = await loader.load_all(services)
+
+            assert len(server._loaded_plugins) == 1
+            assert server._loaded_plugins[0].status == PluginStatus.ENABLED
+            assert getattr(server._loaded_plugins[0].instance, "build_id", "") == "v1"
+
+            write_plugin("v2_updated_build")
+
+            ok, error = await server.reload_plugin(plugin_name)
+
+            assert ok is True
+            assert error == ""
+            assert server._loaded_plugins[0].status == PluginStatus.ENABLED
+            assert getattr(server._loaded_plugins[0].instance, "build_id", "") == "v2_updated_build"
+        finally:
+            PluginLoader.clear_module_cache(plugin_name)
 
 
 class TestStartupSummaryDiscord:
