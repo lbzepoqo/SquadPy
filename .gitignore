@@ -17,12 +17,14 @@ config/plugins/*.toml
 config/servers/*
 !config/servers/_template/
 !config/servers/_template/*.toml.example
+data/*.db
 
 # Raw sample data (may contain player IPs/IDs)
 tests/fixtures/samples/
 
 # Local live-capture artifacts
 tmp/live_capture/
+tmp/pilot/
 
 # Editor settings
 .vscode/

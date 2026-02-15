@@ -54,6 +54,81 @@ Gate `GATE-B-003` can be marked complete after one option passes with operator s
 - Action window logs proving no cross-talk.
 - Incident/recovery notes for single-context disruption.
 
+### Operator Command Recipe (Option A)
+
+Use this when validating with two contexts such as `server-a` and `server-b`.
+
+1. Create an evidence workspace and seed the template.
+
+```bash
+TS=$(date -u +%Y%m%d-%H%M)
+EVIDENCE_DIR="tmp/pilot/gate-b-003/$TS"
+mkdir -p "$EVIDENCE_DIR"
+cp docs/plans/gate-b-003-pilot-evidence-template.json "$EVIDENCE_DIR/evidence.json"
+```
+
+2. Start multi-server runtime with startup logs captured.
+
+```bash
+python -m squadpy --mode multi 2>&1 | tee "$EVIDENCE_DIR/startup.log"
+```
+
+3. Capture baseline snapshots for each context.
+
+```bash
+curl -sS -H "Authorization: Bearer <TOKEN_A>" "http://127.0.0.1:<PORT_A>/api/health" > "$EVIDENCE_DIR/server-a-health-start.json"
+curl -sS -H "Authorization: Bearer <TOKEN_A>" "http://127.0.0.1:<PORT_A>/api/readiness" > "$EVIDENCE_DIR/server-a-readiness-start.json"
+curl -sS -H "Authorization: Bearer <TOKEN_A>" "http://127.0.0.1:<PORT_A>/metrics" > "$EVIDENCE_DIR/server-a-metrics-start.txt"
+
+curl -sS -H "Authorization: Bearer <TOKEN_B>" "http://127.0.0.1:<PORT_B>/api/health" > "$EVIDENCE_DIR/server-b-health-start.json"
+curl -sS -H "Authorization: Bearer <TOKEN_B>" "http://127.0.0.1:<PORT_B>/api/readiness" > "$EVIDENCE_DIR/server-b-readiness-start.json"
+curl -sS -H "Authorization: Bearer <TOKEN_B>" "http://127.0.0.1:<PORT_B>/metrics" > "$EVIDENCE_DIR/server-b-metrics-start.txt"
+```
+
+4. Capture action-window command snapshots per context.
+
+```bash
+curl -sS -X POST -H "Authorization: Bearer <TOKEN_A>" -H "Content-Type: application/json" \
+  -d '{"request_id":"gate-a-listplayers","command":"ListPlayers"}' \
+  "http://127.0.0.1:<PORT_A>/api/command" > "$EVIDENCE_DIR/server-a-listplayers-action.json"
+
+curl -sS -X POST -H "Authorization: Bearer <TOKEN_B>" -H "Content-Type: application/json" \
+  -d '{"request_id":"gate-b-listplayers","command":"ListPlayers"}' \
+  "http://127.0.0.1:<PORT_B>/api/command" > "$EVIDENCE_DIR/server-b-listplayers-action.json"
+```
+
+5. Perform single-context disruption (for example restart `server-b`), then capture end snapshots.
+
+```bash
+curl -sS -H "Authorization: Bearer <TOKEN_A>" "http://127.0.0.1:<PORT_A>/api/health" > "$EVIDENCE_DIR/server-a-health-end.json"
+curl -sS -H "Authorization: Bearer <TOKEN_A>" "http://127.0.0.1:<PORT_A>/api/readiness" > "$EVIDENCE_DIR/server-a-readiness-end.json"
+curl -sS -H "Authorization: Bearer <TOKEN_A>" "http://127.0.0.1:<PORT_A>/metrics" > "$EVIDENCE_DIR/server-a-metrics-end.txt"
+
+curl -sS -H "Authorization: Bearer <TOKEN_B>" "http://127.0.0.1:<PORT_B>/api/health" > "$EVIDENCE_DIR/server-b-health-end.json"
+curl -sS -H "Authorization: Bearer <TOKEN_B>" "http://127.0.0.1:<PORT_B>/api/readiness" > "$EVIDENCE_DIR/server-b-readiness-end.json"
+curl -sS -H "Authorization: Bearer <TOKEN_B>" "http://127.0.0.1:<PORT_B>/metrics" > "$EVIDENCE_DIR/server-b-metrics-end.txt"
+```
+
+6. Update evidence JSON with signoff.
+
+```bash
+jq --arg who "<operator>" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '.operators.pilot_owner=$who
+  | .operators.rollback_owner=$who
+  | .operators.approver=$who
+  | .signoff.operator_signoff=true
+  | .signoff.operator_name=$who
+  | .signoff.timestamp_utc=$now' \
+  "$EVIDENCE_DIR/evidence.json" > "$EVIDENCE_DIR/evidence.json.tmp"
+mv "$EVIDENCE_DIR/evidence.json.tmp" "$EVIDENCE_DIR/evidence.json"
+```
+
+Notes:
+
+- Keep API `host = "127.0.0.1"` and use unique `port`/`auth_token` per server context.
+- Treat pilot artifacts under `tmp/pilot/` as local evidence, not committed source.
+- `/api/traces` is process-level telemetry; use per-context `/api/command` snapshots for isolation evidence.
+
 ## Option B: Broker Mode Validation
 
 ### Acceptance Criteria
