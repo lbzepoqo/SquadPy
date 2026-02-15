@@ -1,0 +1,1 @@
+ID: 1 | Online IDs:EOS: 000250f5e359453bb9ad313db051f19e steam: 76561198376713392 | Name: SimPlayer | Team ID: 1 | Squad ID: 1 | Is Leader: False | Role: Rifleman

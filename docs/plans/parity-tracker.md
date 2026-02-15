@@ -339,8 +339,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
 - [x] `P2-BEYOND-007` Plugin scaffolder CLI (`@plugins-moderation`, `P2`)
   - Acceptance: CLI creates tested plugin skeleton with typed hooks.
   - Acceptance note (2026-02-15): Added plugin scaffolder helper in `squadpy/plugin_scaffolder.py` and CLI entry script `scripts/scaffold_plugin.py` that generates `plugins/<name>/plugin.py`, `tests/test_plugin_<name>.py`, and `config/plugins/<name>.toml.example`; generated skeleton includes typed event hooks (`PlayerConnected`, `ChatMessage`) plus periodic hook boilerplate and starter tests that assert hook registration/type annotations; added targeted coverage in `tests/test_plugin_scaffolder.py` and contract coverage in `tests/contracts/core_runtime/test_plugin_scaffolder_contract.py`.
-- [ ] `P2-BEYOND-008` Local simulation harness (`@qa-release`, `P2`)
+- [x] `P2-BEYOND-008` Local simulation harness (`@qa-release`, `P2`)
   - Acceptance: local replay of logs/RCON fixtures supports plugin dev loops.
+  - Acceptance note (2026-02-15): Added local replay harness in `squadpy/simulation/harness.py` with fixture-backed `FixtureLogReader`, deterministic `FixtureRconClient`, and `LocalSimulationHarness` orchestration that loads plugins, replays log lines, replays RCON fixture responses, runs one-shot periodic hooks, and returns structured replay summaries; added CLI wrapper `scripts/simulate_local_replay.py`, reusable simulation fixtures under `tests/fixtures/simulation/`, README usage guidance, targeted coverage in `tests/test_simulation_harness.py`, and contract coverage in `tests/contracts/core_runtime/test_local_simulation_harness_contract.py`.
 
 ## 7) Plugin Parity Matrix (Tracking View)
 

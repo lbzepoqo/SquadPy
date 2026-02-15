@@ -1,0 +1,12 @@
+{
+  "responses": [
+    {
+      "command": "ListPlayers",
+      "response_file": "responses/list_players.txt"
+    },
+    {
+      "command": "ListSquads",
+      "response_file": "responses/list_squads.txt"
+    }
+  ]
+}

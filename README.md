@@ -191,6 +191,19 @@ For direct invocation without `make`:
 
 All tests are async using `pytest-asyncio` with auto mode. Services are mockable — no running server needed.
 
+### Local Simulation Harness
+
+Replay fixture logs + deterministic RCON responses through plugins for local dev loops:
+
+```bash
+.venv/bin/python scripts/simulate_local_replay.py \
+  tests/fixtures/simulation/logs/basic_replay.log \
+  --rcon-fixture tests/fixtures/simulation/rcon/replay.json \
+  --plugin sim_demo_plugin \
+  --plugins-dir tests/fixtures/simulation/plugins \
+  --plugin-config-dir tests/fixtures/simulation/config/plugins
+```
+
 ## Project Layout
 
 ```

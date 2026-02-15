@@ -1,0 +1,2 @@
+Team ID: 1 (United States Army)
+ID: 1 | Name: Squad 1 | Size: 1 | Locked: False | Creator Name: SimPlayer | Creator Online IDs:EOS: 000250f5e359453bb9ad313db051f19e steam: 76561198376713392
