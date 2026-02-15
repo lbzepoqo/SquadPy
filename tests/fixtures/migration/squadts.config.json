@@ -1,0 +1,18 @@
+{
+  "core": {
+    "rcon": {
+      "host": "10.0.0.20",
+      "port": 21114,
+      "password": "example-squadts-password"
+    }
+  },
+  "discord": {
+    "token": "example-squadts-token",
+    "guildId": "987654321098765432"
+  },
+  "plugins": [
+    "@squadts/admin-request",
+    "@squadts/chat-commands",
+    "@squadts/legacy-plugin"
+  ]
+}

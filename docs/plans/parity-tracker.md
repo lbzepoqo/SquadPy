@@ -303,8 +303,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
 - [x] `P0-MIG-001` Build report-first `scripts/migrate_from_squadjs.py` analyzer (`@migration`, `P0`)
   - Acceptance: sample SquadJS config generates migration inventory/report output in default dry-run mode (no writes).
   - Acceptance note (2026-02-15): Added report-first SquadJS analyzer at `scripts/migrate_from_squadjs.py` with shared inventory reporting helpers in `squadpy/migration/reporting.py` and mapping inventory logic in `squadpy/migration/squadjs.py`; analyzer defaults to dry-run with no writes and emits JSON inventory/report output for sample fixture `tests/fixtures/migration/squadjs.config.json`; added targeted coverage in `tests/test_migration_squadjs.py` and contract coverage in `tests/contracts/migration/test_squadjs_migration_contract.py`.
-- [ ] `P0-MIG-002` Build report-first `scripts/migrate_from_squadts.py` analyzer (`@migration`, `P0`)
+- [x] `P0-MIG-002` Build report-first `scripts/migrate_from_squadts.py` analyzer (`@migration`, `P0`)
   - Acceptance: sample SquadTS config generates migration inventory/report output in default dry-run mode (no writes).
+  - Acceptance note (2026-02-15): Added report-first SquadTS analyzer at `scripts/migrate_from_squadts.py` with mapping inventory logic in `squadpy/migration/squadts.py`, reusing shared reporting helpers; analyzer defaults to dry-run with no writes and emits JSON inventory/report output for sample fixture `tests/fixtures/migration/squadts.config.json`; added targeted coverage in `tests/test_migration_squadts.py` and contract coverage in `tests/contracts/migration/test_squadts_migration_contract.py`.
 - [ ] `P0-MIG-003` Build migrated TOML linter/report tool (`@migration`, `P0`)
   - Acceptance: linter emits actionable fixups, severity levels, and explicit safe/review/unsupported mapping categories.
 - [ ] `P1-MIG-004` Publish migration cookbook (`@migration`, `P1`)
