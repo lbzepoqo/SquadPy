@@ -225,6 +225,7 @@ class SquadPyServer:
         plugin_loader = PluginLoader(
             plugins_dir=self._plugins_dir,
             config_dir=self._plugin_config_dir,
+            auto_enable_missing_configs=self._server_config.plugins.auto_enable_missing_configs,
         )
         self._loaded_plugins = await plugin_loader.load_all(services)
 
@@ -555,6 +556,7 @@ class SquadPyServer:
         loader = PluginLoader(
             plugins_dir=self._plugins_dir,
             config_dir=self._plugin_config_dir,
+            auto_enable_missing_configs=self._server_config.plugins.auto_enable_missing_configs,
         )
         discovered = loader.discover()
         info = next((d for d in discovered if d.dir_name == target.dir_name), None)

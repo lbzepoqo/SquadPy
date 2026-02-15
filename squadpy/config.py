@@ -152,11 +152,16 @@ class PluginWatchdogConfig(BaseModel):
         return v
 
 
+class PluginsConfig(BaseModel):
+    auto_enable_missing_configs: bool = False
+
+
 class ServerConfig(BaseModel):
     rcon: RconConfig
     log: LogConfig = LogConfig()
     discord: DiscordConfig = DiscordConfig()
     api: ApiConfig = ApiConfig()
+    plugins: PluginsConfig = PluginsConfig()
     plugin_watchdog: PluginWatchdogConfig = PluginWatchdogConfig()
 
 

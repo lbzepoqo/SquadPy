@@ -234,6 +234,7 @@ class DbPlugin(Plugin):
 ''')
         config_dir = tmp_path / "config"
         config_dir.mkdir()
+        (config_dir / "db_plugin.toml").write_text("enabled = true\n", encoding="utf-8")
 
         loader = PluginLoader(plugins_dir=tmp_path / "plugins", config_dir=config_dir)
         services = {"rcon": None, "discord": None, "db": None, "server": None}
@@ -256,6 +257,7 @@ class DbPlugin(Plugin):
 ''')
         config_dir = tmp_path / "config"
         config_dir.mkdir()
+        (config_dir / "db_plugin.toml").write_text("enabled = true\n", encoding="utf-8")
 
         from unittest.mock import MagicMock
         mock_db = MagicMock()

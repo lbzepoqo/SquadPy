@@ -9,6 +9,7 @@ from squadpy.config import (
     DiscordConfig,
     LogConfig,
     LoggingConfig,
+    PluginsConfig,
     PluginWatchdogConfig,
     RuntimeConfig,
     ServerConfig,
@@ -173,6 +174,25 @@ class TestPluginWatchdogConfig:
     def test_invalid_failure_window_raises(self):
         with pytest.raises(Exception):
             PluginWatchdogConfig(failure_window_seconds=0)
+
+
+class TestPluginsConfig:
+    def test_defaults(self):
+        config = PluginsConfig()
+        assert config.auto_enable_missing_configs is False
+
+
+class TestServerConfigWithPlugins:
+    def test_defaults(self):
+        config = ServerConfig.model_validate({"rcon": {"host": "127.0.0.1", "password": "pass"}})
+        assert config.plugins.auto_enable_missing_configs is False
+
+    def test_section_parsed(self):
+        config = ServerConfig.model_validate({
+            "rcon": {"host": "127.0.0.1", "password": "pass"},
+            "plugins": {"auto_enable_missing_configs": True},
+        })
+        assert config.plugins.auto_enable_missing_configs is True
 
 
 class TestServerConfigWithPluginWatchdog:

@@ -208,6 +208,7 @@ class TestHotReloadPeriodicTasks:
         plugin_dir.mkdir(parents=True)
         config_dir = tmp_path / "config" / "plugins"
         config_dir.mkdir(parents=True)
+        (config_dir / f"{plugin_name}.toml").write_text("enabled = true\n", encoding="utf-8")
 
         def write_plugin(build_id: str) -> None:
             (plugin_dir / "plugin.py").write_text(

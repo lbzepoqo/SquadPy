@@ -112,6 +112,8 @@ async def test_multi_server_loads_real_db_log_in_both_contexts(tmp_path: Path) -
         disabled_config = "enabled = false\n"
         (alpha_config_dir / f"{plugin_dir.name}.toml").write_text(disabled_config, encoding="utf-8")
         (bravo_config_dir / f"{plugin_dir.name}.toml").write_text(disabled_config, encoding="utf-8")
+    (alpha_config_dir / "db_log.toml").write_text("enabled = true\n", encoding="utf-8")
+    (bravo_config_dir / "db_log.toml").write_text("enabled = true\n", encoding="utf-8")
 
     runtime = MultiServerRuntime.from_definitions([
         ServerRuntimeDefinition(

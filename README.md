@@ -166,6 +166,7 @@ Operational rules:
 - If per-server DB config is missing and shared `config/database.toml` exists, SquadPy warns and falls back to shared DB.
 - Keep canonical plugin examples in `config/plugins/*.toml.example`.
 - Use `config/servers/<name>/plugins/*.toml` only when a server needs overrides that differ from shared defaults.
+- By default, plugins without `config/plugins/<plugin>.toml` are disabled; set `[plugins].auto_enable_missing_configs = true` in `server.toml` to opt into legacy auto-enable behavior.
 
 ### RCON Broker Mode (Library Primitive)
 
@@ -208,6 +209,7 @@ Core files:
 - `[log]` optional local/SFTP log tail.
 - `[discord]` optional Discord bot connector.
 - `[api]` optional REST + websocket control API.
+- `[plugins]` optional plugin activation policy (`auto_enable_missing_configs`).
 - `[plugin_watchdog]` optional failure-budget controls (`enabled`, `failure_threshold`, `failure_window_seconds`).
 
 ## Control API, Security, and Observability

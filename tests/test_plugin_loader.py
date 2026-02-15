@@ -43,6 +43,44 @@ class TestPluginDiscovery:
         disabled = next(d for d in discovered if d.dir_name == "disabled_plugin")
         assert disabled.enabled is False
 
+    def test_discover_missing_config_is_disabled_by_default(self, tmp_path):
+        plugins_dir = tmp_path / "plugins"
+        plugin_dir = plugins_dir / "sample_plugin"
+        plugin_dir.mkdir(parents=True)
+        (plugin_dir / "plugin.py").write_text(
+            "from squadpy.plugin import Plugin\n\nclass SamplePlugin(Plugin):\n    name = \"Sample Plugin\"\n",
+            encoding="utf-8",
+        )
+        config_dir = tmp_path / "config"
+        config_dir.mkdir()
+
+        loader = PluginLoader(plugins_dir=plugins_dir, config_dir=config_dir)
+
+        discovered = loader.discover()
+        assert len(discovered) == 1
+        assert discovered[0].enabled is False
+
+    def test_discover_missing_config_can_be_auto_enabled_with_flag(self, tmp_path):
+        plugins_dir = tmp_path / "plugins"
+        plugin_dir = plugins_dir / "sample_plugin"
+        plugin_dir.mkdir(parents=True)
+        (plugin_dir / "plugin.py").write_text(
+            "from squadpy.plugin import Plugin\n\nclass SamplePlugin(Plugin):\n    name = \"Sample Plugin\"\n",
+            encoding="utf-8",
+        )
+        config_dir = tmp_path / "config"
+        config_dir.mkdir()
+
+        loader = PluginLoader(
+            plugins_dir=plugins_dir,
+            config_dir=config_dir,
+            auto_enable_missing_configs=True,
+        )
+
+        discovered = loader.discover()
+        assert len(discovered) == 1
+        assert discovered[0].enabled is True
+
 
 class TestPluginLoading:
     @pytest.fixture
@@ -134,6 +172,7 @@ class CounterPlugin(Plugin):
 
         config_dir = tmp_path / "config"
         config_dir.mkdir()
+        (config_dir / "counter_plugin.toml").write_text("enabled = true\n", encoding="utf-8")
 
         module_name = "squadpy_plugin_counter_plugin"
         counter_name = "_squadpy_counter_plugin_imports"

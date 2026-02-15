@@ -43,9 +43,16 @@ class LoadedPlugin:
 
 
 class PluginLoader:
-    def __init__(self, plugins_dir: Path, config_dir: Path):
+    def __init__(
+        self,
+        plugins_dir: Path,
+        config_dir: Path,
+        *,
+        auto_enable_missing_configs: bool = False,
+    ):
         self.plugins_dir = plugins_dir
         self.config_dir = config_dir
+        self.auto_enable_missing_configs = auto_enable_missing_configs
 
     def discover(self) -> list[DiscoveredPlugin]:
         discovered = []
@@ -61,7 +68,7 @@ class PluginLoader:
 
             config_file = self.config_dir / f"{plugin_dir.name}.toml"
             config = {}
-            enabled = True
+            enabled = self.auto_enable_missing_configs
             if config_file.exists():
                 with open(config_file, "rb") as f:
                     config = tomllib.load(f)
