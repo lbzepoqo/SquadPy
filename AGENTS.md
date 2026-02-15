@@ -9,6 +9,19 @@
 - `docs/plans/architecture/`: dated architecture/design/phase implementation docs.
 - `docs/plans/gates/`: gate evidence, runbooks, and tracking ledgers.
 
+## Quick Reference
+- Design reference: `docs/plans/architecture/2026-02-08-squadpy-design.md`.
+- Strategic roadmap: `docs/plans/architecture/2026-02-13-parity-and-beyond-roadmap.md`.
+- Runtime entrypoint: `python -m squadpy`.
+- Python runtime: 3.12+.
+- Local venv: `.venv/` (activate with `. .venv/bin/activate`).
+
+## Runtime Architecture Snapshot
+- Runtime flow: Log Reader (local/SFTP) -> Log Parser (regex + state) -> Event Bus -> Plugins.
+- RCON client integrates with parser/plugin workflows and enforces command/response correlation.
+- Core service model: RCON is required; log reader, Discord, and database are optional by config.
+- Plugin service requirements are declared via `requires = [...]`; missing required services fail plugin load without crashing the whole runtime.
+
 ## Build, Test, and Development Commands
 - `python -m venv .venv && source .venv/bin/activate`: create local environment.
 - `pip install -e ".[dev]"`: install package plus dev dependencies.
@@ -29,6 +42,11 @@
 - Naming: `snake_case` for functions/modules/variables, `PascalCase` for classes, `UPPER_SNAKE_CASE` for constants.
 - Keep plugin code in `plugins/<plugin_name>/plugin.py`, and align config filenames with plugin folder names.
 - Keep imports grouped as stdlib, third-party, then local.
+
+## Core Patterns
+- Events: typed dataclasses inherit `BaseEvent` and expose `event_name` for bus dispatch.
+- Plugins: use `@on_event("<event_name>")` for event hooks and `@periodic(seconds=<n>)` for periodic tasks.
+- Config: use Pydantic models loaded from TOML for runtime/plugin configuration validation.
 
 ## Testing Guidelines
 - Use `pytest` with `pytest-asyncio` (`asyncio_mode = "auto"` in `pyproject.toml`).
@@ -65,6 +83,12 @@
 ## Security & Configuration Tips
 - Do not commit secrets or server identifiers; only example TOMLs should be tracked.
 - Treat logs and raw sample data as sensitive; sanitize player IDs/IPs before sharing.
+- Keep `*.toml.example` tracked; keep real runtime TOMLs (`config/*.toml`, `config/plugins/*.toml`, per-server configs) untracked.
+
+## Runtime Conventions
+- Use stdlib asyncio primitives in runtime paths.
+- Use logger namespace `squadpy.<component>` for service/plugin logging.
+- File log rotation uses timestamped backups; default `max_files = 10` unless config overrides it.
 
 ## Live Capture Workflow (Logs + RCON)
 - For live parity validation, prefer a windowed capture approach instead of long-running noisy tails.
