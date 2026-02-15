@@ -306,8 +306,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
 - [x] `P0-MIG-002` Build report-first `scripts/migrate_from_squadts.py` analyzer (`@migration`, `P0`)
   - Acceptance: sample SquadTS config generates migration inventory/report output in default dry-run mode (no writes).
   - Acceptance note (2026-02-15): Added report-first SquadTS analyzer at `scripts/migrate_from_squadts.py` with mapping inventory logic in `squadpy/migration/squadts.py`, reusing shared reporting helpers; analyzer defaults to dry-run with no writes and emits JSON inventory/report output for sample fixture `tests/fixtures/migration/squadts.config.json`; added targeted coverage in `tests/test_migration_squadts.py` and contract coverage in `tests/contracts/migration/test_squadts_migration_contract.py`.
-- [ ] `P0-MIG-003` Build migrated TOML linter/report tool (`@migration`, `P0`)
+- [x] `P0-MIG-003` Build migrated TOML linter/report tool (`@migration`, `P0`)
   - Acceptance: linter emits actionable fixups, severity levels, and explicit safe/review/unsupported mapping categories.
+  - Acceptance note (2026-02-15): Added migrated TOML lint/report tool at `scripts/lint_migrated_toml.py` backed by `squadpy/migration/toml_linter.py`; linter emits per-mapping severity (`info`/`warning`/`error`), actionable `fixup` guidance, and explicit `safe`/`review`/`unsupported` categories with summary counts; added sample migrated TOML fixture at `tests/fixtures/migration/migrated_inventory.toml` with targeted coverage in `tests/test_migration_toml_linter.py` and contract coverage in `tests/contracts/migration/test_toml_linter_contract.py`.
 - [ ] `P1-MIG-004` Publish migration cookbook (`@migration`, `P1`)
   - Acceptance: docs include end-to-end cutover steps and rollback.
 - [ ] `P1-MIG-005` Build plugin behavior mapping matrix (`@migration`, `P1`)

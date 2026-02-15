@@ -1,0 +1,13 @@
+source_system = "squadjs"
+
+[[mappings]]
+source = "AdminRequest"
+target = "admin_request"
+
+[[mappings]]
+source = "public-commands"
+target = "chat_commands"
+
+[[mappings]]
+source = "legacy-custom-plugin"
+target = ""
