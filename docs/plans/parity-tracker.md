@@ -318,8 +318,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
 
 ## 6) Phase 6 - Surpass Features
 
-- [ ] `P2-BEYOND-001` Multi-server orchestration in one process (`@core-runtime`, `P2`)
+- [x] `P2-BEYOND-001` Multi-server orchestration in one process (`@core-runtime`, `P2`)
   - Acceptance: isolated contexts run N servers without cross-talk.
+  - Acceptance note (2026-02-15): Added one-process multi-server runtime orchestration in `squadpy/multi_server.py` with `ServerRuntimeDefinition` discovery from `config/servers/*`, concurrent server lifecycle management, and centralized signal handling; extended `squadpy/server.py` with externally managed signal mode and per-instance plugin/config directory wiring so contexts remain isolated, and enabled multi-server bootstrap in `squadpy/__main__.py`; added targeted coverage in `tests/test_multi_server.py` and contract coverage in `tests/contracts/core_runtime/test_multi_server_orchestration_contract.py`.
 - [ ] `P2-BEYOND-002` RCON broker mode (`@core-runtime`, `P2`)
   - Acceptance: one upstream RCON socket, many authenticated clients.
 - [x] `P2-BEYOND-003` Prometheus metrics exporter (`@qa-release`, `P2`)

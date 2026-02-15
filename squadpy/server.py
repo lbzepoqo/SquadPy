@@ -51,11 +51,18 @@ class SquadPyServer:
         logging_config: LoggingConfig,
         base_dir: Path,
         db_config: DatabaseConfig | None = None,
+        *,
+        manage_signals: bool = True,
+        plugins_dir: Path | None = None,
+        plugin_config_dir: Path | None = None,
     ):
         self._server_config = server_config
         self._logging_config = logging_config
         self._base_dir = base_dir
         self._db_config = db_config
+        self._manage_signals = manage_signals
+        self._plugins_dir = plugins_dir or (self._base_dir / "plugins")
+        self._plugin_config_dir = plugin_config_dir or (self._base_dir / "config" / "plugins")
         self._running = False
         self._event_bus = EventBus()
         self._rcon: RconClient | None = None
@@ -76,6 +83,10 @@ class SquadPyServer:
     @property
     def running(self) -> bool:
         return self._running
+
+    @property
+    def event_bus(self) -> EventBus:
+        return self._event_bus
 
     async def _connect_rcon(self) -> tuple[bool, str]:
         try:
@@ -200,8 +211,8 @@ class SquadPyServer:
 
     async def _load_plugins(self, services: dict) -> None:
         plugin_loader = PluginLoader(
-            plugins_dir=self._base_dir / "plugins",
-            config_dir=self._base_dir / "config" / "plugins",
+            plugins_dir=self._plugins_dir,
+            config_dir=self._plugin_config_dir,
         )
         self._loaded_plugins = await plugin_loader.load_all(services)
 
@@ -261,7 +272,8 @@ class SquadPyServer:
             api_detail,
         )
 
-        self._setup_signals()
+        if self._manage_signals:
+            self._setup_signals()
         await self._shutdown_event.wait()
 
     def _register_plugin_events(self, loaded: LoadedPlugin) -> None:
@@ -409,8 +421,8 @@ class SquadPyServer:
 
         services = self._build_services(rcon=self._rcon, log_parser=self._log_parser)
         loader = PluginLoader(
-            plugins_dir=self._base_dir / "plugins",
-            config_dir=self._base_dir / "config" / "plugins",
+            plugins_dir=self._plugins_dir,
+            config_dir=self._plugin_config_dir,
         )
         discovered = loader.discover()
         info = next((d for d in discovered if d.dir_name == target.dir_name), None)
