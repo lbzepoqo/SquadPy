@@ -1,6 +1,6 @@
 # GATE-005 Migration Validation Notes
 
-Date: 2026-02-16 (UTC)  
+Date: 2026-02-15 (UTC)  
 Gate: `GATE-005`  
 Scope: validate migration analyzers on at least 3 real community configs.
 

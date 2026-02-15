@@ -15,6 +15,9 @@
 - `make test`: run all tests through the project virtualenv.
 - `make test-unit`: run non-contract tests through the project virtualenv.
 - `make test-contract`: run contract tests through the project virtualenv.
+- `make test-integration`: run integration matrix modules through the project virtualenv.
+- `make test-integration-discord`: run Discord integration module set.
+- `make test-integration-rcon`: run RCON/runtime integration module set.
 - `.venv/bin/python -m pytest -v`: direct test invocation using the project virtualenv interpreter.
 - `.venv/bin/python -m pytest tests/test_plugin_loader.py -v`: run a focused module while iterating.
 
@@ -55,6 +58,7 @@
 - When implementing parity tasks, reference the tracker ID (for example `P0-RCON-001`) in commit messages, PR notes, and handoff summaries.
 - Update checkbox status and acceptance notes in `docs/plans/parity-tracker.md` in the same change whenever practical.
 - If scope changes, update both roadmap and tracker to keep strategy and execution aligned.
+- For active `GATE-002`/`GATE-003`/`GATE-004` windows, update `docs/plans/gate-window-tracking.md` via `scripts/record_gate_windows.py` and include the generated evidence path (`tmp/gate-windows/<YYYY-MM-DD>.json`) in handoff notes.
 
 ## Security & Configuration Tips
 - Do not commit secrets or server identifiers; only example TOMLs should be tracked.

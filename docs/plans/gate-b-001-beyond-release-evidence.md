@@ -1,6 +1,6 @@
 # GATE-B-001 Beyond Release Evidence
 
-Date: 2026-02-16 (UTC)  
+Date: 2026-02-15 (UTC)  
 Gate: `GATE-B-001`  
 Requirement: at least 3 `P2-BEYOND-*` features released and documented.
 

@@ -386,26 +386,26 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 ### Parity claim gates (all required)
 
 - [x] `GATE-001` All `P0-*` items completed.
-  - Acceptance note (2026-02-16): Tracker audit confirms no remaining unchecked `P0-*` execution items; all `P0` workstreams in sections 0-5 are marked complete, and associated `P0` contract coverage remains green in current validation runs.
+  - Acceptance note (2026-02-15): Tracker audit confirms no remaining unchecked `P0-*` execution items; all `P0` workstreams in sections 0-5 are marked complete, and associated `P0` contract coverage remains green in current validation runs.
 - [ ] `GATE-002` Contract suite green in CI for 14 consecutive days.
-  - Tracking note (2026-02-16): Consecutive-green window started; day-0 baseline captured. Earliest close date is 2026-03-01 if CI contract jobs remain green each day.
-  - Verification note (2026-02-16): Local day-0 contract baseline run passed via `.venv/bin/python -m pytest -m contract -v` (`64 passed`).
+  - Tracking note (2026-02-15): Consecutive-green window started; day-0 baseline captured. Earliest close date is 2026-03-01 if CI contract jobs remain green each day.
+  - Verification note (2026-02-15): Local day-0 contract baseline run passed via `.venv/bin/python -m pytest -m contract -v` (`64 passed`).
   - Daily ledger: `docs/plans/gate-window-tracking.md` (updated via `scripts/record_gate_windows.py`).
 - [ ] `GATE-003` Integration suite green in CI for 14 consecutive days.
-  - Tracking note (2026-02-16): Consecutive-green window started; day-0 baseline captured. Earliest close date is 2026-03-01 if CI integration jobs remain green each day.
-  - Verification note (2026-02-16): Local day-0 integration baseline matched CI module matrix and passed (`tests/test_discord_integration.py tests/test_plugin_chat_bridge.py tests/test_plugin_admin_request.py` -> `29 passed`; `tests/test_rcon_client.py tests/test_rcon_helpers.py tests/test_rcon_protocol.py tests/test_server.py` -> `108 passed`).
+  - Tracking note (2026-02-15): Consecutive-green window started; day-0 baseline captured. Earliest close date is 2026-03-01 if CI integration jobs remain green each day.
+  - Verification note (2026-02-15): Local day-0 integration baseline matched CI module matrix and passed via `make test-integration` (`tests/test_discord_integration.py tests/test_plugin_chat_bridge.py tests/test_plugin_admin_request.py` -> `29 passed`; `tests/test_rcon_client.py tests/test_rcon_helpers.py tests/test_rcon_protocol.py tests/test_server.py` -> `108 passed`).
 - [ ] `GATE-004` Soak test pass for 30 days, no Sev-1 incidents.
-  - Tracking note (2026-02-16): 30-day soak window started from current pilot-ready baseline. Earliest close date is 2026-03-17 if no Sev-1 incidents are opened during the soak interval.
-  - Verification note (2026-02-16): Soak start baseline references current pilot-ready runtime evidence (`tmp/pilot/gate-b-003/20260215-1909-manual-window/`) with healthy/ready per-context start/end snapshots and bounded single-context reconnect recovery.
+  - Tracking note (2026-02-15): 30-day soak window started from current pilot-ready baseline. Earliest close date is 2026-03-17 if no Sev-1 incidents are opened during the soak interval.
+  - Verification note (2026-02-15): Soak start baseline references current pilot-ready runtime evidence (`tmp/pilot/gate-b-003/20260215-1909-manual-window/`) with healthy/ready per-context start/end snapshots and bounded single-context reconnect recovery.
 - [x] `GATE-005` Migration analyzers/scripts validated on at least 3 real community configs.
-  - Acceptance note (2026-02-16): Validated migration analyzers on 3 real community configs (`tmp/gate-005/inputs/community-a-config.json`, `tmp/gate-005/inputs/community-b-config.json`, `tmp/gate-005/inputs/community-c-config.json`) and captured sanitized evidence in `docs/plans/gate-005-migration-validation.md`; generated local analyzer reports under `tmp/gate-005/reports/` for both `scripts/migrate_from_squadjs.py` and `scripts/migrate_from_squadts.py`.
+  - Acceptance note (2026-02-15): Validated migration analyzers on 3 real community configs (`tmp/gate-005/inputs/community-a-config.json`, `tmp/gate-005/inputs/community-b-config.json`, `tmp/gate-005/inputs/community-c-config.json`) and captured sanitized evidence in `docs/plans/gate-005-migration-validation.md`; generated local analyzer reports under `tmp/gate-005/reports/` for both `scripts/migrate_from_squadjs.py` and `scripts/migrate_from_squadts.py`.
 - [x] `GATE-006` Operator sign-off from pilot servers.
   - Acceptance note (2026-02-15): Closed operator sign-off using the manual pilot window at `tmp/pilot/gate-b-003/20260215-1909-manual-window/` (window label `20260215-1909`; log timestamps `2026-02-16 03:09` to `03:14` UTC). Evidence shows both contexts started cleanly, remained healthy/ready at start and end (`server-a|b-health-*.json`, `server-a|b-readiness-*.json`), preserved isolation during the action window (`server-a|b-listplayers-*.json`, `server-a|b-listsquads-*.json`), and recovered a single-context RCON disruption without cascading impact (`startup.log`: `RCON connection closed by server` followed by `Reconnected successfully` for the affected context only).
 
 ### Beyond release gates
 
 - [x] `GATE-B-001` At least 3 `P2-BEYOND-*` features released and documented.
-  - Acceptance note (2026-02-16): Published consolidated release/documentation evidence in `docs/plans/gate-b-001-beyond-release-evidence.md` covering at least four shipped and documented `P2-BEYOND-*` capabilities (`P2-BEYOND-001`, `P2-BEYOND-003`, `P2-BEYOND-005`, `P2-BEYOND-008`).
+  - Acceptance note (2026-02-15): Published consolidated release/documentation evidence in `docs/plans/gate-b-001-beyond-release-evidence.md` covering at least four shipped and documented `P2-BEYOND-*` capabilities (`P2-BEYOND-001`, `P2-BEYOND-003`, `P2-BEYOND-005`, `P2-BEYOND-008`).
 - [x] `GATE-B-002` Observability baseline dashboard pack published.
   - Acceptance note (2026-02-15): Published baseline dashboard pack documentation at `docs/plans/gate-b-002-observability-dashboard-pack.md` with standard Prometheus panel queries over `/metrics` runtime/dependency/plugin signals and verification notes from live evidence in `tmp/pilot/gate-b-003/20260215-1909-manual-window/` (`server-a|b-metrics-start.txt`, `server-a|b-metrics-end.txt`), including stable required-health metrics and expected API uptime progression per context.
 - [x] `GATE-B-003` Multi-server or broker mode validated in pilot environment.

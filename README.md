@@ -281,6 +281,7 @@ Data:
 | `scripts/migrate_from_squadjs.py` | Report-first SquadJS config analyzer |
 | `scripts/migrate_from_squadts.py` | Report-first SquadTS config analyzer |
 | `scripts/lint_migrated_toml.py` | Lint migrated TOML and emit fixups/severity |
+| `scripts/record_gate_windows.py` | Record daily gate-window evidence for `GATE-002`/`GATE-003`/`GATE-004` |
 | `scripts/scaffold_plugin.py` | Generate typed plugin skeleton + starter tests/config |
 | `scripts/simulate_local_replay.py` | Replay logs/RCON fixtures through plugins locally |
 
@@ -347,6 +348,9 @@ make setup-dev
 make test
 make test-unit
 make test-contract
+make test-integration
+make test-integration-discord
+make test-integration-rcon
 make typecheck
 ```
 
@@ -354,6 +358,25 @@ Focused test run example:
 
 ```bash
 .venv/bin/python -m pytest tests/test_server.py -v
+```
+
+## Gate Tracking Automation
+
+Record daily parity-gate windows (`GATE-002`/`GATE-003`/`GATE-004`):
+
+```bash
+.venv/bin/python scripts/record_gate_windows.py --sev1 none --notes "daily check"
+```
+
+If running from CI/manual status source without local test execution:
+
+```bash
+.venv/bin/python scripts/record_gate_windows.py \
+  --skip-test-runs \
+  --contract-status pass \
+  --integration-status pass \
+  --sev1 none \
+  --notes "GitHub Actions run #1234"
 ```
 
 ## Project Layout
