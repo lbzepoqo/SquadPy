@@ -292,11 +292,16 @@ class TestRuntimeConfig:
     def test_defaults(self):
         config = RuntimeConfig()
         assert config.mode == "auto"
+        assert config.require_per_server_database is False
 
     def test_valid_modes(self):
         assert RuntimeConfig(mode="auto").mode == "auto"
         assert RuntimeConfig(mode="single").mode == "single"
         assert RuntimeConfig(mode="multi").mode == "multi"
+
+    def test_per_server_database_flag(self):
+        assert RuntimeConfig(require_per_server_database=False).require_per_server_database is False
+        assert RuntimeConfig(require_per_server_database=True).require_per_server_database is True
 
     def test_invalid_mode_raises(self):
         with pytest.raises(Exception):

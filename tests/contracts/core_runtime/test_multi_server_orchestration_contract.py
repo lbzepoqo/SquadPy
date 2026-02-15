@@ -7,7 +7,11 @@ import pytest
 
 from squadpy.config import LoggingConfig, ServerConfig
 from squadpy.events.types import BaseEvent, PlayerConnected
-from squadpy.multi_server import MultiServerRuntime, ServerRuntimeDefinition
+from squadpy.multi_server import (
+    MultiServerRuntime,
+    ServerRuntimeDefinition,
+    discover_server_runtime_definitions,
+)
 from squadpy.server import SquadPyServer
 
 pytestmark = [pytest.mark.contract, pytest.mark.core_runtime]
@@ -51,3 +55,37 @@ async def test_multi_server_contexts_are_isolated() -> None:
 
     assert alpha_seen == ["player_connected"]
     assert bravo_seen == ["player_connected"]
+
+
+def test_multi_server_discovery_prefers_per_server_db_and_falls_back_to_shared(
+    tmp_path: Path,
+) -> None:
+    """P2-BEYOND-001: each context resolves DB config independently."""
+    config_dir = tmp_path / "config"
+    servers_dir = config_dir / "servers"
+    alpha_dir = servers_dir / "alpha"
+    bravo_dir = servers_dir / "bravo"
+    alpha_dir.mkdir(parents=True)
+    bravo_dir.mkdir(parents=True)
+
+    server_toml = '[rcon]\nhost = "127.0.0.1"\nport = 21114\npassword = "test"\n'
+    (alpha_dir / "server.toml").write_text(server_toml, encoding="utf-8")
+    (bravo_dir / "server.toml").write_text(server_toml, encoding="utf-8")
+
+    (config_dir / "database.toml").write_text(
+        'enabled = true\ndriver = "sqlite"\npath = "data/shared.db"\n',
+        encoding="utf-8",
+    )
+    (alpha_dir / "database.toml").write_text(
+        'enabled = true\ndriver = "sqlite"\npath = "data/alpha.db"\n',
+        encoding="utf-8",
+    )
+
+    definitions = discover_server_runtime_definitions(tmp_path)
+    by_name = {definition.name: definition for definition in definitions}
+
+    assert sorted(by_name.keys()) == ["alpha", "bravo"]
+    assert by_name["alpha"].db_config is not None
+    assert by_name["alpha"].db_config.path == "data/alpha.db"
+    assert by_name["bravo"].db_config is not None
+    assert by_name["bravo"].db_config.path == "data/shared.db"

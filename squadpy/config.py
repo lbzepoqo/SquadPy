@@ -187,6 +187,7 @@ class DatabaseConfig(BaseModel):
 
 class RuntimeConfig(BaseModel):
     mode: Literal["auto", "single", "multi"] = "auto"
+    require_per_server_database: bool = False
 
 
 def load_config[T: BaseModel](model: type[T], path: Path) -> T:
