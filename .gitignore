@@ -25,6 +25,7 @@ tests/fixtures/samples/
 # Local live-capture artifacts
 tmp/live_capture/
 tmp/pilot/
+tmp/gate-005/
 
 # Editor settings
 .vscode/
