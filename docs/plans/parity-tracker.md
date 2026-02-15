@@ -312,8 +312,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
 - [x] `P1-MIG-004` Publish migration cookbook (`@migration`, `P1`)
   - Acceptance: docs include end-to-end cutover steps and rollback.
   - Acceptance note (2026-02-15): Added migration runbook `docs/migration-cookbook.md` covering pre-migration snapshotting, report-first analyzer workflow, migrated TOML lint usage, staging validation, production cutover sequence, explicit rollback triggers/steps, and post-cutover stabilization.
-- [ ] `P1-MIG-005` Build plugin behavior mapping matrix (`@migration`, `P1`)
+- [x] `P1-MIG-005` Build plugin behavior mapping matrix (`@migration`, `P1`)
   - Acceptance: every source plugin has mapped target/equivalent strategy.
+  - Acceptance note (2026-02-15): Added plugin behavior mapping matrix at `docs/plugin-behavior-mapping-matrix.md` with SquadJS/SquadTS source plugin rows mapped to SquadPy targets/equivalent strategies and explicit `safe`/`review`/`unsupported` categorization; added contract coverage in `tests/contracts/migration/test_plugin_behavior_mapping_matrix_contract.py` to ensure all analyzer-known source plugins are represented with target/equivalent and migration strategy text.
 
 ## 6) Phase 6 - Surpass Features
 
