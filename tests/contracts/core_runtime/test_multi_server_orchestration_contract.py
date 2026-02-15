@@ -1,9 +1,10 @@
 """Contract test for one-process multi-server context isolation."""
 
+import asyncio
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -15,6 +16,8 @@ from squadpy.multi_server import (
     discover_server_runtime_definitions,
 )
 from squadpy.plugin_loader import PluginStatus
+from squadpy.rcon.client import RconClient
+from squadpy.rcon.protocol import PacketType, RconPacket
 from squadpy.server import SquadPyServer
 
 pytestmark = [pytest.mark.contract, pytest.mark.core_runtime]
@@ -163,3 +166,75 @@ async def test_multi_server_loads_real_db_log_in_both_contexts(tmp_path: Path) -
     )
     assert alpha_db_log.status == PluginStatus.ENABLED
     assert bravo_db_log.status == PluginStatus.ENABLED
+
+
+async def test_multi_server_single_context_rcon_drop_and_recovery_is_isolated() -> None:
+    """P2-BEYOND-001: one context can drop/recover RCON without blocking siblings."""
+    runtime = MultiServerRuntime.from_definitions(
+        [_definition("alpha"), _definition("bravo")]
+    )
+    alpha = cast(SquadPyServer, runtime.get_server("alpha"))
+    bravo = cast(SquadPyServer, runtime.get_server("bravo"))
+
+    alpha_client = RconClient(
+        host="127.0.0.1",
+        port=21114,
+        password="test",
+        auto_reconnect=True,
+    )
+    alpha_client._connected = True
+    alpha_client._reconnecting = False
+    alpha_client._reconnect_event.set()
+    alpha_client._writer = AsyncMock()
+    alpha_client._writer.write = Mock()
+    alpha_client._writer.drain = AsyncMock()
+
+    bravo_client = RconClient(
+        host="127.0.0.1",
+        port=21115,
+        password="test",
+        auto_reconnect=True,
+    )
+    bravo_client._connected = False
+    bravo_client._reconnecting = True
+    bravo_client._reconnect_event.clear()
+    bravo_client._writer = AsyncMock()
+    bravo_client._writer.write = Mock()
+    bravo_client._writer.drain = AsyncMock()
+
+    alpha._rcon = alpha_client
+    bravo._rcon = bravo_client
+
+    bravo_task = asyncio.create_task(bravo._rcon.execute("ListPlayers"))
+    await asyncio.sleep(0)
+    assert not bravo_task.done()
+
+    alpha_task = asyncio.create_task(alpha._rcon.execute("ListPlayers"))
+    await asyncio.sleep(0)
+    alpha_request_id = alpha_client._packet_id_counter
+    alpha_client._handle_response_packet(
+        RconPacket(id=alpha_request_id, type=PacketType.RESPONSE_VALUE, body="alpha-ok")
+    )
+    alpha_client._handle_response_packet(
+        RconPacket(id=alpha_request_id, type=PacketType.RESPONSE_VALUE, body="")
+    )
+    assert await alpha_task == "alpha-ok"
+    assert not bravo_task.done()
+    alpha_client._writer.write.assert_called_once()
+    alpha_client._writer.drain.assert_awaited_once()
+
+    bravo_client._connected = True
+    bravo_client._reconnecting = False
+    bravo_client._reconnect_event.set()
+    await asyncio.sleep(0)
+    bravo_request_id = bravo_client._packet_id_counter
+    bravo_client._handle_response_packet(
+        RconPacket(id=bravo_request_id, type=PacketType.RESPONSE_VALUE, body="bravo-ok")
+    )
+    bravo_client._handle_response_packet(
+        RconPacket(id=bravo_request_id, type=PacketType.RESPONSE_VALUE, body="")
+    )
+    assert await bravo_task == "bravo-ok"
+    bravo_client._writer.write.assert_called_once()
+    bravo_client._writer.drain.assert_awaited_once()
+    assert alpha_client.connected is True
