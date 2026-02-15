@@ -101,75 +101,60 @@ Recommended layout:
 config/
   logging.toml                  # optional shared fallback
   database.toml                 # optional shared fallback
+  plugins/                      # canonical plugin examples/defaults
+    *.toml.example
   servers/
-    server-a/
+    _template/
+      server.toml.example
+      database.toml.example
+    ph-server-1/
       server.toml               # required
+      database.toml             # recommended unique DB per server
       logging.toml              # optional per-server override
-      database.toml             # optional per-server override
-      plugins/                  # optional per-server plugin configs
-        auto_kick_unassigned.toml
-    server-b/
+      plugins/                  # optional per-server overrides only
+        admin_request.toml
+    ph-server-2/
       server.toml
-      plugins/
-        auto_kick_unassigned.toml
+      database.toml
 ```
 
-Example `config/servers/server-a/server.toml`:
+Bootstrap example:
+
+```bash
+mkdir -p config/servers/ph-server-1 config/servers/ph-server-2
+cp config/servers/_template/server.toml.example config/servers/ph-server-1/server.toml
+cp config/servers/_template/server.toml.example config/servers/ph-server-2/server.toml
+cp config/servers/_template/database.toml.example config/servers/ph-server-1/database.toml
+cp config/servers/_template/database.toml.example config/servers/ph-server-2/database.toml
+```
+
+Canonical server template (`config/servers/_template/server.toml.example`):
 
 ```toml
 [rcon]
 host = "10.0.1.21"
 port = 21114
-password = "password_a"
+password = "replace_with_rcon_password"
 
 [log]
 enabled = true
 mode = "local"
-path = "/srv/squad-a/SquadGame.log"
+path = "/srv/squad/SquadGame.log"
 
 [api]
 enabled = true
 host = "127.0.0.1"
 port = 18091
 websocket_path = "/ws/control"
-auth_token = "token_a"
+auth_token = "replace_with_api_token"
 ```
 
-Example `config/servers/server-b/server.toml`:
-
-```toml
-[rcon]
-host = "10.0.1.22"
-port = 21114
-password = "password_b"
-
-[log]
-enabled = true
-mode = "local"
-path = "/srv/squad-b/SquadGame.log"
-
-[api]
-enabled = true
-host = "127.0.0.1"
-port = 18092
-websocket_path = "/ws/control"
-auth_token = "token_b"
-```
-
-Example `config/servers/server-a/database.toml`:
+Canonical database template (`config/servers/_template/database.toml.example`):
 
 ```toml
 enabled = true
 driver = "sqlite"
-path = "data/server-a.db"
-```
-
-Example `config/servers/server-b/database.toml`:
-
-```toml
-enabled = true
-driver = "sqlite"
-path = "data/server-b.db"
+path = "data/server-1.db" # use a unique path per server
 ```
 
 Operational rules:
@@ -179,7 +164,8 @@ Operational rules:
 - Use distinct API ports per server context.
 - Prefer distinct per-server DB configs/paths (`config/servers/<name>/database.toml`) to avoid data mixing.
 - If per-server DB config is missing and shared `config/database.toml` exists, SquadPy warns and falls back to shared DB.
-- Plugin code is shared from `plugins/`, while plugin config can be isolated per server under `config/servers/<name>/plugins/`.
+- Keep canonical plugin examples in `config/plugins/*.toml.example`.
+- Use `config/servers/<name>/plugins/*.toml` only when a server needs overrides that differ from shared defaults.
 
 ### RCON Broker Mode (Library Primitive)
 
@@ -210,10 +196,11 @@ Core files:
 | `config/server.toml` | Single-server runtime config |
 | `config/logging.toml` | Logging setup |
 | `config/database.toml` | Optional DB setup |
-| `config/plugins/*.toml` | Per-plugin settings |
+| `config/plugins/*.toml` | Canonical per-plugin settings/examples |
+| `config/servers/_template/*.example` | Copy-ready multi-server starter templates |
 | `config/servers/<name>/server.toml` | Multi-server per-context config |
 | `config/servers/<name>/database.toml` | Multi-server per-context DB config |
-| `config/servers/<name>/plugins/*.toml` | Multi-server per-context plugin settings |
+| `config/servers/<name>/plugins/*.toml` | Optional per-server plugin overrides |
 
 `server.toml` sections:
 

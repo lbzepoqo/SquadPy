@@ -1,3 +1,0 @@
-enabled = true
-driver = "sqlite"
-path = "data/server-b.db"

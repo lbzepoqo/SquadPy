@@ -1,0 +1,3 @@
+enabled = true
+driver = "sqlite"
+path = "data/server-1.db" # use a unique path per server
