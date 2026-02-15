@@ -31,6 +31,7 @@ markers = [
     "core_runtime: parity owner marker for @core-runtime tasks",
     "api_security: parity owner marker for @api-security tasks",
     "parser: parity owner marker for @parser tasks",
+    "migration: parity owner marker for @migration tasks",
     "p0: parity priority marker for P0 parity tasks",
     "p1: parity priority marker for P1 parity tasks",
 ]

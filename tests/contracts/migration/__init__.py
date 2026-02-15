@@ -1,0 +1,1 @@
+"""Migration parity contract tests."""

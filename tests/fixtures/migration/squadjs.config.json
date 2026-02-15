@@ -1,0 +1,24 @@
+{
+  "server": {
+    "rcon": {
+      "host": "127.0.0.1",
+      "port": 21114,
+      "password": "example-password"
+    }
+  },
+  "discord": {
+    "token": "example-token",
+    "guildId": "123456789012345678"
+  },
+  "plugins": [
+    {
+      "name": "AdminRequest"
+    },
+    {
+      "name": "public-commands"
+    },
+    {
+      "name": "legacy-custom-plugin"
+    }
+  ]
+}
