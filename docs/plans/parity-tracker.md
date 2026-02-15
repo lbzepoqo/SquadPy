@@ -394,6 +394,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 - [ ] `GATE-B-001` At least 3 `P2-BEYOND-*` features released and documented.
 - [ ] `GATE-B-002` Observability baseline dashboard pack published.
 - [ ] `GATE-B-003` Multi-server or broker mode validated in pilot environment.
+  - Validation package (2026-02-15): Added pilot execution runbook `docs/plans/gate-b-003-pilot-validation.md` and structured evidence template `docs/plans/gate-b-003-pilot-evidence-template.json` to drive and record staging/production pilot validation for multi-server or broker mode.
 
 ## 9) Weekly Update Block (Copy/Paste)
 
