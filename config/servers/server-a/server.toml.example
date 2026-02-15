@@ -1,0 +1,16 @@
+[rcon]
+host = "10.0.1.21"
+port = 21114
+password = "password_a"
+
+[log]
+enabled = true
+mode = "local"
+path = "/srv/squad-a/SquadGame.log"
+
+[api]
+enabled = true
+host = "127.0.0.1"
+port = 18091
+websocket_path = "/ws/control"
+auth_token = "token_a"

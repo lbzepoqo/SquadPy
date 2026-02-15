@@ -53,9 +53,38 @@ password = "your_rcon_password"
 python -m squadpy
 ```
 
+### Mode Selection (`auto`, `single`, `multi`)
+
+SquadPy runtime mode precedence:
+
+1. CLI flag: `python -m squadpy --mode <auto|single|multi>`
+2. Environment variable: `SQUADPY_RUNTIME_MODE`
+3. Config file: `config/runtime.toml`
+4. Default: `auto`
+
+Examples:
+
+```bash
+python -m squadpy --mode single
+python -m squadpy --mode multi
+SQUADPY_RUNTIME_MODE=single python -m squadpy
+```
+
+`config/runtime.toml` example:
+
+```toml
+mode = "auto" # auto | single | multi
+```
+
+Behavior summary:
+
+- `auto`: run multi-server only when valid `config/servers/*/server.toml` definitions are present; otherwise run single-server.
+- `single`: always run `config/server.toml` path and ignore multi-server definitions.
+- `multi`: require at least one `config/servers/*/server.toml` definition; exits with clear error if none found.
+
 ### Multi-Server (One Process, N Server Contexts)
 
-When `config/servers/<name>/server.toml` exists, `python -m squadpy` auto-starts multi-server mode.
+In `auto` mode, multi-server activates when at least one `config/servers/<name>/server.toml` exists.
 
 Recommended layout:
 
@@ -150,6 +179,7 @@ Core files:
 
 | File | Purpose |
 |---|---|
+| `config/runtime.toml` | Optional runtime mode selection (`auto`, `single`, `multi`) |
 | `config/server.toml` | Single-server runtime config |
 | `config/logging.toml` | Logging setup |
 | `config/database.toml` | Optional DB setup |

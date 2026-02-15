@@ -10,6 +10,7 @@ from squadpy.config import (
     LogConfig,
     LoggingConfig,
     PluginWatchdogConfig,
+    RuntimeConfig,
     ServerConfig,
     load_config,
 )
@@ -285,3 +286,18 @@ class TestServerConfigWithApi:
         assert config.api.webhook_signature_header == "X-Hub-Signature-256"
         assert config.api.webhook_timestamp_header == "X-Hub-Timestamp"
         assert config.api.webhook_max_age_seconds == 120
+
+
+class TestRuntimeConfig:
+    def test_defaults(self):
+        config = RuntimeConfig()
+        assert config.mode == "auto"
+
+    def test_valid_modes(self):
+        assert RuntimeConfig(mode="auto").mode == "auto"
+        assert RuntimeConfig(mode="single").mode == "single"
+        assert RuntimeConfig(mode="multi").mode == "multi"
+
+    def test_invalid_mode_raises(self):
+        with pytest.raises(Exception):
+            RuntimeConfig.model_validate({"mode": "invalid"})

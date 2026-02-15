@@ -185,6 +185,10 @@ class DatabaseConfig(BaseModel):
     database: str = ""
 
 
+class RuntimeConfig(BaseModel):
+    mode: Literal["auto", "single", "multi"] = "auto"
+
+
 def load_config[T: BaseModel](model: type[T], path: Path) -> T:
     """Load a TOML file and validate it against a Pydantic model."""
     if not path.exists():

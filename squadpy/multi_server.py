@@ -56,7 +56,11 @@ def discover_server_runtime_definitions(base_dir: Path) -> list[ServerRuntimeDef
     definitions: list[ServerRuntimeDefinition] = []
 
     for server_dir in sorted(path for path in servers_dir.iterdir() if path.is_dir()):
-        server_config = load_config(ServerConfig, server_dir / "server.toml")
+        server_config_path = server_dir / "server.toml"
+        if not server_config_path.exists():
+            continue
+
+        server_config = load_config(ServerConfig, server_config_path)
         logging_config = _load_optional_config(LoggingConfig, server_dir / "logging.toml")
         db_config = _load_optional_config(DatabaseConfig, server_dir / "database.toml")
 

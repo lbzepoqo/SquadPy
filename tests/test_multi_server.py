@@ -8,7 +8,11 @@ import pytest
 
 from squadpy.config import LoggingConfig, ServerConfig
 from squadpy.events.types import BaseEvent, PlayerConnected
-from squadpy.multi_server import MultiServerRuntime, ServerRuntimeDefinition
+from squadpy.multi_server import (
+    MultiServerRuntime,
+    ServerRuntimeDefinition,
+    discover_server_runtime_definitions,
+)
 from squadpy.server import SquadPyServer
 
 
@@ -86,3 +90,28 @@ class TestMultiServerRuntime:
 
         await alpha.event_bus.emit(PlayerConnected())
         assert seen == ["player_connected"]
+
+
+class TestMultiServerDiscovery:
+    def test_ignores_server_dirs_without_server_toml(self, tmp_path: Path) -> None:
+        config_dir = tmp_path / "config"
+        servers_dir = config_dir / "servers"
+        (servers_dir / "example-a").mkdir(parents=True)
+        (servers_dir / "example-b").mkdir(parents=True)
+
+        definitions = discover_server_runtime_definitions(tmp_path)
+        assert definitions == []
+
+    def test_discovers_only_dirs_with_server_toml(self, tmp_path: Path) -> None:
+        config_dir = tmp_path / "config"
+        servers_dir = config_dir / "servers"
+        (servers_dir / "example-a").mkdir(parents=True)
+        target = servers_dir / "live-a"
+        target.mkdir(parents=True)
+        (target / "server.toml").write_text(
+            '[rcon]\nhost = "127.0.0.1"\nport = 21114\npassword = "test"\n',
+            encoding="utf-8",
+        )
+
+        definitions = discover_server_runtime_definitions(tmp_path)
+        assert [definition.name for definition in definitions] == ["live-a"]
