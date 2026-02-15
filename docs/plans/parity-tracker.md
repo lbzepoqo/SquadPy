@@ -385,7 +385,8 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 
 ### Parity claim gates (all required)
 
-- [ ] `GATE-001` All `P0-*` items completed.
+- [x] `GATE-001` All `P0-*` items completed.
+  - Acceptance note (2026-02-16): Tracker audit confirms no remaining unchecked `P0-*` execution items; all `P0` workstreams in sections 0-5 are marked complete, and associated `P0` contract coverage remains green in current validation runs.
 - [ ] `GATE-002` Contract suite green in CI for 14 consecutive days.
 - [ ] `GATE-003` Integration suite green in CI for 14 consecutive days.
 - [ ] `GATE-004` Soak test pass for 30 days, no Sev-1 incidents.
