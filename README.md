@@ -400,7 +400,7 @@ plugins/               Built-in plugins
 config/                Runtime and plugin TOML configs
 scripts/               Migration/scaffolding/simulation utilities
 tests/                 Unit and contract coverage
-docs/                  Plans, runbooks, and parity tracker
+docs/                  Plans, runbooks, and parity tracker (`docs/plans/README.md`)
 ```
 
 ## License

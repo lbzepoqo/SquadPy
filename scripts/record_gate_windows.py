@@ -15,7 +15,7 @@ from typing import Sequence
 STATUS_CHOICES = ("pass", "fail", "unknown")
 SEV1_CHOICES = ("none", "yes", "unknown")
 
-DEFAULT_TRACKING_FILE = Path("docs/plans/gate-window-tracking.md")
+DEFAULT_TRACKING_FILE = Path("docs/plans/gates/gate-window-tracking.md")
 DEFAULT_EVIDENCE_DIR = Path("tmp/gate-windows")
 
 CONTRACT_COMMAND: list[str] = [".venv/bin/python", "-m", "pytest", "-m", "contract", "-q"]

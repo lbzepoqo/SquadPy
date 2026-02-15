@@ -5,7 +5,9 @@
 - `plugins/`: built-in plugins (`plugins/<plugin_name>/plugin.py`).
 - `config/`: `*.toml.example` templates for server, logging, database, and plugins.
 - `tests/`: pytest suite and fixtures (`tests/fixtures/`).
-- `docs/plans/`: architecture and phased implementation notes.
+- `docs/plans/`: execution tracker and shared plan docs.
+- `docs/plans/architecture/`: dated architecture/design/phase implementation docs.
+- `docs/plans/gates/`: gate evidence, runbooks, and tracking ledgers.
 
 ## Build, Test, and Development Commands
 - `python -m venv .venv && source .venv/bin/activate`: create local environment.
@@ -53,12 +55,12 @@
 - Run `make typecheck` before every commit/handoff and include the result in validation notes.
 
 ## Parity Program Workflow
-- For SquadJS/SquadTS parity work, treat `docs/plans/2026-02-13-parity-and-beyond-roadmap.md` as the strategic source of truth.
+- For SquadJS/SquadTS parity work, treat `docs/plans/architecture/2026-02-13-parity-and-beyond-roadmap.md` as the strategic source of truth.
 - Treat `docs/plans/parity-tracker.md` as the execution source of truth for task status and acceptance criteria.
 - When implementing parity tasks, reference the tracker ID (for example `P0-RCON-001`) in commit messages, PR notes, and handoff summaries.
 - Update checkbox status and acceptance notes in `docs/plans/parity-tracker.md` in the same change whenever practical.
 - If scope changes, update both roadmap and tracker to keep strategy and execution aligned.
-- For active `GATE-002`/`GATE-003`/`GATE-004` windows, update `docs/plans/gate-window-tracking.md` via `scripts/record_gate_windows.py` and include the generated evidence path (`tmp/gate-windows/<YYYY-MM-DD>.json`) in handoff notes.
+- For active `GATE-002`/`GATE-003`/`GATE-004` windows, update `docs/plans/gates/gate-window-tracking.md` via `scripts/record_gate_windows.py` and include the generated evidence path (`tmp/gate-windows/<YYYY-MM-DD>.json`) in handoff notes.
 
 ## Security & Configuration Tips
 - Do not commit secrets or server identifiers; only example TOMLs should be tracked.

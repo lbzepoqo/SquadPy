@@ -1,7 +1,7 @@
 # SquadPy Parity Tracker (SquadJS + SquadTS)
 
 Last updated: 2026-02-15
-Primary roadmap: `docs/plans/2026-02-13-parity-and-beyond-roadmap.md`
+Primary roadmap: `docs/plans/architecture/2026-02-13-parity-and-beyond-roadmap.md`
 
 ## Purpose
 
@@ -390,7 +390,7 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 - [ ] `GATE-002` Contract suite green in CI for 14 consecutive days.
   - Tracking note (2026-02-15): Consecutive-green window started; day-0 baseline captured. Earliest close date is 2026-03-01 if CI contract jobs remain green each day.
   - Verification note (2026-02-15): Local day-0 contract baseline run passed via `.venv/bin/python -m pytest -m contract -v` (`64 passed`).
-  - Daily ledger: `docs/plans/gate-window-tracking.md` (updated via `scripts/record_gate_windows.py`).
+  - Daily ledger: `docs/plans/gates/gate-window-tracking.md` (updated via `scripts/record_gate_windows.py`).
 - [ ] `GATE-003` Integration suite green in CI for 14 consecutive days.
   - Tracking note (2026-02-15): Consecutive-green window started; day-0 baseline captured. Earliest close date is 2026-03-01 if CI integration jobs remain green each day.
   - Verification note (2026-02-15): Local day-0 integration baseline matched CI module matrix and passed via `make test-integration` (`tests/test_discord_integration.py tests/test_plugin_chat_bridge.py tests/test_plugin_admin_request.py` -> `29 passed`; `tests/test_rcon_client.py tests/test_rcon_helpers.py tests/test_rcon_protocol.py tests/test_server.py` -> `108 passed`).
@@ -398,18 +398,18 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
   - Tracking note (2026-02-15): 30-day soak window started from current pilot-ready baseline. Earliest close date is 2026-03-17 if no Sev-1 incidents are opened during the soak interval.
   - Verification note (2026-02-15): Soak start baseline references current pilot-ready runtime evidence (`tmp/pilot/gate-b-003/20260215-1909-manual-window/`) with healthy/ready per-context start/end snapshots and bounded single-context reconnect recovery.
 - [x] `GATE-005` Migration analyzers/scripts validated on at least 3 real community configs.
-  - Acceptance note (2026-02-15): Validated migration analyzers on 3 real community configs (`tmp/gate-005/inputs/community-a-config.json`, `tmp/gate-005/inputs/community-b-config.json`, `tmp/gate-005/inputs/community-c-config.json`) and captured sanitized evidence in `docs/plans/gate-005-migration-validation.md`; generated local analyzer reports under `tmp/gate-005/reports/` for both `scripts/migrate_from_squadjs.py` and `scripts/migrate_from_squadts.py`.
+  - Acceptance note (2026-02-15): Validated migration analyzers on 3 real community configs (`tmp/gate-005/inputs/community-a-config.json`, `tmp/gate-005/inputs/community-b-config.json`, `tmp/gate-005/inputs/community-c-config.json`) and captured sanitized evidence in `docs/plans/gates/gate-005-migration-validation.md`; generated local analyzer reports under `tmp/gate-005/reports/` for both `scripts/migrate_from_squadjs.py` and `scripts/migrate_from_squadts.py`.
 - [x] `GATE-006` Operator sign-off from pilot servers.
   - Acceptance note (2026-02-15): Closed operator sign-off using the manual pilot window at `tmp/pilot/gate-b-003/20260215-1909-manual-window/` (window label `20260215-1909`; log timestamps `2026-02-16 03:09` to `03:14` UTC). Evidence shows both contexts started cleanly, remained healthy/ready at start and end (`server-a|b-health-*.json`, `server-a|b-readiness-*.json`), preserved isolation during the action window (`server-a|b-listplayers-*.json`, `server-a|b-listsquads-*.json`), and recovered a single-context RCON disruption without cascading impact (`startup.log`: `RCON connection closed by server` followed by `Reconnected successfully` for the affected context only).
 
 ### Beyond release gates
 
 - [x] `GATE-B-001` At least 3 `P2-BEYOND-*` features released and documented.
-  - Acceptance note (2026-02-15): Published consolidated release/documentation evidence in `docs/plans/gate-b-001-beyond-release-evidence.md` covering at least four shipped and documented `P2-BEYOND-*` capabilities (`P2-BEYOND-001`, `P2-BEYOND-003`, `P2-BEYOND-005`, `P2-BEYOND-008`).
+  - Acceptance note (2026-02-15): Published consolidated release/documentation evidence in `docs/plans/gates/gate-b-001-beyond-release-evidence.md` covering at least four shipped and documented `P2-BEYOND-*` capabilities (`P2-BEYOND-001`, `P2-BEYOND-003`, `P2-BEYOND-005`, `P2-BEYOND-008`).
 - [x] `GATE-B-002` Observability baseline dashboard pack published.
-  - Acceptance note (2026-02-15): Published baseline dashboard pack documentation at `docs/plans/gate-b-002-observability-dashboard-pack.md` with standard Prometheus panel queries over `/metrics` runtime/dependency/plugin signals and verification notes from live evidence in `tmp/pilot/gate-b-003/20260215-1909-manual-window/` (`server-a|b-metrics-start.txt`, `server-a|b-metrics-end.txt`), including stable required-health metrics and expected API uptime progression per context.
+  - Acceptance note (2026-02-15): Published baseline dashboard pack documentation at `docs/plans/gates/gate-b-002-observability-dashboard-pack.md` with standard Prometheus panel queries over `/metrics` runtime/dependency/plugin signals and verification notes from live evidence in `tmp/pilot/gate-b-003/20260215-1909-manual-window/` (`server-a|b-metrics-start.txt`, `server-a|b-metrics-end.txt`), including stable required-health metrics and expected API uptime progression per context.
 - [x] `GATE-B-003` Multi-server or broker mode validated in pilot environment.
-  - Validation package (2026-02-15): Added pilot execution runbook `docs/plans/gate-b-003-pilot-validation.md` and structured evidence template `docs/plans/gate-b-003-pilot-evidence-template.json` to drive and record staging/production pilot validation for multi-server or broker mode.
+  - Validation package (2026-02-15): Added pilot execution runbook `docs/plans/gates/gate-b-003-pilot-validation.md` and structured evidence template `docs/plans/gates/gate-b-003-pilot-evidence-template.json` to drive and record staging/production pilot validation for multi-server or broker mode.
   - Acceptance note (2026-02-15): Completed multi-server pilot validation on commit `c173cf9` with two server contexts (`server-a`, `server-b`) under one process; captured startup evidence and baseline/end API snapshots (`/api/health`, `/api/readiness`, `/metrics`) in `tmp/pilot/gate-b-003/20260215-1712/`; validated action-window isolation after manual server-b gameplay event (join/spawn/grenade) using per-context command snapshots (`ListPlayers`, `ListSquads`, `ShowCurrentMap`) showing server-b activity without server-a cross-talk; validated single-context degradation by restarting server-b and observing bounded reconnect attempts with eventual recovery while server-a remained healthy; consolidated structured evidence in `tmp/pilot/gate-b-003/20260215-1712/evidence.json`.
   - Acceptance note (2026-02-15, revalidation after db_log fix): Re-ran one-process multi-server live window and manual server-b disruption sequence using `tmp/pilot/gate-b-003/20260215-1909-manual-window/`; startup confirmed `DB Log` enabled in both contexts with no duplicate-model/table import errors (`Failed to import plugin db_log`, `SAWarning`, `already defined` absent), baseline/end snapshots confirmed server-a remained isolated while server-b state changed during the window, and server-b reconnect degradation remained bounded with successful recovery (`RCON connection closed by server` followed by `Reconnected successfully`).
 

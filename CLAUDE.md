@@ -6,7 +6,7 @@ Python-based Squad game server management framework. Inspired by SquadJS/SquadTS
 
 | What | Where |
 |------|-------|
-| Design doc | `docs/plans/2026-02-08-squadpy-design.md` |
+| Design doc | `docs/plans/architecture/2026-02-08-squadpy-design.md` |
 | Run | `python -m squadpy` |
 | Test | `pytest tests/ -v` |
 | Venv | `.venv/` — activate: `. .venv/bin/activate` |
