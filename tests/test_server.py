@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from squadpy.config import LoggingConfig, ServerConfig
+from squadpy.events.types import PlayerConnected
 from squadpy.server import SquadPyServer, format_plugin_line, format_service_line
 from squadpy.plugin_loader import LoadedPlugin, PluginStatus
 
@@ -212,3 +213,102 @@ class TestStartupSummaryDiscord:
         line = format_service_line("Discord", False, "not configured")
         assert "Discord" in line
         assert "not configured" in line
+
+
+class TestPluginWatchdogFailureBudget:
+    def _server(self, *, enabled: bool = True, threshold: int = 2) -> SquadPyServer:
+        return SquadPyServer(
+            server_config=ServerConfig.model_validate({
+                "rcon": {"host": "127.0.0.1", "port": 21114, "password": "test"},
+                "plugin_watchdog": {
+                    "enabled": enabled,
+                    "failure_threshold": threshold,
+                    "failure_window_seconds": 60,
+                },
+            }),
+            logging_config=LoggingConfig.model_validate({"level": "INFO", "file": {"enabled": False}}),
+            base_dir=Path("/tmp/test"),
+        )
+
+    async def test_repeated_event_failures_disable_plugin(self):
+        server = self._server(enabled=True, threshold=2)
+        plugin_instance = AsyncMock()
+        plugin_instance.handle_player_connected = AsyncMock(
+            side_effect=[RuntimeError("boom-1"), RuntimeError("boom-2")]
+        )
+        plugin_instance.on_disable = AsyncMock()
+
+        loaded = LoadedPlugin(
+            name="Watchdog Plugin",
+            dir_name="watchdog_plugin",
+            status=PluginStatus.ENABLED,
+            instance=plugin_instance,
+            event_handlers=[("player_connected", "handle_player_connected")],
+        )
+        server._loaded_plugins = [loaded]
+        server._register_plugin_events(loaded)
+
+        await server.event_bus.emit(PlayerConnected())
+        assert loaded.status == PluginStatus.ENABLED
+
+        await server.event_bus.emit(PlayerConnected())
+        assert loaded.status == PluginStatus.DISABLED
+        assert "watchdog: disabled after 2 failures" in loaded.error
+        plugin_instance.on_disable.assert_awaited_once()
+
+        await server.event_bus.emit(PlayerConnected())
+        assert plugin_instance.handle_player_connected.await_count == 2
+
+        records = server.recent_plugin_degradation_records()
+        assert len(records) == 1
+        assert records[0]["plugin"] == "Watchdog Plugin"
+        assert records[0]["source"] == "event:handle_player_connected"
+
+    async def test_repeated_periodic_failures_disable_plugin(self):
+        server = self._server(enabled=True, threshold=2)
+        server._running = True
+        plugin_instance = AsyncMock()
+        plugin_instance.failing_task = AsyncMock(
+            side_effect=[RuntimeError("tick-1"), RuntimeError("tick-2")]
+        )
+        plugin_instance.on_disable = AsyncMock()
+
+        loaded = LoadedPlugin(
+            name="Periodic Plugin",
+            dir_name="periodic_plugin",
+            status=PluginStatus.ENABLED,
+            instance=plugin_instance,
+            periodic_tasks=[("failing_task", 0.0)],
+        )
+
+        await server._run_periodic(loaded, "failing_task", plugin_instance.failing_task, 0.0)
+        server._running = False
+
+        assert loaded.status == PluginStatus.DISABLED
+        plugin_instance.on_disable.assert_awaited_once()
+        assert plugin_instance.failing_task.await_count == 2
+
+    async def test_watchdog_can_be_disabled(self):
+        server = self._server(enabled=False, threshold=2)
+        plugin_instance = AsyncMock()
+        plugin_instance.handle_player_connected = AsyncMock(
+            side_effect=RuntimeError("boom")
+        )
+        plugin_instance.on_disable = AsyncMock()
+
+        loaded = LoadedPlugin(
+            name="No Watchdog Plugin",
+            dir_name="no_watchdog_plugin",
+            status=PluginStatus.ENABLED,
+            instance=plugin_instance,
+            event_handlers=[("player_connected", "handle_player_connected")],
+        )
+        server._loaded_plugins = [loaded]
+        server._register_plugin_events(loaded)
+
+        await server.event_bus.emit(PlayerConnected())
+        await server.event_bus.emit(PlayerConnected())
+        await server.event_bus.emit(PlayerConnected())
+
+        assert loaded.status == PluginStatus.ENABLED
+        plugin_instance.on_disable.assert_not_called()

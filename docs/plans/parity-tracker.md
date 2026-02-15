@@ -333,8 +333,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
 - [x] `P2-BEYOND-005` Health/readiness endpoints (`@qa-release`, `P2`)
   - Acceptance: probes reflect dependency state accurately.
   - Acceptance note (2026-02-15): Extended control API probes in `squadpy/api/websocket_control.py` with dependency-aware health details and a dedicated readiness endpoint (`/api/readiness`); health now reports per-dependency `required`/`healthy` state and overall `ready` signal, and readiness returns `503 unavailable` when required dependencies (for example RCON/server) are not healthy; updated API example RBAC permissions in `config/server.toml.example` and added targeted coverage in `tests/test_api_rest_control.py` plus contract checks in `tests/contracts/api_security/test_health_readiness_contract.py`.
-- [ ] `P2-BEYOND-006` Plugin watchdog/failure budgets (`@core-runtime`, `P2`)
+- [x] `P2-BEYOND-006` Plugin watchdog/failure budgets (`@core-runtime`, `P2`)
   - Acceptance: repeated plugin failures trigger controlled degradation.
+  - Acceptance note (2026-02-15): Added runtime plugin watchdog failure budgets via `plugin_watchdog` config in `squadpy/config.py` and `config/server.toml.example`, then enforced budget-based degradation in `squadpy/server.py` by wrapping plugin event handlers and periodic tasks with failure accounting; repeated failures within the configured window now trigger controlled degradation (event unsubscription, periodic-task cancellation, `on_disable`, and plugin status transition to disabled with watchdog reason); added targeted coverage in `tests/test_server.py` and `tests/test_config.py`, plus contract coverage in `tests/contracts/core_runtime/test_plugin_watchdog_failure_budget_contract.py`.
 - [ ] `P2-BEYOND-007` Plugin scaffolder CLI (`@plugins-moderation`, `P2`)
   - Acceptance: CLI creates tested plugin skeleton with typed hooks.
 - [ ] `P2-BEYOND-008` Local simulation harness (`@qa-release`, `P2`)

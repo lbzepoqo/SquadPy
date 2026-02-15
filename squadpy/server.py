@@ -4,13 +4,15 @@ import asyncio
 import logging
 import re
 import signal
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from squadpy.config import ServerConfig, LoggingConfig, DatabaseConfig
 from squadpy.api import WebsocketControlService
 from squadpy.database import DatabaseManager
-from squadpy.events.emitter import EventBus
-from squadpy.events.types import ChatMessage
+from squadpy.events.emitter import EventBus, EventHandler
+from squadpy.events.types import BaseEvent, ChatMessage
 from squadpy.log_parser.id_parser import parse_online_ids
 from squadpy.layers import LayerCatalogService
 from squadpy.logger import setup_logging
@@ -75,6 +77,13 @@ class SquadPyServer:
         self._db: DatabaseManager | None = None
         self._api: WebsocketControlService | None = None
         self._layers: LayerCatalogService = LayerCatalogService()
+        self._plugin_watchdog_enabled = self._server_config.plugin_watchdog.enabled
+        self._plugin_watchdog_failure_threshold = self._server_config.plugin_watchdog.failure_threshold
+        self._plugin_watchdog_failure_window_seconds = self._server_config.plugin_watchdog.failure_window_seconds
+        self._event_handler_wrappers: dict[str, list[tuple[str, EventHandler]]] = {}
+        self._plugin_failure_timestamps: dict[str, list[float]] = {}
+        self._plugin_degradation_records: list[dict[str, str]] = []
+        self._plugins_degrading: set[str] = set()
 
     @property
     def version(self) -> str:
@@ -87,6 +96,9 @@ class SquadPyServer:
     @property
     def event_bus(self) -> EventBus:
         return self._event_bus
+
+    def recent_plugin_degradation_records(self) -> list[dict[str, str]]:
+        return list(self._plugin_degradation_records)
 
     async def _connect_rcon(self) -> tuple[bool, str]:
         try:
@@ -277,22 +289,53 @@ class SquadPyServer:
         await self._shutdown_event.wait()
 
     def _register_plugin_events(self, loaded: LoadedPlugin) -> None:
+        wrappers: list[tuple[str, EventHandler]] = []
         for event_name, method_name in loaded.event_handlers:
             handler = getattr(loaded.instance, method_name)
-            self._event_bus.subscribe(event_name, handler)
+            wrapped = self._wrap_plugin_event_handler(loaded, method_name, handler)
+            self._event_bus.subscribe(event_name, wrapped)
+            wrappers.append((event_name, wrapped))
+        self._event_handler_wrappers[loaded.dir_name] = wrappers
+
+    def _unregister_plugin_events(self, plugin_dir_name: str) -> None:
+        wrappers = self._event_handler_wrappers.pop(plugin_dir_name, [])
+        for event_name, handler in wrappers:
+            self._event_bus.unsubscribe(event_name, handler)
+
+    def _wrap_plugin_event_handler(
+        self,
+        loaded: LoadedPlugin,
+        method_name: str,
+        handler: EventHandler,
+    ) -> EventHandler:
+        async def _wrapped(event: BaseEvent) -> None:
+            try:
+                await handler(event)
+            except Exception as exc:
+                await self._record_plugin_failure(
+                    loaded,
+                    source=f"event:{method_name}",
+                    error=exc,
+                )
+                raise
+
+        return _wrapped
 
     def _start_periodic_tasks(self, loaded: LoadedPlugin) -> None:
         for method_name, interval in loaded.periodic_tasks:
             method = getattr(loaded.instance, method_name)
             task = asyncio.create_task(
-                self._run_periodic(loaded.name, method, interval)
+                self._run_periodic(loaded, method_name, method, interval)
             )
             self._periodic_tasks.append((loaded.dir_name, task))
 
-    def _cancel_periodic_tasks(self, plugin_dir_name: str) -> None:
+    def _cancel_periodic_tasks(self, plugin_dir_name: str, *, skip_current_task: bool = False) -> None:
         remaining: list[tuple[str, asyncio.Task]] = []
+        current_task = asyncio.current_task() if skip_current_task else None
         for dir_name, task in self._periodic_tasks:
             if dir_name == plugin_dir_name:
+                if current_task is not None and task is current_task:
+                    continue
                 task.cancel()
             else:
                 remaining.append((dir_name, task))
@@ -313,13 +356,103 @@ class SquadPyServer:
                 plugin_name, meta["event_type"], meta.get("custom_id"), method,
             )
 
-    async def _run_periodic(self, plugin_name: str, method, interval: float) -> None:
+    async def _run_periodic(
+        self,
+        loaded: LoadedPlugin,
+        method_name: str,
+        method,
+        interval: float,
+    ) -> None:
         while self._running:
             await asyncio.sleep(interval)
+            if loaded.status != PluginStatus.ENABLED:
+                return
             try:
                 await method()
+            except Exception as exc:
+                logger.exception("Error in periodic task %s.%s", loaded.name, method_name)
+                should_degrade = await self._record_plugin_failure(
+                    loaded,
+                    source=f"periodic:{method_name}",
+                    error=exc,
+                )
+                if should_degrade:
+                    return
+
+    async def _record_plugin_failure(
+        self,
+        loaded: LoadedPlugin,
+        *,
+        source: str,
+        error: Exception,
+    ) -> bool:
+        if not self._plugin_watchdog_enabled:
+            return False
+        if loaded.status != PluginStatus.ENABLED:
+            return False
+
+        now = time.monotonic()
+        failures = self._plugin_failure_timestamps.setdefault(loaded.dir_name, [])
+        cutoff = now - self._plugin_watchdog_failure_window_seconds
+        failures[:] = [timestamp for timestamp in failures if timestamp >= cutoff]
+        failures.append(now)
+
+        if len(failures) < self._plugin_watchdog_failure_threshold:
+            return False
+
+        await self._degrade_plugin(loaded, source=source, error=error)
+        return True
+
+    async def _degrade_plugin(
+        self,
+        loaded: LoadedPlugin,
+        *,
+        source: str,
+        error: Exception,
+    ) -> None:
+        if loaded.status != PluginStatus.ENABLED or loaded.instance is None:
+            return
+        if loaded.dir_name in self._plugins_degrading:
+            return
+
+        self._plugins_degrading.add(loaded.dir_name)
+        loaded.status = PluginStatus.DISABLED
+        loaded.error = (
+            f"watchdog: disabled after {self._plugin_watchdog_failure_threshold} "
+            f"failures in {self._plugin_watchdog_failure_window_seconds}s "
+            f"({source}: {error})"
+        )
+
+        try:
+            self._unregister_plugin_events(loaded.dir_name)
+            self._cancel_periodic_tasks(loaded.dir_name, skip_current_task=True)
+
+            if self._discord:
+                self._discord.unregister_plugin(loaded.dir_name)
+
+            try:
+                await asyncio.wait_for(loaded.instance.on_disable(), timeout=5.0)
             except Exception:
-                logger.exception("Error in periodic task %s.%s", plugin_name, method.__name__)
+                logger.exception(
+                    "Error disabling plugin %s during watchdog degradation",
+                    loaded.name,
+                )
+        finally:
+            self._plugins_degrading.discard(loaded.dir_name)
+            self._record_plugin_degradation(loaded.name, source, str(error))
+
+        logger.warning("Plugin %s degraded by watchdog (%s)", loaded.name, source)
+
+    def _record_plugin_degradation(self, plugin_name: str, source: str, detail: str) -> None:
+        record: dict[str, str] = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "plugin": plugin_name,
+            "source": source,
+            "detail": detail,
+        }
+        self._plugin_degradation_records.append(record)
+        if len(self._plugin_degradation_records) > 1000:
+            self._plugin_degradation_records = self._plugin_degradation_records[-1000:]
 
     def _handle_chat(self, body: str) -> None:
         logger.debug("Chat: %s", body)
@@ -373,6 +506,7 @@ class SquadPyServer:
         self._periodic_tasks.clear()
 
         for lp in self._loaded_plugins:
+            self._unregister_plugin_events(lp.dir_name)
             if lp.status == PluginStatus.ENABLED and lp.instance:
                 try:
                     await asyncio.wait_for(lp.instance.on_disable(), timeout=5.0)
@@ -407,14 +541,12 @@ class SquadPyServer:
 
         if target.instance:
             self._cancel_periodic_tasks(target.dir_name)
+            self._unregister_plugin_events(target.dir_name)
             try:
                 await target.instance.on_disable()
             except Exception:
                 logger.exception("Error disabling %s during reload", target.name)
-
-            for event_name, method_name in target.event_handlers:
-                handler = getattr(target.instance, method_name)
-                self._event_bus.unsubscribe(event_name, handler)
+            self._plugin_failure_timestamps.pop(target.dir_name, None)
 
             if self._discord:
                 self._discord.unregister_plugin(target.dir_name)
@@ -436,6 +568,7 @@ class SquadPyServer:
                 logger.exception("Failed to create tables after reload")
 
         new_loaded = await loader._load_one(info, services)
+        self._plugin_failure_timestamps.pop(target.dir_name, None)
 
         idx = self._loaded_plugins.index(target)
         self._loaded_plugins[idx] = new_loaded

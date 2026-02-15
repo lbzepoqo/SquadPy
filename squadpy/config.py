@@ -132,11 +132,32 @@ class ApiConfig(BaseModel):
         return self
 
 
+class PluginWatchdogConfig(BaseModel):
+    enabled: bool = True
+    failure_threshold: int = 3
+    failure_window_seconds: int = 300
+
+    @field_validator("failure_threshold")
+    @classmethod
+    def validate_failure_threshold(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("plugin_watchdog.failure_threshold must be greater than 0")
+        return v
+
+    @field_validator("failure_window_seconds")
+    @classmethod
+    def validate_failure_window_seconds(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("plugin_watchdog.failure_window_seconds must be greater than 0")
+        return v
+
+
 class ServerConfig(BaseModel):
     rcon: RconConfig
     log: LogConfig = LogConfig()
     discord: DiscordConfig = DiscordConfig()
     api: ApiConfig = ApiConfig()
+    plugin_watchdog: PluginWatchdogConfig = PluginWatchdogConfig()
 
 
 class LoggingConfig(BaseModel):

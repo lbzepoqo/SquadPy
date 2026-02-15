@@ -9,6 +9,7 @@ from squadpy.config import (
     DiscordConfig,
     LogConfig,
     LoggingConfig,
+    PluginWatchdogConfig,
     ServerConfig,
     load_config,
 )
@@ -155,6 +156,43 @@ class TestServerConfigWithDiscord:
         })
         assert config.discord.enabled is True
         assert config.discord.token == "tok"
+
+
+class TestPluginWatchdogConfig:
+    def test_defaults(self):
+        config = PluginWatchdogConfig()
+        assert config.enabled is True
+        assert config.failure_threshold == 3
+        assert config.failure_window_seconds == 300
+
+    def test_invalid_failure_threshold_raises(self):
+        with pytest.raises(Exception):
+            PluginWatchdogConfig(failure_threshold=0)
+
+    def test_invalid_failure_window_raises(self):
+        with pytest.raises(Exception):
+            PluginWatchdogConfig(failure_window_seconds=0)
+
+
+class TestServerConfigWithPluginWatchdog:
+    def test_defaults(self):
+        config = ServerConfig.model_validate({"rcon": {"host": "127.0.0.1", "password": "pass"}})
+        assert config.plugin_watchdog.enabled is True
+        assert config.plugin_watchdog.failure_threshold == 3
+        assert config.plugin_watchdog.failure_window_seconds == 300
+
+    def test_section_parsed(self):
+        config = ServerConfig.model_validate({
+            "rcon": {"host": "127.0.0.1", "password": "pass"},
+            "plugin_watchdog": {
+                "enabled": True,
+                "failure_threshold": 5,
+                "failure_window_seconds": 120,
+            },
+        })
+        assert config.plugin_watchdog.enabled is True
+        assert config.plugin_watchdog.failure_threshold == 5
+        assert config.plugin_watchdog.failure_window_seconds == 120
 
 
 class TestApiConfig:

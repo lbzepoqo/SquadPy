@@ -21,6 +21,11 @@ password = "your_rcon_password"
 # guild_id = 123456789012345678
 # command_prefix = "!"
 
+# [plugin_watchdog]
+# enabled = true
+# failure_threshold = 3
+# failure_window_seconds = 300
+
 # [api]
 # enabled = true
 # host = "127.0.0.1"
