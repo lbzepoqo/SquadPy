@@ -396,7 +396,8 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 ### Beyond release gates
 
 - [ ] `GATE-B-001` At least 3 `P2-BEYOND-*` features released and documented.
-- [ ] `GATE-B-002` Observability baseline dashboard pack published.
+- [x] `GATE-B-002` Observability baseline dashboard pack published.
+  - Acceptance note (2026-02-15): Published baseline dashboard pack documentation at `docs/plans/gate-b-002-observability-dashboard-pack.md` with standard Prometheus panel queries over `/metrics` runtime/dependency/plugin signals and verification notes from live evidence in `tmp/pilot/gate-b-003/20260215-1909-manual-window/` (`server-a|b-metrics-start.txt`, `server-a|b-metrics-end.txt`), including stable required-health metrics and expected API uptime progression per context.
 - [x] `GATE-B-003` Multi-server or broker mode validated in pilot environment.
   - Validation package (2026-02-15): Added pilot execution runbook `docs/plans/gate-b-003-pilot-validation.md` and structured evidence template `docs/plans/gate-b-003-pilot-evidence-template.json` to drive and record staging/production pilot validation for multi-server or broker mode.
   - Acceptance note (2026-02-15): Completed multi-server pilot validation on commit `c173cf9` with two server contexts (`server-a`, `server-b`) under one process; captured startup evidence and baseline/end API snapshots (`/api/health`, `/api/readiness`, `/metrics`) in `tmp/pilot/gate-b-003/20260215-1712/`; validated action-window isolation after manual server-b gameplay event (join/spawn/grenade) using per-context command snapshots (`ListPlayers`, `ListSquads`, `ShowCurrentMap`) showing server-b activity without server-a cross-talk; validated single-context degradation by restarting server-b and observing bounded reconnect attempts with eventual recovery while server-a remained healthy; consolidated structured evidence in `tmp/pilot/gate-b-003/20260215-1712/evidence.json`.
