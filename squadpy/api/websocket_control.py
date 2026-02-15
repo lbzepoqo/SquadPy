@@ -52,6 +52,7 @@ class WebsocketControlService:
         webhook_signature_header: str = "X-SquadPy-Signature",
         webhook_timestamp_header: str = "X-SquadPy-Timestamp",
         webhook_max_age_seconds: int = 300,
+        layer_catalog_service: Any = None,
         server: Any = None,
         rcon: Any = None,
     ):
@@ -67,6 +68,7 @@ class WebsocketControlService:
         self._webhook_signature_header = str(webhook_signature_header)
         self._webhook_timestamp_header = str(webhook_timestamp_header)
         self._webhook_max_age_seconds = max(1, int(webhook_max_age_seconds))
+        self._layer_catalog_service = layer_catalog_service
         self._server = server
         self._rcon = rcon
         self._runner: web.AppRunner | None = None
@@ -189,6 +191,66 @@ class WebsocketControlService:
                 request_id=request_id,
             ).as_dict()
 
+        if action == "layers.query":
+            if not self._is_allowed(role_name, "layers.query"):
+                self._audit(
+                    actor=actor or "unknown",
+                    origin=origin,
+                    target="layers.query",
+                    outcome="rejected",
+                    detail=f"forbidden role={role_name} permission=layers.query",
+                )
+                return ControlResponse(
+                    ok=False,
+                    error="Forbidden",
+                    code="forbidden",
+                    request_id=request_id,
+                ).as_dict()
+
+            query = payload.get("query", {})
+            if not isinstance(query, dict):
+                self._audit(
+                    actor=actor or "unknown",
+                    origin=origin,
+                    target="layers.query",
+                    outcome="rejected",
+                    detail="invalid query payload",
+                )
+                return ControlResponse(
+                    ok=False,
+                    error="Invalid query payload",
+                    code="invalid_request",
+                    request_id=request_id,
+                ).as_dict()
+
+            result = self._run_layer_query(query)
+            if result is None:
+                self._audit(
+                    actor=actor or "unknown",
+                    origin=origin,
+                    target="layers.query",
+                    outcome="error",
+                    detail="layer catalog unavailable",
+                )
+                return ControlResponse(
+                    ok=False,
+                    error="Layer catalog unavailable",
+                    code="unavailable",
+                    request_id=request_id,
+                ).as_dict()
+
+            self._audit(
+                actor=actor or "unknown",
+                origin=origin,
+                target="layers.query",
+                outcome="success",
+            )
+            return ControlResponse(
+                ok=True,
+                result=result,
+                request_id=request_id,
+            ).as_dict()
+
         self._audit(
             actor=actor or "unknown",
             origin=origin,
@@ -270,6 +332,29 @@ class WebsocketControlService:
                 "request_id": request_id,
                 "action": "rcon.execute",
                 "command": command,
+            },
+            token=token,
+            origin=origin,
+            actor=actor,
+            role=role,
+        )
+
+    async def process_layer_query(
+        self,
+        payload: dict[str, Any],
+        *,
+        token: str | None,
+        origin: str = "rest",
+        actor: str = "",
+        role: str = "",
+    ) -> dict[str, Any]:
+        request_id = str(payload.get("request_id", "")).strip()
+        query = payload.get("query", {})
+        return await self.process_payload(
+            {
+                "request_id": request_id,
+                "action": "layers.query",
+                "query": query,
             },
             token=token,
             origin=origin,
@@ -416,6 +501,38 @@ class WebsocketControlService:
         )
         return web.json_response(response, status=self._http_status(response))
 
+    async def _handle_layer_query(self, request: web.Request) -> web.Response:
+        token = self._request_token(request)
+        try:
+            payload = await request.json()
+        except json.JSONDecodeError:
+            response = ControlResponse(
+                ok=False,
+                error="Malformed JSON",
+                code="invalid_json",
+            ).as_dict()
+            return web.json_response(response, status=self._http_status(response))
+
+        if not isinstance(payload, dict):
+            response = ControlResponse(
+                ok=False,
+                error="Payload must be an object",
+                code="invalid_json",
+            ).as_dict()
+            return web.json_response(response, status=self._http_status(response))
+
+        request_token = str(payload.get("token", "")).strip() or token
+        actor = str(payload.get("actor", "")).strip() or "rest_client"
+        role = str(payload.get("role", "")).strip() or self._request_role(request)
+        response = await self.process_layer_query(
+            payload,
+            token=request_token,
+            origin="rest",
+            actor=actor,
+            role=role,
+        )
+        return web.json_response(response, status=self._http_status(response))
+
     async def _handle_webhook_command(self, request: web.Request) -> web.Response:
         raw_body = await request.text()
         try:
@@ -483,12 +600,69 @@ class WebsocketControlService:
             return None
         return getattr(self._server, "_rcon", None)
 
+    def _resolve_layer_catalog_service(self):
+        if self._layer_catalog_service is not None:
+            return self._layer_catalog_service
+        if self._server is None:
+            return None
+        return getattr(self._server, "_layers", None)
+
+    def _run_layer_query(self, query: dict[str, Any]) -> dict[str, Any] | None:
+        layer_service = self._resolve_layer_catalog_service()
+        if layer_service is None:
+            return None
+
+        catalog = getattr(layer_service, "catalog", None)
+        if catalog is None:
+            return None
+
+        layer_name = str(query.get("layer", "")).strip()
+        faction_name = str(query.get("faction", "")).strip()
+        vehicle_class = str(query.get("vehicle_class", "")).strip()
+        include_catalog = bool(query.get("include_catalog", False))
+        include_health = bool(query.get("include_health", True))
+
+        source_url = str(
+            getattr(catalog, "source_url", "")
+            or getattr(layer_service, "source_url", "")
+        ).strip()
+        result: dict[str, Any] = {
+            "source_url": source_url,
+            "has_layer": catalog.has_layer(layer_name) if layer_name else None,
+            "has_faction": catalog.has_faction(faction_name) if faction_name else None,
+            "vehicle_names": sorted(catalog.vehicle_names(vehicle_class)) if vehicle_class else [],
+            "helicopter_names": sorted(catalog.helicopter_names),
+            "melee_weapons": sorted(set(catalog.melee_weapons)),
+        }
+
+        if include_catalog:
+            result["layers"] = sorted(set(catalog.layers))
+            result["factions"] = sorted(set(catalog.factions))
+            result["vehicles_by_class"] = {
+                vehicle_type: sorted(set(names))
+                for vehicle_type, names in catalog.vehicles_by_class.items()
+            }
+
+        if include_health:
+            health_fn = getattr(layer_service, "health", None)
+            if callable(health_fn):
+                health = health_fn()
+                if hasattr(health, "as_dict"):
+                    result["health"] = health.as_dict()
+                elif isinstance(health, dict):
+                    result["health"] = health
+                else:
+                    result["health"] = {"status": str(health)}
+
+        return result
+
     def _build_app(self) -> web.Application:
         app = web.Application()
         app.router.add_get(self._path, self._handle_ws)
         app.router.add_get("/api/health", self._handle_health)
         app.router.add_get("/api/status", self._handle_status)
         app.router.add_post("/api/command", self._handle_command)
+        app.router.add_post("/api/layers/query", self._handle_layer_query)
         app.router.add_post("/api/webhook/command", self._handle_webhook_command)
         return app
 

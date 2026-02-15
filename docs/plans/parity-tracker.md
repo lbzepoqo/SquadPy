@@ -237,8 +237,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
 - [x] `P2-LAYER-004` Add persisted last-known-good catalog snapshot (`@data-platform`, `P2`)
   - Acceptance: startup restores snapshot when remote source is unavailable; persistence and recovery tests pass.
   - Acceptance note (2026-02-15): Added persisted snapshot support to `LayerCatalogService` in `squadpy/layers/catalog.py` via configurable `snapshot_path`, automatic snapshot writes after successful fetch/sync, and startup recovery through `initialize()` + `load_snapshot()` when the remote source is unavailable; added targeted persistence/recovery coverage in `tests/test_layers_catalog.py`.
-- [ ] `P2-LAYER-005` Expose shared layer query surfaces (plugin APIs + authenticated control APIs) (`@api-security`, `P2`)
+- [x] `P2-LAYER-005` Expose shared layer query surfaces (plugin APIs + authenticated control APIs) (`@api-security`, `P2`)
   - Acceptance: plugin consumers and authenticated API callers can query layer/faction/vehicle metadata with integration tests for allowed/denied access.
+  - Acceptance note (2026-02-15): Exposed shared layer query surfaces by passing a shared `layers` service into plugin instances (`squadpy/plugin.py`, `squadpy/plugin_loader.py`, `squadpy/server.py`) and extending control APIs in `squadpy/api/websocket_control.py` with authenticated `layers.query` support (`process_layer_query`, websocket action, and `/api/layers/query` endpoint) plus RBAC enforcement; added integration coverage in `tests/test_plugin_loader.py`, `tests/test_api_websocket_control.py`, `tests/test_api_rest_control.py`, `tests/test_server_api.py`, and contract coverage in `tests/contracts/api_security/test_layer_query_contract.py`.
 
 - [x] `P1-SEED-011` Implement `plugins/heli_crash_broadcast` (`@plugins-seeding`, `P1`)
   - Acceptance: relevant event detection and broadcast tests pass using shared layer catalog metadata from `P1-LAYER-001`/`P1-LAYER-002`, with fallback-only mode covered by tests.
@@ -388,6 +389,6 @@ Week of: 2026-02-14
 - Completed IDs: `P0-PLUG-UPG-001`, `P0-PLUG-MOD-001`, `P0-SEED-001`, `P0-SEED-002`, `P0-SEED-003`, `P0-SEED-004`, `P0-SEED-005`, `P0-SEED-006`, `P0-DATA-001`, `P0-DATA-002`, `P0-API-001`, `P0-API-002`, `P0-API-003`
 - In-progress IDs: none
 - Blocked IDs: none
-- New risks: remote layer source availability and schema drift can still impact metadata freshness until Phase 2 sync/caching hardening (`P2-LAYER-003`, `P2-LAYER-004`) lands.
+- New risks: upstream schema drift can still affect metadata fidelity; remote availability risk is now reduced by landed sync/backoff and snapshot fallback hardening (`P2-LAYER-003`, `P2-LAYER-004`).
 - Mitigations applied: centralized layer metadata usage and normalization in shared `squadpy/layers` service for both heli and melee detection paths.
 - Next week top 5 IDs: `P1-DATA-003`, `P1-DATA-004`, `P1-API-004`, `P1-API-005`, `P0-CONN-001`

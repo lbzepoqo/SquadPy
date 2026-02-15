@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock
 
 from squadpy.api.websocket_control import WebsocketControlService
+from squadpy.layers import LayerCatalog
 
 
 class TestWebsocketControlService:
@@ -116,3 +117,73 @@ class TestWebsocketControlService:
         rcon.execute.assert_awaited_once_with("ListPlayers")
         assert response["ok"] is True
         assert response["request_id"] == "rbac-allow"
+
+    async def test_dispatches_layer_query_when_authorized(self):
+        class FakeLayerService:
+            catalog = LayerCatalog(
+                layers=frozenset({"Gorodok_RAAS_v1"}),
+                factions=frozenset({"RGF"}),
+                vehicles_by_class={"HELICOPTER": frozenset({"MI8 Transport"})},
+            )
+
+            @staticmethod
+            def health():
+                return {"status": "healthy"}
+
+        service = WebsocketControlService(
+            token="secret_token",
+            layer_catalog_service=FakeLayerService(),
+        )
+
+        response = await service.process_payload(
+            {
+                "request_id": "layers-ws",
+                "action": "layers.query",
+                "query": {
+                    "layer": "gorodok_raas_v1",
+                    "faction": "rgf",
+                    "vehicle_class": "helicopter",
+                },
+            },
+            token="secret_token",
+        )
+
+        assert response["ok"] is True
+        assert response["request_id"] == "layers-ws"
+        assert response["result"]["has_layer"] is True
+        assert response["result"]["has_faction"] is True
+        assert response["result"]["vehicle_names"] == ["MI8 Transport"]
+        assert response["result"]["health"]["status"] == "healthy"
+
+    async def test_rbac_denies_layer_query_for_disallowed_role(self):
+        class FakeLayerService:
+            catalog = LayerCatalog(layers=frozenset({"Gorodok_RAAS_v1"}))
+
+            @staticmethod
+            def health():
+                return {"status": "healthy"}
+
+        service = WebsocketControlService(
+            token="secret_token",
+            layer_catalog_service=FakeLayerService(),
+            rbac_enabled=True,
+            rbac_default_role="observer",
+            rbac_role_permissions={
+                "observer": ["control.health", "control.status"],
+                "admin": ["layers.query"],
+            },
+        )
+
+        response = await service.process_payload(
+            {
+                "request_id": "layers-ws-deny",
+                "action": "layers.query",
+                "query": {"layer": "gorodok_raas_v1"},
+            },
+            token="secret_token",
+            role="observer",
+        )
+
+        assert response["ok"] is False
+        assert response["request_id"] == "layers-ws-deny"
+        assert response["code"] == "forbidden"

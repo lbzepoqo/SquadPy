@@ -3,6 +3,7 @@
 from unittest.mock import AsyncMock
 
 from squadpy.api.websocket_control import WebsocketControlService
+from squadpy.layers import LayerCatalog
 
 
 class TestRestControlEndpoints:
@@ -53,6 +54,79 @@ class TestRestControlEndpoints:
         assert response["ok"] is True
         assert response["request_id"] == "r1"
         assert response["result"]["response"] == "ACK"
+
+    async def test_layer_query_endpoint_returns_catalog_results_when_authorized(self):
+        class FakeLayerService:
+            def __init__(self):
+                self.source_url = "https://example.test/layers.json"
+                self.catalog = LayerCatalog(
+                    layers=frozenset({"Narva_RAAS_v1"}),
+                    factions=frozenset({"USA"}),
+                    vehicles_by_class={"HELICOPTER": frozenset({"MI8 Transport"})},
+                    melee_weapons=frozenset({"BP_Knife_Combat_C"}),
+                )
+
+            def health(self):
+                return {"status": "healthy"}
+
+        service = WebsocketControlService(
+            token="secret_token",
+            layer_catalog_service=FakeLayerService(),
+        )
+
+        response = await service.process_layer_query(
+            {
+                "request_id": "layers-1",
+                "query": {
+                    "layer": "narva_raas_v1",
+                    "faction": "usa",
+                    "vehicle_class": "helicopter",
+                },
+            },
+            token="secret_token",
+        )
+
+        assert response["ok"] is True
+        assert response["request_id"] == "layers-1"
+        assert response["result"]["has_layer"] is True
+        assert response["result"]["has_faction"] is True
+        assert response["result"]["vehicle_names"] == ["MI8 Transport"]
+        assert response["result"]["health"]["status"] == "healthy"
+
+    async def test_rbac_denies_layer_query_for_role_without_permission(self):
+        class FakeLayerService:
+            catalog = LayerCatalog(
+                layers=frozenset({"Narva_RAAS_v1"}),
+                factions=frozenset({"USA"}),
+            )
+
+            @staticmethod
+            def health():
+                return {"status": "healthy"}
+
+        service = WebsocketControlService(
+            token="secret_token",
+            layer_catalog_service=FakeLayerService(),
+            rbac_enabled=True,
+            rbac_default_role="observer",
+            rbac_role_permissions={
+                "observer": ["control.health", "control.status"],
+                "admin": ["*"],
+            },
+        )
+
+        response = await service.process_layer_query(
+            {
+                "request_id": "layers-deny",
+                "query": {"layer": "narva_raas_v1"},
+            },
+            token="secret_token",
+            role="observer",
+        )
+
+        assert response["ok"] is False
+        assert response["code"] == "forbidden"
+        assert service._http_status(response) == 403
 
     async def test_rbac_denies_status_for_role_without_permission(self):
         service = WebsocketControlService(
@@ -106,4 +180,5 @@ class TestRestControlEndpoints:
         assert "/api/health" in paths
         assert "/api/status" in paths
         assert "/api/command" in paths
+        assert "/api/layers/query" in paths
         assert "/api/webhook/command" in paths

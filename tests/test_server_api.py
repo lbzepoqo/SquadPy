@@ -65,6 +65,7 @@ class TestServerApiIntegration:
             webhook_signature_header="X-SquadPy-Signature",
             webhook_timestamp_header="X-SquadPy-Timestamp",
             webhook_max_age_seconds=300,
+            layer_catalog_service=server._layers,
             server=server,
         )
         service.start.assert_awaited_once()

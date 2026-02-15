@@ -12,6 +12,7 @@ from squadpy.database import DatabaseManager
 from squadpy.events.emitter import EventBus
 from squadpy.events.types import ChatMessage
 from squadpy.log_parser.id_parser import parse_online_ids
+from squadpy.layers import LayerCatalogService
 from squadpy.logger import setup_logging
 from squadpy.plugin_loader import PluginLoader, LoadedPlugin, PluginStatus
 from squadpy.log_parser import LogParser, LocalLogReader, SFTPLogReader
@@ -66,6 +67,7 @@ class SquadPyServer:
         self._discord: DiscordConnector | None = None
         self._db: DatabaseManager | None = None
         self._api: WebsocketControlService | None = None
+        self._layers: LayerCatalogService = LayerCatalogService()
 
     @property
     def version(self) -> str:
@@ -171,6 +173,7 @@ class SquadPyServer:
                 webhook_signature_header=self._server_config.api.webhook_signature_header,
                 webhook_timestamp_header=self._server_config.api.webhook_timestamp_header,
                 webhook_max_age_seconds=self._server_config.api.webhook_max_age_seconds,
+                layer_catalog_service=self._layers,
                 server=self,
             )
             await self._api.start()
@@ -191,6 +194,7 @@ class SquadPyServer:
             "log_reader": log_parser,
             "discord": self._discord,
             "db": self._db,
+            "layers": self._layers,
             "server": self,
         }
 

@@ -56,12 +56,14 @@ class Plugin:
         rcon: Any = None,
         discord: Any = None,
         db: Any = None,
+        layers: Any = None,
         config: dict | None = None,
         server: Any = None,
     ):
         self.rcon = rcon
         self.discord = discord
         self.db = db
+        self.layers = layers
         self.config = config or {}
         self.server = server
         plugin_id = self.name.lower().replace(" ", "_") or self.__class__.__name__.lower()

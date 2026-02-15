@@ -113,6 +113,7 @@ class PluginLoader:
                 rcon=services.get("rcon"),
                 discord=services.get("discord"),
                 db=services.get("db"),
+                layers=services.get("layers"),
                 config=settings,
                 server=services.get("server"),
             )

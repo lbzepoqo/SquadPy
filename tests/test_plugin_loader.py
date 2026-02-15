@@ -49,6 +49,7 @@ class TestPluginLoading:
             "rcon": MagicMock(),
             "discord": None,
             "db": None,
+            "layers": MagicMock(),
             "server": MagicMock(),
         }
 
@@ -100,3 +101,13 @@ class TestPluginLoading:
         results = await loader.load_all(services)
         good = next(r for r in results if r.name == "Good Plugin")
         assert len(good.event_handlers) > 0
+
+    async def test_shared_layers_service_passed_to_plugin_instance(self, services):
+        loader = PluginLoader(
+            plugins_dir=FIXTURES / "plugins",
+            config_dir=FIXTURES / "config" / "plugins",
+        )
+        results = await loader.load_all(services)
+        good = next(r for r in results if r.name == "Good Plugin")
+        assert good.instance is not None
+        assert good.instance.layers is services["layers"]
