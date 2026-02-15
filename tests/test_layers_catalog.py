@@ -1,5 +1,7 @@
 """Tests for shared layer catalog normalization and loading."""
 
+import json
+
 from squadpy.layers import LayerCatalogService, normalize_layers_payload
 
 
@@ -185,3 +187,84 @@ async def test_layer_catalog_service_scheduler_uses_backoff_then_interval():
     await service.run_scheduled_sync(iterations=4, sleep=fake_sleep)
 
     assert delays == [10.0, 20.0, 60]
+
+
+async def test_layer_catalog_service_sync_persists_snapshot(tmp_path):
+    snapshot_path = tmp_path / "layers.snapshot.json"
+    service = LayerCatalogService(
+        source_url="https://example.test/layers.json",
+        snapshot_path=snapshot_path,
+    )
+
+    async def fake_fetch_json_with_metadata(*, headers=None):
+        return (
+            200,
+            {
+                "layers": [
+                    {
+                        "name": "Narva_RAAS_v1",
+                        "factions": ["USA"],
+                    }
+                ]
+            },
+            {
+                "etag": "etag-v2",
+                "last_modified": "Sat, 14 Feb 2026 00:00:00 GMT",
+            },
+        )
+
+    service._fetch_json_with_metadata = fake_fetch_json_with_metadata
+    await service.sync_once()
+
+    assert snapshot_path.exists()
+    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    assert snapshot["source_url"] == "https://example.test/layers.json"
+    assert snapshot["etag"] == "etag-v2"
+    assert snapshot["catalog"]["layers"] == ["Narva_RAAS_v1"]
+    assert snapshot["catalog"]["factions"] == ["USA"]
+
+
+async def test_layer_catalog_service_initialize_restores_snapshot_when_remote_unavailable(tmp_path):
+    snapshot_path = tmp_path / "layers.snapshot.json"
+
+    seeded = LayerCatalogService(
+        source_url="https://example.test/layers.json",
+        snapshot_path=snapshot_path,
+    )
+
+    async def fake_seed_fetch(*, headers=None):
+        return (
+            200,
+            {
+                "layers": [
+                    {
+                        "name": "Yehorivka_AAS_v2",
+                        "factions": ["PLA"],
+                    }
+                ]
+            },
+            {},
+        )
+
+    seeded._fetch_json_with_metadata = fake_seed_fetch
+    await seeded.sync_once()
+    assert snapshot_path.exists()
+
+    restored = LayerCatalogService(
+        source_url="https://example.test/layers.json",
+        snapshot_path=snapshot_path,
+    )
+
+    async def fake_failure(*, headers=None):
+        raise RuntimeError("remote source unavailable")
+
+    restored._fetch_json_with_metadata = fake_failure
+    catalog = await restored.initialize()
+
+    assert catalog.has_layer("yehorivka_aas_v2")
+    assert catalog.has_faction("pla")
+    health = restored.health()
+    assert health.has_catalog is True
+    assert health.fetch_failed is True
+    assert health.status == "degraded"
+    assert "remote source unavailable" in health.last_error

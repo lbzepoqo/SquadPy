@@ -7,6 +7,7 @@ import json
 import random
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable
 
 import aiohttp
@@ -132,6 +133,7 @@ class LayerCatalogService:
         backoff_max_seconds: float = 900.0,
         backoff_multiplier: float = 2.0,
         backoff_jitter_ratio: float = 0.1,
+        snapshot_path: str | Path = "",
         clock: Callable[[], float] | None = None,
     ):
         self.source_url = source_url.strip() or DEFAULT_LAYER_SOURCE_URL
@@ -146,6 +148,8 @@ class LayerCatalogService:
         self.backoff_jitter_ratio = (
             backoff_jitter_ratio if backoff_jitter_ratio >= 0 else 0.0
         )
+        raw_snapshot_path = str(snapshot_path).strip()
+        self.snapshot_path = Path(raw_snapshot_path) if raw_snapshot_path else None
         self._clock = clock or time.monotonic
 
         self._catalog = LayerCatalog.empty()
@@ -166,6 +170,7 @@ class LayerCatalogService:
         self._last_sync_monotonic = catalog.fetched_at_monotonic
         self._last_error = ""
         self._consecutive_failures = 0
+        self._persist_snapshot_if_configured()
         return catalog
 
     async def sync_once(self) -> LayerCatalog:
@@ -203,6 +208,7 @@ class LayerCatalogService:
         self._consecutive_failures = 0
         self._last_error = ""
         self._last_success_monotonic = catalog.fetched_at_monotonic
+        self._persist_snapshot_if_configured()
         return self._catalog
 
     async def run_scheduled_sync(
@@ -222,6 +228,14 @@ class LayerCatalogService:
                 break
             delay = self.next_sync_delay_seconds()
             await sleep_fn(delay)
+
+    async def initialize(self) -> LayerCatalog:
+        await self.sync_once()
+        if self.health().has_catalog:
+            return self._catalog
+
+        self.load_snapshot()
+        return self._catalog
 
     @property
     def catalog(self) -> LayerCatalog:
@@ -276,6 +290,50 @@ class LayerCatalogService:
         jitter_window = delay * self.backoff_jitter_ratio
         jitter = random.uniform(-jitter_window, jitter_window)
         return max(0.0, delay + jitter)
+
+    def load_snapshot(self) -> bool:
+        if self.snapshot_path is None or not self.snapshot_path.exists():
+            return False
+
+        try:
+            payload = json.loads(self.snapshot_path.read_text(encoding="utf-8"))
+            catalog_payload = payload.get("catalog", {})
+            catalog = _catalog_from_snapshot(catalog_payload)
+            source_url = str(payload.get("source_url", "")).strip()
+            if source_url:
+                catalog.source_url = source_url
+            elif not catalog.source_url:
+                catalog.source_url = self.source_url
+            catalog.fetched_at_monotonic = self._clock()
+        except Exception:
+            return False
+
+        self._catalog = catalog
+        self._etag = str(payload.get("etag", "")).strip()
+        self._last_modified = str(payload.get("last_modified", "")).strip()
+        self._last_success_monotonic = catalog.fetched_at_monotonic
+        return True
+
+    def _persist_snapshot_if_configured(self) -> None:
+        if self.snapshot_path is None or not self.health().has_catalog:
+            return
+
+        payload = {
+            "version": 1,
+            "source_url": self.source_url,
+            "etag": self._etag,
+            "last_modified": self._last_modified,
+            "saved_at_monotonic": self._clock(),
+            "catalog": _catalog_to_snapshot(self._catalog),
+        }
+        try:
+            self.snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+            self.snapshot_path.write_text(
+                json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+        except Exception:
+            return
 
     async def _fetch_json(self) -> Any:
         timeout = aiohttp.ClientTimeout(total=self.timeout_seconds)
@@ -464,6 +522,61 @@ def normalize_layers_payload(payload: Any) -> LayerCatalog:
         vehicles_by_class=normalized_vehicles,
         melee_weapons=frozenset(sorted(melee_weapons)),
     )
+
+
+def _catalog_to_snapshot(catalog: LayerCatalog) -> dict[str, Any]:
+    vehicles_by_class = {
+        vehicle_class: sorted(names)
+        for vehicle_class, names in catalog.vehicles_by_class.items()
+        if names
+    }
+    return {
+        "layers": sorted(catalog.layers),
+        "factions": sorted(catalog.factions),
+        "vehicles_by_class": vehicles_by_class,
+        "melee_weapons": sorted(catalog.melee_weapons),
+        "source_url": catalog.source_url,
+    }
+
+
+def _catalog_from_snapshot(payload: Any) -> LayerCatalog:
+    if not isinstance(payload, dict):
+        return LayerCatalog.empty()
+
+    raw_layers = payload.get("layers", [])
+    layers = _string_list(raw_layers)
+
+    raw_factions = payload.get("factions", [])
+    factions = _string_list(raw_factions)
+
+    raw_melee_weapons = payload.get("melee_weapons", [])
+    melee_weapons = _string_list(raw_melee_weapons)
+
+    vehicles_by_class: dict[str, frozenset[str]] = {}
+    raw_vehicles = payload.get("vehicles_by_class", {})
+    if isinstance(raw_vehicles, dict):
+        for vehicle_class, names in raw_vehicles.items():
+            class_key = _vehicle_class_key(vehicle_class)
+            if not class_key:
+                continue
+            values = _string_list(names)
+            if values:
+                vehicles_by_class[class_key] = frozenset(values)
+
+    source_url = str(payload.get("source_url", "")).strip()
+    return LayerCatalog(
+        layers=frozenset(layers),
+        factions=frozenset(factions),
+        vehicles_by_class=vehicles_by_class,
+        melee_weapons=frozenset(melee_weapons),
+        source_url=source_url,
+    )
+
+
+def _string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
 
 
 def _tokenize_names(names: set[str], *, min_length: int) -> set[str]:

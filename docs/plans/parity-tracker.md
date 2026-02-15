@@ -234,8 +234,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
 - [x] `P2-LAYER-003` Add scheduled sync, conditional fetch, and stale-data health signaling (`@data-platform`, `P2`)
   - Acceptance: scheduler supports timeout/backoff + ETag/Last-Modified behavior and exposes stale/fetch-failure state in tests.
   - Acceptance note (2026-02-15): Extended `squadpy/layers/catalog.py` with `LayerCatalogService.sync_once()` conditional HTTP fetch support (`If-None-Match`/`If-Modified-Since` + `304` handling), scheduled sync loop support with retry backoff/jitter (`run_scheduled_sync`, `next_sync_delay_seconds`), and explicit stale/fetch-failure health signaling (`LayerCatalogHealth`); added targeted coverage in `tests/test_layers_catalog.py` for conditional header behavior, stale/failure health transitions, and scheduler backoff behavior.
-- [ ] `P2-LAYER-004` Add persisted last-known-good catalog snapshot (`@data-platform`, `P2`)
+- [x] `P2-LAYER-004` Add persisted last-known-good catalog snapshot (`@data-platform`, `P2`)
   - Acceptance: startup restores snapshot when remote source is unavailable; persistence and recovery tests pass.
+  - Acceptance note (2026-02-15): Added persisted snapshot support to `LayerCatalogService` in `squadpy/layers/catalog.py` via configurable `snapshot_path`, automatic snapshot writes after successful fetch/sync, and startup recovery through `initialize()` + `load_snapshot()` when the remote source is unavailable; added targeted persistence/recovery coverage in `tests/test_layers_catalog.py`.
 - [ ] `P2-LAYER-005` Expose shared layer query surfaces (plugin APIs + authenticated control APIs) (`@api-security`, `P2`)
   - Acceptance: plugin consumers and authenticated API callers can query layer/faction/vehicle metadata with integration tests for allowed/denied access.
 
