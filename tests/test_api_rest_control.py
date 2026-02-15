@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 
 from squadpy.api.websocket_control import WebsocketControlService
 from squadpy.layers import LayerCatalog
+from squadpy.plugin_loader import LoadedPlugin, PluginStatus
 
 
 class TestRestControlEndpoints:
@@ -93,6 +94,42 @@ class TestRestControlEndpoints:
         assert response["ok"] is True
         assert response["result"]["status"] == "ready"
         assert response["result"]["ready"] is True
+
+    async def test_metrics_requires_auth(self):
+        service = WebsocketControlService(token="secret_token")
+        response = await service.process_metrics(token="bad_token")
+        assert response["ok"] is False
+        assert response["code"] == "unauthorized"
+
+    async def test_metrics_exposes_runtime_and_plugin_series(self):
+        class FakeServer:
+            def __init__(self) -> None:
+                self.running = True
+                self._loaded_plugins = [
+                    LoadedPlugin(name="Auto Kick", dir_name="auto_kick_unassigned", status=PluginStatus.ENABLED),
+                    LoadedPlugin(name="Db Log", dir_name="db_log", status=PluginStatus.FAILED),
+                ]
+                self._periodic_tasks = [("auto_kick_unassigned", AsyncMock())]
+
+        rcon = AsyncMock()
+        rcon.connected = True
+        service = WebsocketControlService(
+            token="secret_token",
+            server=FakeServer(),
+            rcon=rcon,
+        )
+
+        response = await service.process_metrics(token="secret_token")
+
+        assert response["ok"] is True
+        metrics = response["result"]["metrics"]
+        assert "squadpy_runtime_server_running 1" in metrics
+        assert "squadpy_runtime_rcon_connected 1" in metrics
+        assert "squadpy_runtime_plugins_loaded 2" in metrics
+        assert 'squadpy_plugins_total{status="enabled"} 1' in metrics
+        assert 'squadpy_plugins_total{status="failed"} 1' in metrics
+        assert 'squadpy_plugin_status{plugin="auto_kick_unassigned",status="enabled"} 1' in metrics
+        assert 'squadpy_plugin_status{plugin="db_log",status="failed"} 1' in metrics
 
     async def test_command_endpoint_dispatches_when_authorized(self):
         rcon = AsyncMock()
@@ -243,6 +280,44 @@ class TestRestControlEndpoints:
         assert response["ok"] is True
         assert response["result"]["status"] == "ready"
 
+    async def test_rbac_denies_metrics_for_role_without_permission(self):
+        service = WebsocketControlService(
+            token="secret_token",
+            rbac_enabled=True,
+            rbac_default_role="observer",
+            rbac_role_permissions={
+                "observer": ["control.health", "control.status"],
+                "admin": ["*"],
+            },
+        )
+
+        response = await service.process_metrics_with_role(
+            token="secret_token",
+            role="observer",
+        )
+
+        assert response["ok"] is False
+        assert response["code"] == "forbidden"
+        assert service._http_status(response) == 403
+
+    async def test_rbac_allows_metrics_for_role_with_permission(self):
+        service = WebsocketControlService(
+            token="secret_token",
+            rbac_enabled=True,
+            rbac_default_role="observer",
+            rbac_role_permissions={
+                "observer": ["control.health", "control.metrics", "control.status"],
+            },
+        )
+
+        response = await service.process_metrics_with_role(
+            token="secret_token",
+            role="observer",
+        )
+
+        assert response["ok"] is True
+        assert "squadpy_runtime_ready" in response["result"]["metrics"]
+
     async def test_rbac_allows_status_for_role_with_permission(self):
         service = WebsocketControlService(
             token="secret_token",
@@ -272,6 +347,7 @@ class TestRestControlEndpoints:
             canonical = getattr(resource, "canonical", "")
             if canonical:
                 paths.add(canonical)
+        assert "/metrics" in paths
         assert "/api/health" in paths
         assert "/api/readiness" in paths
         assert "/api/status" in paths

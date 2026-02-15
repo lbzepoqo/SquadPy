@@ -322,8 +322,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
   - Acceptance: isolated contexts run N servers without cross-talk.
 - [ ] `P2-BEYOND-002` RCON broker mode (`@core-runtime`, `P2`)
   - Acceptance: one upstream RCON socket, many authenticated clients.
-- [ ] `P2-BEYOND-003` Prometheus metrics exporter (`@qa-release`, `P2`)
+- [x] `P2-BEYOND-003` Prometheus metrics exporter (`@qa-release`, `P2`)
   - Acceptance: standard runtime and plugin metrics are exposed.
+  - Acceptance note (2026-02-15): Added Prometheus text exporter endpoint (`/metrics`) in `squadpy/api/websocket_control.py` with RBAC permission `control.metrics`; exporter emits runtime gauges (ready/server/rcon/discord/database/task/plugin counts, API uptime), dependency gauges (`required`/`healthy`), and plugin status/count series derived from loaded plugin lifecycle state; updated RBAC example permissions in `config/server.toml.example`, added targeted coverage in `tests/test_api_rest_control.py`, and added contract coverage in `tests/contracts/api_security/test_metrics_exporter_contract.py`.
 - [ ] `P2-BEYOND-004` Trace instrumentation for critical paths (`@qa-release`, `P2`)
   - Acceptance: traces show RCON command latency and parser timing.
 - [x] `P2-BEYOND-005` Health/readiness endpoints (`@qa-release`, `P2`)

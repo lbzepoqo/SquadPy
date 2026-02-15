@@ -1,5 +1,6 @@
 """Authenticated websocket control service."""
 
+from collections import Counter
 import inspect
 import hashlib
 import hmac
@@ -76,6 +77,7 @@ class WebsocketControlService:
         self._site: web.TCPSite | None = None
         self._audit_records: list[dict[str, Any]] = []
         self._max_audit_records = 1000
+        self._started_at_epoch: int | None = None
 
     @property
     def host(self) -> str:
@@ -95,6 +97,7 @@ class WebsocketControlService:
         await self._runner.setup()
         self._site = web.TCPSite(self._runner, host=self._host, port=self._port)
         await self._site.start()
+        self._started_at_epoch = self._epoch_seconds()
         logger.info("Websocket control service started at ws://%s:%d%s", self._host, self._port, self._path)
 
     async def stop(self) -> None:
@@ -102,6 +105,7 @@ class WebsocketControlService:
             await self._runner.cleanup()
             self._runner = None
             self._site = None
+            self._started_at_epoch = None
             logger.info("Websocket control service stopped")
 
     async def process_payload(
@@ -330,6 +334,29 @@ class WebsocketControlService:
             },
         ).as_dict()
 
+    async def process_metrics(self, *, token: str | None) -> dict[str, Any]:
+        return await self.process_metrics_with_role(token=token, role="")
+
+    async def process_metrics_with_role(
+        self,
+        *,
+        token: str | None,
+        role: str = "",
+    ) -> dict[str, Any]:
+        authorized = await self._process_health_or_status(
+            token=token,
+            role=role,
+            permission="control.metrics",
+            result={},
+        )
+        if not bool(authorized.get("ok")):
+            return authorized
+
+        return ControlResponse(
+            ok=True,
+            result={"metrics": self._build_metrics_text()},
+        ).as_dict()
+
     async def process_status(self, *, token: str | None) -> dict[str, Any]:
         return await self.process_status_with_role(token=token, role="")
 
@@ -520,6 +547,21 @@ class WebsocketControlService:
         role = self._request_role(request)
         response = await self.process_status_with_role(token=token, role=role)
         return web.json_response(response, status=self._http_status(response))
+
+    async def _handle_metrics(self, request: web.Request) -> web.Response:
+        token = self._request_token(request)
+        role = self._request_role(request)
+        response = await self.process_metrics_with_role(token=token, role=role)
+        status = self._http_status(response)
+        headers = {"Content-Type": "text/plain; version=0.0.4; charset=utf-8"}
+        if not bool(response.get("ok")):
+            return web.Response(
+                text=f"# metrics_error {response.get('code', 'internal_error')}\n",
+                status=status,
+                headers=headers,
+            )
+        metrics = str(response.get("result", {}).get("metrics", ""))
+        return web.Response(text=metrics, status=status, headers=headers)
 
     async def _handle_readiness(self, request: web.Request) -> web.Response:
         token = self._request_token(request)
@@ -721,6 +763,7 @@ class WebsocketControlService:
     def _build_app(self) -> web.Application:
         app = web.Application()
         app.router.add_get(self._path, self._handle_ws)
+        app.router.add_get("/metrics", self._handle_metrics)
         app.router.add_get("/api/health", self._handle_health)
         app.router.add_get("/api/readiness", self._handle_readiness)
         app.router.add_get("/api/status", self._handle_status)
@@ -871,6 +914,151 @@ class WebsocketControlService:
             "ready": ready,
             "dependencies": dependencies,
         }
+
+    def _build_metrics_text(self) -> str:
+        snapshot = self._build_dependency_snapshot()
+        dependencies = snapshot["dependencies"]
+        server = self._server
+        loaded_plugins = []
+        periodic_tasks = []
+        if server is not None:
+            loaded_plugins = list(getattr(server, "_loaded_plugins", []))
+            periodic_tasks = list(getattr(server, "_periodic_tasks", []))
+
+        plugin_status_counts = Counter()
+        plugin_status_rows: list[tuple[str, str]] = []
+        for plugin in loaded_plugins:
+            status_value = self._plugin_status_value(getattr(plugin, "status", "unknown"))
+            plugin_name = str(
+                getattr(plugin, "dir_name", "")
+                or getattr(plugin, "name", "")
+                or "unknown_plugin"
+            )
+            plugin_status_counts[status_value] += 1
+            plugin_status_rows.append((plugin_name, status_value))
+
+        now = self._epoch_seconds()
+        uptime_seconds = 0
+        if self._started_at_epoch is not None:
+            uptime_seconds = max(0, now - self._started_at_epoch)
+
+        lines: list[str] = []
+        definitions: set[str] = set()
+
+        def add_metric(
+            name: str,
+            value: int | float,
+            *,
+            labels: dict[str, str] | None = None,
+            help_text: str,
+            metric_type: str = "gauge",
+        ) -> None:
+            if name not in definitions:
+                lines.append(f"# HELP {name} {help_text}")
+                lines.append(f"# TYPE {name} {metric_type}")
+                definitions.add(name)
+            if labels:
+                label_text = ",".join(
+                    f'{key}="{self._escape_prometheus_label(labels[key])}"'
+                    for key in sorted(labels)
+                )
+                lines.append(f"{name}{{{label_text}}} {value}")
+            else:
+                lines.append(f"{name} {value}")
+
+        add_metric(
+            "squadpy_runtime_ready",
+            self._metric_bool(snapshot["ready"]),
+            help_text="Overall readiness across required runtime dependencies.",
+        )
+        add_metric(
+            "squadpy_runtime_server_running",
+            self._metric_bool(dependencies["server"]["healthy"]),
+            help_text="Server orchestrator running state.",
+        )
+        add_metric(
+            "squadpy_runtime_rcon_connected",
+            self._metric_bool(dependencies["rcon"]["healthy"]),
+            help_text="RCON connectivity state.",
+        )
+        add_metric(
+            "squadpy_runtime_discord_running",
+            self._metric_bool(dependencies["discord"]["healthy"]),
+            help_text="Discord connector running state.",
+        )
+        add_metric(
+            "squadpy_runtime_database_initialized",
+            self._metric_bool(dependencies["database"]["healthy"]),
+            help_text="Database readiness state.",
+        )
+        add_metric(
+            "squadpy_runtime_periodic_tasks_active",
+            len(periodic_tasks),
+            help_text="Number of active plugin periodic tasks.",
+        )
+        add_metric(
+            "squadpy_runtime_plugins_loaded",
+            len(loaded_plugins),
+            help_text="Number of plugins discovered by the runtime.",
+        )
+        add_metric(
+            "squadpy_api_uptime_seconds",
+            uptime_seconds,
+            help_text="Control API uptime in seconds.",
+        )
+
+        for dependency_name, dependency in dependencies.items():
+            labels = {"dependency": dependency_name}
+            add_metric(
+                "squadpy_dependency_required",
+                self._metric_bool(dependency["required"]),
+                labels=labels,
+                help_text="Dependency is required for readiness (1=yes).",
+            )
+            add_metric(
+                "squadpy_dependency_healthy",
+                self._metric_bool(dependency["healthy"]),
+                labels=labels,
+                help_text="Dependency health state (1=healthy).",
+            )
+
+        for status_name in sorted(plugin_status_counts):
+            add_metric(
+                "squadpy_plugins_total",
+                plugin_status_counts[status_name],
+                labels={"status": status_name},
+                help_text="Plugin count by lifecycle status.",
+            )
+        for plugin_name, status_name in sorted(plugin_status_rows):
+            add_metric(
+                "squadpy_plugin_status",
+                1,
+                labels={"plugin": plugin_name, "status": status_name},
+                help_text="Per-plugin lifecycle status exposure.",
+            )
+
+        return "\n".join(lines) + "\n"
+
+    @staticmethod
+    def _metric_bool(value: Any) -> int:
+        return 1 if bool(value) else 0
+
+    @staticmethod
+    def _plugin_status_value(status: Any) -> str:
+        raw = getattr(status, "value", status)
+        normalized = str(raw).strip().lower()
+        if normalized.startswith("pluginstatus."):
+            normalized = normalized.split(".", 1)[1]
+        return normalized or "unknown"
+
+    @staticmethod
+    def _escape_prometheus_label(value: str) -> str:
+        return (
+            str(value)
+            .replace("\\", "\\\\")
+            .replace("\n", "\\n")
+            .replace('"', '\\"')
+        )
 
     @staticmethod
     def _layer_health_payload(layer_service: Any) -> dict[str, Any]:
