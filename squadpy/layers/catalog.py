@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import random
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 import aiohttp
 
@@ -84,6 +86,38 @@ class LayerCatalog:
         return _tokenize_names(set(self.melee_weapons), min_length=min_length)
 
 
+@dataclass
+class LayerCatalogHealth:
+    status: str
+    stale: bool
+    has_catalog: bool
+    fetch_failed: bool
+    consecutive_failures: int
+    last_error: str
+    last_sync_monotonic: float
+    last_success_monotonic: float
+    age_seconds: float
+    source_url: str
+    etag: str
+    last_modified: str
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "stale": self.stale,
+            "has_catalog": self.has_catalog,
+            "fetch_failed": self.fetch_failed,
+            "consecutive_failures": self.consecutive_failures,
+            "last_error": self.last_error,
+            "last_sync_monotonic": self.last_sync_monotonic,
+            "last_success_monotonic": self.last_success_monotonic,
+            "age_seconds": self.age_seconds,
+            "source_url": self.source_url,
+            "etag": self.etag,
+            "last_modified": self.last_modified,
+        }
+
+
 class LayerCatalogService:
     """Loads and normalizes layer metadata from a remote source."""
 
@@ -92,16 +126,156 @@ class LayerCatalogService:
         *,
         source_url: str = DEFAULT_LAYER_SOURCE_URL,
         timeout_seconds: float = 8.0,
+        sync_interval_seconds: float = 3600.0,
+        stale_after_seconds: float = 21600.0,
+        backoff_initial_seconds: float = 30.0,
+        backoff_max_seconds: float = 900.0,
+        backoff_multiplier: float = 2.0,
+        backoff_jitter_ratio: float = 0.1,
+        clock: Callable[[], float] | None = None,
     ):
         self.source_url = source_url.strip() or DEFAULT_LAYER_SOURCE_URL
         self.timeout_seconds = timeout_seconds if timeout_seconds > 0 else 8.0
+        self.sync_interval_seconds = sync_interval_seconds if sync_interval_seconds > 0 else 3600.0
+        self.stale_after_seconds = stale_after_seconds if stale_after_seconds > 0 else 21600.0
+        self.backoff_initial_seconds = (
+            backoff_initial_seconds if backoff_initial_seconds > 0 else 30.0
+        )
+        self.backoff_max_seconds = backoff_max_seconds if backoff_max_seconds > 0 else 900.0
+        self.backoff_multiplier = backoff_multiplier if backoff_multiplier > 1.0 else 2.0
+        self.backoff_jitter_ratio = (
+            backoff_jitter_ratio if backoff_jitter_ratio >= 0 else 0.0
+        )
+        self._clock = clock or time.monotonic
+
+        self._catalog = LayerCatalog.empty()
+        self._etag = ""
+        self._last_modified = ""
+        self._last_error = ""
+        self._consecutive_failures = 0
+        self._last_sync_monotonic = 0.0
+        self._last_success_monotonic = 0.0
 
     async def fetch(self) -> LayerCatalog:
         payload = await self._fetch_json()
         catalog = normalize_layers_payload(payload)
         catalog.source_url = self.source_url
-        catalog.fetched_at_monotonic = time.monotonic()
+        catalog.fetched_at_monotonic = self._clock()
+        self._catalog = catalog
+        self._last_success_monotonic = catalog.fetched_at_monotonic
+        self._last_sync_monotonic = catalog.fetched_at_monotonic
+        self._last_error = ""
+        self._consecutive_failures = 0
         return catalog
+
+    async def sync_once(self) -> LayerCatalog:
+        headers = self._conditional_request_headers()
+        self._last_sync_monotonic = self._clock()
+        try:
+            status, payload, metadata = await self._fetch_json_with_metadata(headers=headers)
+        except Exception as exc:
+            self._consecutive_failures += 1
+            self._last_error = str(exc)
+            return self._catalog
+
+        self._etag = metadata.get("etag", "").strip()
+        self._last_modified = metadata.get("last_modified", "").strip()
+
+        if status == 304:
+            self._consecutive_failures = 0
+            self._last_error = ""
+            self._last_success_monotonic = self._clock()
+            return self._catalog
+
+        try:
+            if payload is None:
+                raise ValueError("Layer catalog payload missing for non-304 response")
+
+            catalog = normalize_layers_payload(payload)
+            catalog.source_url = self.source_url
+            catalog.fetched_at_monotonic = self._clock()
+        except Exception as exc:
+            self._consecutive_failures += 1
+            self._last_error = str(exc)
+            return self._catalog
+
+        self._catalog = catalog
+        self._consecutive_failures = 0
+        self._last_error = ""
+        self._last_success_monotonic = catalog.fetched_at_monotonic
+        return self._catalog
+
+    async def run_scheduled_sync(
+        self,
+        *,
+        iterations: int | None = None,
+        sleep: Callable[[float], Any] | None = None,
+    ) -> None:
+        if iterations is not None and iterations <= 0:
+            return
+        sleep_fn = sleep or _sleep
+        completed = 0
+        while iterations is None or completed < iterations:
+            await self.sync_once()
+            completed += 1
+            if iterations is not None and completed >= iterations:
+                break
+            delay = self.next_sync_delay_seconds()
+            await sleep_fn(delay)
+
+    @property
+    def catalog(self) -> LayerCatalog:
+        return self._catalog
+
+    def health(self) -> LayerCatalogHealth:
+        has_catalog = bool(
+            self._catalog.layers
+            or self._catalog.factions
+            or self._catalog.vehicles_by_class
+            or self._catalog.melee_weapons
+        )
+        age_seconds = 0.0
+        if self._last_success_monotonic > 0:
+            age_seconds = max(0.0, self._clock() - self._last_success_monotonic)
+        stale = has_catalog and age_seconds > self.stale_after_seconds
+        fetch_failed = self._consecutive_failures > 0
+        if not has_catalog and fetch_failed:
+            status = "unhealthy"
+        elif stale:
+            status = "stale"
+        elif fetch_failed:
+            status = "degraded"
+        else:
+            status = "healthy"
+
+        return LayerCatalogHealth(
+            status=status,
+            stale=stale,
+            has_catalog=has_catalog,
+            fetch_failed=fetch_failed,
+            consecutive_failures=self._consecutive_failures,
+            last_error=self._last_error,
+            last_sync_monotonic=self._last_sync_monotonic,
+            last_success_monotonic=self._last_success_monotonic,
+            age_seconds=age_seconds,
+            source_url=self.source_url,
+            etag=self._etag,
+            last_modified=self._last_modified,
+        )
+
+    def next_sync_delay_seconds(self) -> float:
+        if self._consecutive_failures <= 0:
+            return self.sync_interval_seconds
+
+        exponent = self._consecutive_failures - 1
+        delay = self.backoff_initial_seconds * (self.backoff_multiplier ** exponent)
+        delay = min(delay, self.backoff_max_seconds)
+        if self.backoff_jitter_ratio <= 0:
+            return delay
+
+        jitter_window = delay * self.backoff_jitter_ratio
+        jitter = random.uniform(-jitter_window, jitter_window)
+        return max(0.0, delay + jitter)
 
     async def _fetch_json(self) -> Any:
         timeout = aiohttp.ClientTimeout(total=self.timeout_seconds)
@@ -110,6 +284,36 @@ class LayerCatalogService:
                 response.raise_for_status()
                 text = await response.text()
         return json.loads(text)
+
+    async def _fetch_json_with_metadata(
+        self,
+        *,
+        headers: dict[str, str] | None = None,
+    ) -> tuple[int, Any | None, dict[str, str]]:
+        timeout = aiohttp.ClientTimeout(total=self.timeout_seconds)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(self.source_url, headers=headers) as response:
+                metadata = {
+                    "etag": str(response.headers.get("ETag", "")),
+                    "last_modified": str(response.headers.get("Last-Modified", "")),
+                }
+                if response.status == 304:
+                    return response.status, None, metadata
+                response.raise_for_status()
+                text = await response.text()
+        return response.status, json.loads(text), metadata
+
+    def _conditional_request_headers(self) -> dict[str, str]:
+        headers: dict[str, str] = {}
+        if self._etag:
+            headers["If-None-Match"] = self._etag
+        if self._last_modified:
+            headers["If-Modified-Since"] = self._last_modified
+        return headers
+
+
+async def _sleep(delay: float) -> None:
+    await asyncio.sleep(delay)
 
 
 def normalize_layers_payload(payload: Any) -> LayerCatalog:

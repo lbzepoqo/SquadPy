@@ -223,14 +223,17 @@ Status legend:
 
 ### 3.1 Layer catalog subsystem (phase 1/2/3 delivery)
 
+Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json` structure + reuse notes).
+
 - [x] `P1-LAYER-001` Build `squadpy/layers` core catalog service and normalizer (`@core-runtime`, `P1`)
   - Acceptance: service loads and normalizes SquadLayerList `layers.json` payloads into a typed catalog/query interface with unit coverage for parsing and lookup behavior.
   - Acceptance note (2026-02-14): Added shared layer catalog package (`squadpy/layers/__init__.py`, `squadpy/layers/catalog.py`) with remote fetch support, payload normalization into typed catalog queries (`layers`, `factions`, `vehicles_by_class`), and helper lookups (`has_layer`, `has_faction`, `vehicle_names`, `helicopter_names`, `helicopter_tokens`); added targeted coverage in `tests/test_layers_catalog.py`.
 - [x] `P1-LAYER-002` Integrate catalog metadata into `plugins/heli_crash_broadcast` (`@plugins-seeding`, `P1`)
   - Acceptance: heli crash detection consumes shared catalog helicopter metadata first, then deterministic fallback tokens; targeted plugin tests validate both paths.
   - Acceptance note (2026-02-14): Integrated `plugins/heli_crash_broadcast/plugin.py` with `LayerCatalogService` for shared helicopter metadata loading, retained deterministic token/static-name fallback behavior, and added targeted integration coverage in `tests/test_plugin_heli_crash_broadcast.py` for catalog-backed detection.
-- [ ] `P2-LAYER-003` Add scheduled sync, conditional fetch, and stale-data health signaling (`@data-platform`, `P2`)
+- [x] `P2-LAYER-003` Add scheduled sync, conditional fetch, and stale-data health signaling (`@data-platform`, `P2`)
   - Acceptance: scheduler supports timeout/backoff + ETag/Last-Modified behavior and exposes stale/fetch-failure state in tests.
+  - Acceptance note (2026-02-15): Extended `squadpy/layers/catalog.py` with `LayerCatalogService.sync_once()` conditional HTTP fetch support (`If-None-Match`/`If-Modified-Since` + `304` handling), scheduled sync loop support with retry backoff/jitter (`run_scheduled_sync`, `next_sync_delay_seconds`), and explicit stale/fetch-failure health signaling (`LayerCatalogHealth`); added targeted coverage in `tests/test_layers_catalog.py` for conditional header behavior, stale/failure health transitions, and scheduler backoff behavior.
 - [ ] `P2-LAYER-004` Add persisted last-known-good catalog snapshot (`@data-platform`, `P2`)
   - Acceptance: startup restores snapshot when remote source is unavailable; persistence and recovery tests pass.
 - [ ] `P2-LAYER-005` Expose shared layer query surfaces (plugin APIs + authenticated control APIs) (`@api-security`, `P2`)

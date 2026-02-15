@@ -3,6 +3,7 @@
 from squadpy.layers.catalog import (
     DEFAULT_LAYER_SOURCE_URL,
     LayerCatalog,
+    LayerCatalogHealth,
     LayerCatalogService,
     normalize_layers_payload,
 )
@@ -10,6 +11,7 @@ from squadpy.layers.catalog import (
 __all__ = [
     "DEFAULT_LAYER_SOURCE_URL",
     "LayerCatalog",
+    "LayerCatalogHealth",
     "LayerCatalogService",
     "normalize_layers_payload",
 ]
