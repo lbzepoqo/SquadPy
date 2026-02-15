@@ -388,8 +388,14 @@ Use this matrix for quick parity reporting. Update `Status` each sprint.
 - [x] `GATE-001` All `P0-*` items completed.
   - Acceptance note (2026-02-16): Tracker audit confirms no remaining unchecked `P0-*` execution items; all `P0` workstreams in sections 0-5 are marked complete, and associated `P0` contract coverage remains green in current validation runs.
 - [ ] `GATE-002` Contract suite green in CI for 14 consecutive days.
+  - Tracking note (2026-02-16): Consecutive-green window started; day-0 baseline captured. Earliest close date is 2026-03-01 if CI contract jobs remain green each day.
+  - Verification note (2026-02-16): Local day-0 contract baseline run passed via `.venv/bin/python -m pytest -m contract -v` (`64 passed`).
 - [ ] `GATE-003` Integration suite green in CI for 14 consecutive days.
+  - Tracking note (2026-02-16): Consecutive-green window started; day-0 baseline captured. Earliest close date is 2026-03-01 if CI integration jobs remain green each day.
+  - Verification note (2026-02-16): Local day-0 integration baseline matched CI module matrix and passed (`tests/test_discord_integration.py tests/test_plugin_chat_bridge.py tests/test_plugin_admin_request.py` -> `29 passed`; `tests/test_rcon_client.py tests/test_rcon_helpers.py tests/test_rcon_protocol.py tests/test_server.py` -> `108 passed`).
 - [ ] `GATE-004` Soak test pass for 30 days, no Sev-1 incidents.
+  - Tracking note (2026-02-16): 30-day soak window started from current pilot-ready baseline. Earliest close date is 2026-03-17 if no Sev-1 incidents are opened during the soak interval.
+  - Verification note (2026-02-16): Soak start baseline references current pilot-ready runtime evidence (`tmp/pilot/gate-b-003/20260215-1909-manual-window/`) with healthy/ready per-context start/end snapshots and bounded single-context reconnect recovery.
 - [x] `GATE-005` Migration analyzers/scripts validated on at least 3 real community configs.
   - Acceptance note (2026-02-16): Validated migration analyzers on 3 real community configs (`tmp/gate-005/inputs/community-a-config.json`, `tmp/gate-005/inputs/community-b-config.json`, `tmp/gate-005/inputs/community-c-config.json`) and captured sanitized evidence in `docs/plans/gate-005-migration-validation.md`; generated local analyzer reports under `tmp/gate-005/reports/` for both `scripts/migrate_from_squadjs.py` and `scripts/migrate_from_squadts.py`.
 - [x] `GATE-006` Operator sign-off from pilot servers.
