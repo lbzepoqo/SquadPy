@@ -3,10 +3,12 @@
 import asyncio
 import logging
 import re
+import time
 from datetime import datetime, timezone
 from typing import Callable
 
 from squadpy.log_parser.id_parser import parse_online_ids
+from squadpy.observability import get_trace_recorder
 from squadpy.rcon.protocol import (
     PacketType,
     RconPacket,
@@ -240,6 +242,19 @@ class RconClient:
             raise RconAuthError("Authentication timed out")
 
     async def execute(self, command: str) -> str:
+        trace_recorder = get_trace_recorder()
+        trace_started_epoch_ms = int(time.time() * 1000)
+        trace_started_perf = time.perf_counter()
+
+        def _record_trace(status: str) -> None:
+            trace_recorder.record_span(
+                name="rcon.execute",
+                started_at_epoch_ms=trace_started_epoch_ms,
+                duration_ms=(time.perf_counter() - trace_started_perf) * 1000.0,
+                status=status,
+                attributes={"command": command},
+            )
+
         if not self._connected:
             waiting_for_reconnect = (
                 self.auto_reconnect
@@ -248,10 +263,12 @@ class RconClient:
             if waiting_for_reconnect:
                 await self._reconnect_event.wait()
             else:
+                _record_trace("error")
                 raise RconDisconnectedError("Not connected")
 
         await self._reconnect_event.wait()
         if not self._connected or self._writer is None:
+            _record_trace("error")
             raise RconDisconnectedError("Not connected")
 
         request_id = self._next_packet_id()
@@ -267,11 +284,18 @@ class RconClient:
         await self._writer.drain()
 
         try:
-            return await asyncio.wait_for(future, timeout=self._command_timeout)
+            response = await asyncio.wait_for(future, timeout=self._command_timeout)
         except asyncio.TimeoutError:
             self._pending_requests.pop(request_id, None)
             self._response_buffers.pop(request_id, None)
+            _record_trace("error")
             raise RconCommandTimeoutError(f"Command timed out: {command}")
+        except Exception:
+            _record_trace("error")
+            raise
+
+        _record_trace("ok")
+        return response
 
     async def execute_privileged(
         self,

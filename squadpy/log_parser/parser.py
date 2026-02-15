@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import time
 from contextlib import suppress
 from typing import TYPE_CHECKING
 
@@ -9,6 +10,7 @@ from squadpy.events.emitter import EventBus
 from squadpy.log_parser.event_store import EventStore
 from squadpy.log_parser.patterns import match_line
 from squadpy.log_parser.reader import LogReader
+from squadpy.observability import get_trace_recorder
 
 if TYPE_CHECKING:
     from squadpy.rcon.client import RconClient
@@ -41,14 +43,38 @@ class LogParser:
             self._player_cache_task = asyncio.create_task(self._poll_player_cache())
         try:
             async for line in self.reader.tail():
+                trace_started_epoch_ms = int(time.time() * 1000)
+                trace_started_perf = time.perf_counter()
+                trace_status = "ok"
+                matched = False
+                emitted_events = 0
+                pending_events = 0
                 try:
                     event = match_line(line, self.event_store)
                     if event is not None:
+                        matched = True
                         await self.event_bus.emit(event)
-                    for pending in self.event_store.drain_pending_events():
+                        emitted_events += 1
+                    drained = self.event_store.drain_pending_events()
+                    pending_events = len(drained)
+                    for pending in drained:
                         await self.event_bus.emit(pending)
+                        emitted_events += 1
                 except Exception:
+                    trace_status = "error"
                     logger.exception("Error parsing line: %s", line[:200])
+                finally:
+                    get_trace_recorder().record_span(
+                        name="log_parser.process_line",
+                        started_at_epoch_ms=trace_started_epoch_ms,
+                        duration_ms=(time.perf_counter() - trace_started_perf) * 1000.0,
+                        status=trace_status,
+                        attributes={
+                            "matched": matched,
+                            "emitted_events": emitted_events,
+                            "pending_events": pending_events,
+                        },
+                    )
         finally:
             if self._player_cache_task is not None:
                 self._player_cache_task.cancel()

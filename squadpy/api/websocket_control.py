@@ -13,6 +13,8 @@ from typing import Any
 
 from aiohttp import WSMsgType, web
 
+from squadpy.observability import get_trace_recorder
+
 logger = logging.getLogger("squadpy.api.websocket")
 
 
@@ -357,6 +359,43 @@ class WebsocketControlService:
             result={"metrics": self._build_metrics_text()},
         ).as_dict()
 
+    async def process_traces(self, *, token: str | None) -> dict[str, Any]:
+        return await self.process_traces_with_role(token=token, role="")
+
+    async def process_traces_with_role(
+        self,
+        *,
+        token: str | None,
+        role: str = "",
+        name: str = "",
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        authorized = await self._process_health_or_status(
+            token=token,
+            role=role,
+            permission="control.traces",
+            result={},
+        )
+        if not bool(authorized.get("ok")):
+            return authorized
+
+        trace_name = str(name).strip() or None
+        try:
+            parsed_limit = int(limit)
+        except (TypeError, ValueError):
+            parsed_limit = 100
+        parsed_limit = max(1, min(parsed_limit, 500))
+        recorder = get_trace_recorder()
+        return ControlResponse(
+            ok=True,
+            result={
+                "trace_name": trace_name or "all",
+                "limit": parsed_limit,
+                "summary": recorder.summary(name=trace_name),
+                "spans": recorder.recent_spans(name=trace_name, limit=parsed_limit),
+            },
+        ).as_dict()
+
     async def process_status(self, *, token: str | None) -> dict[str, Any]:
         return await self.process_status_with_role(token=token, role="")
 
@@ -546,6 +585,23 @@ class WebsocketControlService:
         token = self._request_token(request)
         role = self._request_role(request)
         response = await self.process_status_with_role(token=token, role=role)
+        return web.json_response(response, status=self._http_status(response))
+
+    async def _handle_traces(self, request: web.Request) -> web.Response:
+        token = self._request_token(request)
+        role = self._request_role(request)
+        name = str(request.query.get("name", "")).strip()
+        limit_raw = str(request.query.get("limit", "100")).strip()
+        try:
+            limit = int(limit_raw)
+        except ValueError:
+            limit = 100
+        response = await self.process_traces_with_role(
+            token=token,
+            role=role,
+            name=name,
+            limit=limit,
+        )
         return web.json_response(response, status=self._http_status(response))
 
     async def _handle_metrics(self, request: web.Request) -> web.Response:
@@ -766,6 +822,7 @@ class WebsocketControlService:
         app.router.add_get("/metrics", self._handle_metrics)
         app.router.add_get("/api/health", self._handle_health)
         app.router.add_get("/api/readiness", self._handle_readiness)
+        app.router.add_get("/api/traces", self._handle_traces)
         app.router.add_get("/api/status", self._handle_status)
         app.router.add_post("/api/command", self._handle_command)
         app.router.add_post("/api/layers/query", self._handle_layer_query)

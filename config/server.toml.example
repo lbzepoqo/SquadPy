@@ -29,7 +29,7 @@ password = "your_rcon_password"
 # auth_token = "replace_with_long_random_token"
 # rbac_enabled = false
 # rbac_default_role = "admin"
-# rbac_role_permissions = { admin = ["*"], moderator = ["control.health", "control.metrics", "control.readiness", "control.status", "layers.query"], observer = ["control.health"] }
+# rbac_role_permissions = { admin = ["*"], moderator = ["control.health", "control.metrics", "control.readiness", "control.status", "control.traces", "layers.query"], observer = ["control.health"] }
 # webhook_signing_enabled = false
 # webhook_signing_secret = "replace_with_webhook_hmac_secret"
 # webhook_signature_header = "X-SquadPy-Signature"

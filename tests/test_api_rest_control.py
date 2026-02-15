@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 
 from squadpy.api.websocket_control import WebsocketControlService
 from squadpy.layers import LayerCatalog
+from squadpy.observability import get_trace_recorder
 from squadpy.plugin_loader import LoadedPlugin, PluginStatus
 
 
@@ -130,6 +131,39 @@ class TestRestControlEndpoints:
         assert 'squadpy_plugins_total{status="failed"} 1' in metrics
         assert 'squadpy_plugin_status{plugin="auto_kick_unassigned",status="enabled"} 1' in metrics
         assert 'squadpy_plugin_status{plugin="db_log",status="failed"} 1' in metrics
+
+    async def test_traces_requires_auth(self):
+        service = WebsocketControlService(token="secret_token")
+        response = await service.process_traces(token="bad_token")
+        assert response["ok"] is False
+        assert response["code"] == "unauthorized"
+
+    async def test_traces_returns_recent_spans(self):
+        recorder = get_trace_recorder()
+        recorder.clear()
+        recorder.record_span(
+            name="rcon.execute",
+            started_at_epoch_ms=1708040000000,
+            duration_ms=12.0,
+            status="ok",
+            attributes={"command": "ListPlayers"},
+        )
+        recorder.record_span(
+            name="log_parser.process_line",
+            started_at_epoch_ms=1708040000100,
+            duration_ms=1.7,
+            status="ok",
+            attributes={"matched": True},
+        )
+
+        service = WebsocketControlService(token="secret_token")
+        response = await service.process_traces(token="secret_token")
+
+        assert response["ok"] is True
+        assert response["result"]["summary"]["total"] >= 2
+        span_names = [span["name"] for span in response["result"]["spans"]]
+        assert "rcon.execute" in span_names
+        assert "log_parser.process_line" in span_names
 
     async def test_command_endpoint_dispatches_when_authorized(self):
         rcon = AsyncMock()
@@ -318,6 +352,54 @@ class TestRestControlEndpoints:
         assert response["ok"] is True
         assert "squadpy_runtime_ready" in response["result"]["metrics"]
 
+    async def test_rbac_denies_traces_for_role_without_permission(self):
+        service = WebsocketControlService(
+            token="secret_token",
+            rbac_enabled=True,
+            rbac_default_role="observer",
+            rbac_role_permissions={
+                "observer": ["control.health", "control.status"],
+                "admin": ["*"],
+            },
+        )
+
+        response = await service.process_traces_with_role(
+            token="secret_token",
+            role="observer",
+        )
+
+        assert response["ok"] is False
+        assert response["code"] == "forbidden"
+        assert service._http_status(response) == 403
+
+    async def test_rbac_allows_traces_for_role_with_permission(self):
+        recorder = get_trace_recorder()
+        recorder.clear()
+        recorder.record_span(
+            name="rcon.execute",
+            started_at_epoch_ms=1708040000000,
+            duration_ms=9.0,
+            status="ok",
+            attributes={"command": "ListPlayers"},
+        )
+
+        service = WebsocketControlService(
+            token="secret_token",
+            rbac_enabled=True,
+            rbac_default_role="observer",
+            rbac_role_permissions={
+                "observer": ["control.health", "control.traces"],
+            },
+        )
+
+        response = await service.process_traces_with_role(
+            token="secret_token",
+            role="observer",
+        )
+
+        assert response["ok"] is True
+        assert response["result"]["summary"]["total"] >= 1
+
     async def test_rbac_allows_status_for_role_with_permission(self):
         service = WebsocketControlService(
             token="secret_token",
@@ -350,6 +432,7 @@ class TestRestControlEndpoints:
         assert "/metrics" in paths
         assert "/api/health" in paths
         assert "/api/readiness" in paths
+        assert "/api/traces" in paths
         assert "/api/status" in paths
         assert "/api/command" in paths
         assert "/api/layers/query" in paths
