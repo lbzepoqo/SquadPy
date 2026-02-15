@@ -561,6 +561,8 @@ class SquadPyServer:
         if info is None:
             return False, "Plugin directory no longer exists"
 
+        loader.clear_module_cache(target.dir_name)
+
         if self._db:
             try:
                 await self._db.create_tables()

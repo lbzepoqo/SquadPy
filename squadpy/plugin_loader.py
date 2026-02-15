@@ -141,6 +141,13 @@ class PluginLoader:
 
     def _import_plugin_class(self, info: DiscoveredPlugin) -> type[Plugin]:
         module_name = f"squadpy_plugin_{info.dir_name}"
+        module_path = info.module_path.resolve()
+        cached_module = sys.modules.get(module_name)
+        if cached_module is not None:
+            cached_file = getattr(cached_module, "__file__", None)
+            if cached_file is not None and Path(cached_file).resolve() == module_path:
+                return self._find_plugin_class(cached_module, info.module_path)
+
         spec = importlib.util.spec_from_file_location(module_name, info.module_path)
         if spec is None or spec.loader is None:
             raise ImportError(f"Cannot load {info.module_path}")
@@ -148,9 +155,17 @@ class PluginLoader:
         sys.modules[module_name] = module
         spec.loader.exec_module(module)
 
+        return self._find_plugin_class(module, info.module_path)
+
+    @staticmethod
+    def _find_plugin_class(module: Any, module_path: Path) -> type[Plugin]:
         for attr_name in dir(module):
             attr = getattr(module, attr_name)
             if isinstance(attr, type) and issubclass(attr, Plugin) and attr is not Plugin:
                 return attr
 
-        raise ImportError(f"No Plugin subclass found in {info.module_path}")
+        raise ImportError(f"No Plugin subclass found in {module_path}")
+
+    @staticmethod
+    def clear_module_cache(dir_name: str) -> None:
+        sys.modules.pop(f"squadpy_plugin_{dir_name}", None)

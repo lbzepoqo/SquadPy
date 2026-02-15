@@ -1,5 +1,7 @@
 """Tests for plugin discovery, loading, and error isolation."""
 
+import builtins
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -111,3 +113,53 @@ class TestPluginLoading:
         good = next(r for r in results if r.name == "Good Plugin")
         assert good.instance is not None
         assert good.instance.layers is services["layers"]
+
+    async def test_reuses_cached_module_for_same_plugin_path(self, tmp_path):
+        plugins_dir = tmp_path / "plugins"
+        plugin_dir = plugins_dir / "counter_plugin"
+        plugin_dir.mkdir(parents=True)
+        (plugin_dir / "plugin.py").write_text(
+            """
+import builtins
+from squadpy.plugin import Plugin
+
+counter_name = "_squadpy_counter_plugin_imports"
+setattr(builtins, counter_name, getattr(builtins, counter_name, 0) + 1)
+
+class CounterPlugin(Plugin):
+    name = "Counter Plugin"
+""".strip(),
+            encoding="utf-8",
+        )
+
+        config_dir = tmp_path / "config"
+        config_dir.mkdir()
+
+        module_name = "squadpy_plugin_counter_plugin"
+        counter_name = "_squadpy_counter_plugin_imports"
+
+        sys.modules.pop(module_name, None)
+        if hasattr(builtins, counter_name):
+            delattr(builtins, counter_name)
+
+        services = {
+            "rcon": MagicMock(),
+            "discord": None,
+            "db": None,
+            "layers": MagicMock(),
+            "server": MagicMock(),
+        }
+        loader_a = PluginLoader(plugins_dir=plugins_dir, config_dir=config_dir)
+        loader_b = PluginLoader(plugins_dir=plugins_dir, config_dir=config_dir)
+
+        try:
+            first = await loader_a.load_all(services)
+            second = await loader_b.load_all(services)
+
+            assert first[0].status == PluginStatus.ENABLED
+            assert second[0].status == PluginStatus.ENABLED
+            assert getattr(builtins, counter_name, 0) == 1
+        finally:
+            sys.modules.pop(module_name, None)
+            if hasattr(builtins, counter_name):
+                delattr(builtins, counter_name)
