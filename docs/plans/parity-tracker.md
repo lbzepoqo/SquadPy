@@ -336,8 +336,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
 - [x] `P2-BEYOND-006` Plugin watchdog/failure budgets (`@core-runtime`, `P2`)
   - Acceptance: repeated plugin failures trigger controlled degradation.
   - Acceptance note (2026-02-15): Added runtime plugin watchdog failure budgets via `plugin_watchdog` config in `squadpy/config.py` and `config/server.toml.example`, then enforced budget-based degradation in `squadpy/server.py` by wrapping plugin event handlers and periodic tasks with failure accounting; repeated failures within the configured window now trigger controlled degradation (event unsubscription, periodic-task cancellation, `on_disable`, and plugin status transition to disabled with watchdog reason); added targeted coverage in `tests/test_server.py` and `tests/test_config.py`, plus contract coverage in `tests/contracts/core_runtime/test_plugin_watchdog_failure_budget_contract.py`.
-- [ ] `P2-BEYOND-007` Plugin scaffolder CLI (`@plugins-moderation`, `P2`)
+- [x] `P2-BEYOND-007` Plugin scaffolder CLI (`@plugins-moderation`, `P2`)
   - Acceptance: CLI creates tested plugin skeleton with typed hooks.
+  - Acceptance note (2026-02-15): Added plugin scaffolder helper in `squadpy/plugin_scaffolder.py` and CLI entry script `scripts/scaffold_plugin.py` that generates `plugins/<name>/plugin.py`, `tests/test_plugin_<name>.py`, and `config/plugins/<name>.toml.example`; generated skeleton includes typed event hooks (`PlayerConnected`, `ChatMessage`) plus periodic hook boilerplate and starter tests that assert hook registration/type annotations; added targeted coverage in `tests/test_plugin_scaffolder.py` and contract coverage in `tests/contracts/core_runtime/test_plugin_scaffolder_contract.py`.
 - [ ] `P2-BEYOND-008` Local simulation harness (`@qa-release`, `P2`)
   - Acceptance: local replay of logs/RCON fixtures supports plugin dev loops.
 
