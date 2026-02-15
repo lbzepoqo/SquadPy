@@ -1,5 +1,6 @@
 """Authenticated websocket control service."""
 
+import inspect
 import hashlib
 import hmac
 import json
@@ -274,12 +275,60 @@ class WebsocketControlService:
         token: str | None,
         role: str = "",
     ) -> dict[str, Any]:
+        snapshot = self._build_dependency_snapshot()
         return await self._process_health_or_status(
             token=token,
             role=role,
             permission="control.health",
-            result={"status": "ok"},
+            result={
+                "service": "control_api",
+                "status": "ok" if snapshot["ready"] else "degraded",
+                "ready": snapshot["ready"],
+                "dependencies": snapshot["dependencies"],
+            },
         )
+
+    async def process_readiness(self, *, token: str | None) -> dict[str, Any]:
+        return await self.process_readiness_with_role(token=token, role="")
+
+    async def process_readiness_with_role(
+        self,
+        *,
+        token: str | None,
+        role: str = "",
+    ) -> dict[str, Any]:
+        authorized = await self._process_health_or_status(
+            token=token,
+            role=role,
+            permission="control.readiness",
+            result={},
+        )
+        if not bool(authorized.get("ok")):
+            return authorized
+
+        snapshot = self._build_dependency_snapshot()
+        if snapshot["ready"]:
+            return ControlResponse(
+                ok=True,
+                result={
+                    "service": "control_api",
+                    "status": "ready",
+                    "ready": True,
+                    "dependencies": snapshot["dependencies"],
+                },
+            ).as_dict()
+
+        return ControlResponse(
+            ok=False,
+            error="Service not ready",
+            code="unavailable",
+            result={
+                "service": "control_api",
+                "status": "not_ready",
+                "ready": False,
+                "dependencies": snapshot["dependencies"],
+            },
+        ).as_dict()
 
     async def process_status(self, *, token: str | None) -> dict[str, Any]:
         return await self.process_status_with_role(token=token, role="")
@@ -306,10 +355,13 @@ class WebsocketControlService:
             ).as_dict()
 
         rcon = self._resolve_rcon()
+        snapshot = self._build_dependency_snapshot()
         response = {
             "service": "control_api",
             "rcon_connected": bool(rcon and getattr(rcon, "connected", False)),
             "server_running": bool(getattr(self._server, "running", False)) if self._server else False,
+            "ready": snapshot["ready"],
+            "dependencies": snapshot["dependencies"],
         }
         return ControlResponse(
             ok=True,
@@ -469,6 +521,12 @@ class WebsocketControlService:
         response = await self.process_status_with_role(token=token, role=role)
         return web.json_response(response, status=self._http_status(response))
 
+    async def _handle_readiness(self, request: web.Request) -> web.Response:
+        token = self._request_token(request)
+        role = self._request_role(request)
+        response = await self.process_readiness_with_role(token=token, role=role)
+        return web.json_response(response, status=self._http_status(response))
+
     async def _handle_command(self, request: web.Request) -> web.Response:
         token = self._request_token(request)
         try:
@@ -598,12 +656,16 @@ class WebsocketControlService:
             return self._rcon
         if self._server is None:
             return None
+        if "_rcon" not in vars(self._server):
+            return None
         return getattr(self._server, "_rcon", None)
 
     def _resolve_layer_catalog_service(self):
         if self._layer_catalog_service is not None:
             return self._layer_catalog_service
         if self._server is None:
+            return None
+        if "_layers" not in vars(self._server):
             return None
         return getattr(self._server, "_layers", None)
 
@@ -660,6 +722,7 @@ class WebsocketControlService:
         app = web.Application()
         app.router.add_get(self._path, self._handle_ws)
         app.router.add_get("/api/health", self._handle_health)
+        app.router.add_get("/api/readiness", self._handle_readiness)
         app.router.add_get("/api/status", self._handle_status)
         app.router.add_post("/api/command", self._handle_command)
         app.router.add_post("/api/layers/query", self._handle_layer_query)
@@ -709,6 +772,127 @@ class WebsocketControlService:
             ok=True,
             result=result,
         ).as_dict()
+
+    def _build_dependency_snapshot(self) -> dict[str, Any]:
+        dependencies: dict[str, dict[str, Any]] = {}
+        required_health: list[bool] = []
+        server = self._server
+
+        def add_dependency(
+            name: str,
+            *,
+            required: bool,
+            healthy: bool,
+            detail: str,
+            extras: dict[str, Any] | None = None,
+        ) -> None:
+            entry: dict[str, Any] = {
+                "required": required,
+                "healthy": healthy,
+                "detail": detail,
+            }
+            if extras:
+                entry.update(extras)
+            dependencies[name] = entry
+            if required:
+                required_health.append(healthy)
+
+        server_required = server is not None
+        server_running = bool(getattr(server, "running", False)) if server_required else True
+        add_dependency(
+            "server",
+            required=server_required,
+            healthy=server_running,
+            detail="running" if server_running else "not running",
+        )
+
+        rcon = self._resolve_rcon()
+        rcon_required = bool(server_required or rcon is not None)
+        rcon_connected = bool(rcon and getattr(rcon, "connected", False))
+        if not rcon_required:
+            rcon_detail = "not attached"
+        elif rcon is None:
+            rcon_detail = "unavailable"
+        else:
+            rcon_detail = "connected" if rcon_connected else "disconnected"
+        add_dependency(
+            "rcon",
+            required=rcon_required,
+            healthy=rcon_connected if rcon_required else True,
+            detail=rcon_detail,
+        )
+
+        server_config = getattr(server, "_server_config", None)
+        discord_required = bool(
+            server_config
+            and getattr(getattr(server_config, "discord", None), "enabled", False)
+        )
+        discord = getattr(server, "_discord", None) if server is not None else None
+        discord_running = bool(discord and getattr(discord, "running", False))
+        add_dependency(
+            "discord",
+            required=discord_required,
+            healthy=discord_running if discord_required else True,
+            detail=(
+                "running"
+                if discord_running
+                else ("not configured" if not discord_required else "not running")
+            ),
+        )
+
+        db_config = getattr(server, "_db_config", None) if server is not None else None
+        database_required = bool(db_config and getattr(db_config, "enabled", False))
+        database = getattr(server, "_db", None) if server is not None else None
+        database_ready = database is not None
+        add_dependency(
+            "database",
+            required=database_required,
+            healthy=database_ready if database_required else True,
+            detail=(
+                "initialized"
+                if database_ready
+                else ("not configured" if not database_required else "unavailable")
+            ),
+        )
+
+        layer_service = self._resolve_layer_catalog_service()
+        layer_health = self._layer_health_payload(layer_service)
+        layer_status = str(layer_health.get("status", "unknown")).lower()
+        add_dependency(
+            "layers",
+            required=False,
+            healthy=layer_status in {"healthy", "ok"},
+            detail=layer_status,
+            extras={"health": layer_health},
+        )
+
+        ready = all(required_health) if required_health else True
+        return {
+            "ready": ready,
+            "dependencies": dependencies,
+        }
+
+    @staticmethod
+    def _layer_health_payload(layer_service: Any) -> dict[str, Any]:
+        if layer_service is None:
+            return {"status": "unavailable"}
+
+        health_fn = getattr(layer_service, "health", None)
+        if not callable(health_fn):
+            return {"status": "unavailable"}
+        if inspect.iscoroutinefunction(health_fn):
+            return {"status": "unknown"}
+
+        health = health_fn()
+        if inspect.isawaitable(health):
+            if hasattr(health, "close"):
+                health.close()
+            return {"status": "unknown"}
+        if hasattr(health, "as_dict"):
+            return health.as_dict()
+        if isinstance(health, dict):
+            return health
+        return {"status": str(health)}
 
     def _build_rbac_permissions(
         self,

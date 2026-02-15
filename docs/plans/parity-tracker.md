@@ -326,8 +326,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
   - Acceptance: standard runtime and plugin metrics are exposed.
 - [ ] `P2-BEYOND-004` Trace instrumentation for critical paths (`@qa-release`, `P2`)
   - Acceptance: traces show RCON command latency and parser timing.
-- [ ] `P2-BEYOND-005` Health/readiness endpoints (`@qa-release`, `P2`)
+- [x] `P2-BEYOND-005` Health/readiness endpoints (`@qa-release`, `P2`)
   - Acceptance: probes reflect dependency state accurately.
+  - Acceptance note (2026-02-15): Extended control API probes in `squadpy/api/websocket_control.py` with dependency-aware health details and a dedicated readiness endpoint (`/api/readiness`); health now reports per-dependency `required`/`healthy` state and overall `ready` signal, and readiness returns `503 unavailable` when required dependencies (for example RCON/server) are not healthy; updated API example RBAC permissions in `config/server.toml.example` and added targeted coverage in `tests/test_api_rest_control.py` plus contract checks in `tests/contracts/api_security/test_health_readiness_contract.py`.
 - [ ] `P2-BEYOND-006` Plugin watchdog/failure budgets (`@core-runtime`, `P2`)
   - Acceptance: repeated plugin failures trigger controlled degradation.
 - [ ] `P2-BEYOND-007` Plugin scaffolder CLI (`@plugins-moderation`, `P2`)
