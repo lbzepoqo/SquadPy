@@ -309,8 +309,9 @@ Reference: `docs/plans/layer-catalog-source-reference.md` (upstream `layers.json
 - [x] `P0-MIG-003` Build migrated TOML linter/report tool (`@migration`, `P0`)
   - Acceptance: linter emits actionable fixups, severity levels, and explicit safe/review/unsupported mapping categories.
   - Acceptance note (2026-02-15): Added migrated TOML lint/report tool at `scripts/lint_migrated_toml.py` backed by `squadpy/migration/toml_linter.py`; linter emits per-mapping severity (`info`/`warning`/`error`), actionable `fixup` guidance, and explicit `safe`/`review`/`unsupported` categories with summary counts; added sample migrated TOML fixture at `tests/fixtures/migration/migrated_inventory.toml` with targeted coverage in `tests/test_migration_toml_linter.py` and contract coverage in `tests/contracts/migration/test_toml_linter_contract.py`.
-- [ ] `P1-MIG-004` Publish migration cookbook (`@migration`, `P1`)
+- [x] `P1-MIG-004` Publish migration cookbook (`@migration`, `P1`)
   - Acceptance: docs include end-to-end cutover steps and rollback.
+  - Acceptance note (2026-02-15): Added migration runbook `docs/migration-cookbook.md` covering pre-migration snapshotting, report-first analyzer workflow, migrated TOML lint usage, staging validation, production cutover sequence, explicit rollback triggers/steps, and post-cutover stabilization.
 - [ ] `P1-MIG-005` Build plugin behavior mapping matrix (`@migration`, `P1`)
   - Acceptance: every source plugin has mapped target/equivalent strategy.
 
