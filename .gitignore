@@ -30,3 +30,4 @@ tmp/gate-windows/
 
 # Editor settings
 .vscode/
+.codegraph/
