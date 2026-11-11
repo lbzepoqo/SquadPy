@@ -68,7 +68,7 @@
 - If a requirement or task does not make sense, be explicit and honest about the concern, then request clarification before proceeding.
 - Before editing, read relevant `README.md` sections, target modules, and matching tests.
 - Reuse existing repo patterns before introducing new abstractions.
-- Keep diffs minimal and report changed files plus validation commands in handoff notes.
+- Keep each commit to one purpose, and report changed files plus validation commands in handoff notes.
 - For test execution, always use the project virtualenv (`make test*` or `.venv/bin/python -m pytest ...`), not system `python3`/`pytest`.
 - Run `make typecheck` before every commit/handoff and include the result in validation notes.
 
